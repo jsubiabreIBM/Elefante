@@ -1,0 +1,304 @@
+"""
+Configuration management for Elefante memory system
+
+Loads configuration from config.yaml with environment variable overrides.
+Provides singleton access to configuration throughout the application.
+"""
+
+import os
+import yaml
+from pathlib import Path
+from typing import Any, Dict, Optional
+from pydantic import BaseModel, Field, validator
+from dotenv import load_dotenv
+
+
+class VectorStoreConfig(BaseModel):
+    """Vector store (ChromaDB) configuration"""
+    type: str = "chromadb"
+    persist_directory: str = "./data/chroma"
+    collection_name: str = "memories"
+    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_dimension: int = 384
+    distance_metric: str = "cosine"
+
+
+class GraphStoreConfig(BaseModel):
+    """Graph store (Kuzu) configuration"""
+    type: str = "kuzu"
+    database_path: str = "./data/kuzu"
+    buffer_pool_size: str = "512MB"
+    max_num_threads: int = 4
+
+
+class OrchestratorConfig(BaseModel):
+    """Hybrid orchestrator configuration"""
+    default_mode: str = "hybrid"
+    vector_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    graph_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    max_results: int = Field(default=10, ge=1, le=100)
+    min_similarity: float = Field(default=0.3, ge=0.0, le=1.0)
+    
+    @validator('vector_weight', 'graph_weight')
+    def validate_weights(cls, v, values):
+        """Ensure weights are valid"""
+        if 'vector_weight' in values and 'graph_weight' in values:
+            total = values['vector_weight'] + v
+            if abs(total - 1.0) > 0.01:
+                raise ValueError("vector_weight + graph_weight must equal 1.0")
+        return v
+
+
+class MCPServerConfig(BaseModel):
+    """MCP server configuration"""
+    name: str = "elefante-memory"
+    version: str = "1.0.0"
+    description: str = "Local AI Memory System with Vector and Graph Storage"
+    port: Optional[int] = None
+    host: Optional[str] = None
+
+
+class EmbeddingsConfig(BaseModel):
+    """Embedding service configuration"""
+    provider: str = "sentence-transformers"
+    model: str = "all-MiniLM-L6-v2"
+    device: str = "cpu"
+    batch_size: int = Field(default=32, ge=1, le=128)
+    normalize: bool = True
+
+
+class LoggingConfig(BaseModel):
+    """Logging configuration"""
+    level: str = "INFO"
+    format: str = "json"
+    file: str = "./logs/elefante.log"
+    max_size: str = "10MB"
+    backup_count: int = 5
+    console: bool = True
+
+
+class MemoryConfig(BaseModel):
+    """Memory management configuration"""
+    auto_consolidate: bool = False
+    consolidation_threshold: int = 1000
+    importance_decay: bool = False
+    max_age_days: int = Field(default=365, ge=0)
+
+
+class PerformanceConfig(BaseModel):
+    """Performance tuning configuration"""
+    cache_embeddings: bool = True
+    cache_size: int = Field(default=1000, ge=0)
+    parallel_queries: bool = True
+    query_timeout: int = Field(default=30, ge=1)
+
+
+class FeaturesConfig(BaseModel):
+    """Feature flags"""
+    enable_graph_store: bool = True
+    enable_vector_store: bool = True
+    enable_auto_tagging: bool = False
+    enable_deduplication: bool = True
+
+
+class ElefanteConfig(BaseModel):
+    """Main Elefante configuration"""
+    version: str = "1.0.0"
+    data_dir: str = "./data"
+    vector_store: VectorStoreConfig = Field(default_factory=VectorStoreConfig)
+    graph_store: GraphStoreConfig = Field(default_factory=GraphStoreConfig)
+    orchestrator: OrchestratorConfig = Field(default_factory=OrchestratorConfig)
+    mcp_server: MCPServerConfig = Field(default_factory=MCPServerConfig)
+    embeddings: EmbeddingsConfig = Field(default_factory=EmbeddingsConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    memory: MemoryConfig = Field(default_factory=MemoryConfig)
+    performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
+    features: FeaturesConfig = Field(default_factory=FeaturesConfig)
+
+
+class Config:
+    """
+    Configuration manager for Elefante
+    
+    Loads configuration from config.yaml and applies environment variable overrides.
+    Provides singleton access to configuration.
+    """
+    
+    _instance: Optional['Config'] = None
+    _config: Optional[ElefanteConfig] = None
+    
+    def __new__(cls):
+        """Singleton pattern"""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        """Initialize configuration if not already loaded"""
+        if self._config is None:
+            self.load()
+    
+    def load(self, config_path: Optional[str] = None) -> None:
+        """
+        Load configuration from file and environment variables
+        
+        Args:
+            config_path: Path to config.yaml (default: ./config.yaml)
+        """
+        # Load environment variables from .env file
+        load_dotenv()
+        
+        # Determine config file path
+        if config_path is None:
+            config_path = os.getenv('ELEFANTE_CONFIG_PATH', 'config.yaml')
+        
+        config_file = Path(config_path)
+        
+        # Load YAML configuration
+        if config_file.exists():
+            with open(config_file, 'r') as f:
+                config_dict = yaml.safe_load(f)
+                # Extract elefante section if it exists
+                if 'elefante' in config_dict:
+                    config_dict = config_dict['elefante']
+        else:
+            # Use default configuration
+            config_dict = {}
+        
+        # Apply environment variable overrides
+        config_dict = self._apply_env_overrides(config_dict)
+        
+        # Validate and create configuration object
+        self._config = ElefanteConfig(**config_dict)
+    
+    def _apply_env_overrides(self, config_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply environment variable overrides to configuration
+        
+        Environment variables follow the pattern: ELEFANTE_<SECTION>_<KEY>
+        Example: ELEFANTE_DATA_DIR, ELEFANTE_LOGGING_LEVEL
+        """
+        # Data directory override
+        if data_dir := os.getenv('ELEFANTE_DATA_DIR'):
+            config_dict['data_dir'] = data_dir
+        
+        # Logging level override
+        if log_level := os.getenv('ELEFANTE_LOG_LEVEL'):
+            if 'logging' not in config_dict:
+                config_dict['logging'] = {}
+            config_dict['logging']['level'] = log_level
+        
+        # Embedding model override
+        if embedding_model := os.getenv('ELEFANTE_EMBEDDING_MODEL'):
+            if 'embeddings' not in config_dict:
+                config_dict['embeddings'] = {}
+            config_dict['embeddings']['model'] = embedding_model
+        
+        # Device override
+        if device := os.getenv('ELEFANTE_DEVICE'):
+            if 'embeddings' not in config_dict:
+                config_dict['embeddings'] = {}
+            config_dict['embeddings']['device'] = device
+        
+        # MCP port override
+        if mcp_port := os.getenv('ELEFANTE_MCP_PORT'):
+            if 'mcp_server' not in config_dict:
+                config_dict['mcp_server'] = {}
+            config_dict['mcp_server']['port'] = int(mcp_port)
+        
+        # OpenAI API key (for optional OpenAI embeddings)
+        if openai_key := os.getenv('OPENAI_API_KEY'):
+            if 'embeddings' not in config_dict:
+                config_dict['embeddings'] = {}
+            # Store for later use if provider is set to openai
+            config_dict['embeddings']['openai_api_key'] = openai_key
+        
+        return config_dict
+    
+    @property
+    def elefante(self) -> ElefanteConfig:
+        """Get Elefante configuration"""
+        if self._config is None:
+            self.load()
+        return self._config
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get configuration value by dot-notation key
+        
+        Args:
+            key: Configuration key in dot notation (e.g., 'vector_store.collection_name')
+            default: Default value if key not found
+            
+        Returns:
+            Configuration value or default
+        """
+        if self._config is None:
+            self.load()
+        
+        # Split key by dots and traverse config
+        parts = key.split('.')
+        value = self._config
+        
+        for part in parts:
+            if hasattr(value, part):
+                value = getattr(value, part)
+            else:
+                return default
+        
+        return value
+    
+    def reload(self, config_path: Optional[str] = None) -> None:
+        """
+        Reload configuration from file
+        
+        Args:
+            config_path: Path to config.yaml
+        """
+        self._config = None
+        self.load(config_path)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert configuration to dictionary"""
+        if self._config is None:
+            self.load()
+        return self._config.dict()
+    
+    def __repr__(self) -> str:
+        return f"Config(version={self.elefante.version}, data_dir={self.elefante.data_dir})"
+
+
+# Global configuration instance
+_config_instance: Optional[Config] = None
+
+
+def get_config() -> Config:
+    """
+    Get global configuration instance
+    
+    Returns:
+        Config: Global configuration instance
+    """
+    global _config_instance
+    if _config_instance is None:
+        _config_instance = Config()
+    return _config_instance
+
+
+def reload_config(config_path: Optional[str] = None) -> Config:
+    """
+    Reload global configuration
+    
+    Args:
+        config_path: Path to config.yaml
+        
+    Returns:
+        Config: Reloaded configuration instance
+    """
+    global _config_instance
+    if _config_instance is None:
+        _config_instance = Config()
+    _config_instance.reload(config_path)
+    return _config_instance
+
+# Made with Bob
