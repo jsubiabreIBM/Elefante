@@ -1,0 +1,452 @@
+"""
+MCP Server implementation for Elefante Memory System
+
+This server exposes memory operations as MCP tools that can be called
+from IDEs and other MCP clients. It provides a standardized interface
+for AI assistants to store and retrieve memories.
+"""
+
+import asyncio
+import json
+from typing import Any, Dict, List, Optional, Sequence
+from datetime import datetime
+from uuid import UUID
+
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.types import (
+    Tool,
+    TextContent,
+    ImageContent,
+    EmbeddedResource,
+)
+
+from src.core.orchestrator import get_orchestrator
+from src.models.query import QueryMode, SearchFilters
+from src.models.entity import EntityType, RelationshipType
+from src.utils.logger import get_logger
+from src.utils.validators import validate_memory_content, validate_uuid
+
+logger = get_logger(__name__)
+
+
+class ElefanteMCPServer:
+    """
+    MCP Server for Elefante Memory System
+    
+    Exposes memory operations as MCP tools:
+    - addMemory: Store new memories
+    - searchMemories: Search with semantic/structured/hybrid modes
+    - queryGraph: Execute Cypher queries on knowledge graph
+    - getContext: Retrieve session context
+    - createEntity: Create entities in knowledge graph
+    - createRelationship: Link entities with relationships
+    - getStats: Get system statistics
+    """
+    
+    def __init__(self):
+        """Initialize MCP server with Elefante orchestrator"""
+        self.server = Server("elefante-memory")
+        self.orchestrator = get_orchestrator()
+        self.logger = get_logger(self.__class__.__name__)
+        
+        # Register tool handlers
+        self._register_handlers()
+        
+        self.logger.info("Elefante MCP Server initialized")
+    
+    def _register_handlers(self):
+        """Register all MCP tool handlers"""
+        
+        @self.server.list_tools()
+        async def list_tools() -> List[Tool]:
+            """List all available tools"""
+            return [
+                Tool(
+                    name="addMemory",
+                    description="Store a new memory in the system. Memories are stored in both vector (semantic) and graph (structured) databases for hybrid retrieval.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "content": {
+                                "type": "string",
+                                "description": "The memory content to store"
+                            },
+                            "memory_type": {
+                                "type": "string",
+                                "enum": ["conversation", "fact", "insight", "code", "decision", "task", "note"],
+                                "default": "conversation",
+                                "description": "Type of memory"
+                            },
+                            "importance": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 10,
+                                "default": 5,
+                                "description": "Importance level (1-10)"
+                            },
+                            "tags": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Tags for categorization"
+                            },
+                            "entities": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {"type": "string"},
+                                        "type": {"type": "string"}
+                                    },
+                                    "required": ["name", "type"]
+                                },
+                                "description": "Entities to link in knowledge graph"
+                            },
+                            "metadata": {
+                                "type": "object",
+                                "description": "Additional metadata"
+                            }
+                        },
+                        "required": ["content"]
+                    }
+                ),
+                Tool(
+                    name="searchMemories",
+                    description="Search memories using semantic similarity, structured queries, or hybrid mode. Hybrid mode intelligently combines both approaches for best results.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Search query"
+                            },
+                            "mode": {
+                                "type": "string",
+                                "enum": ["semantic", "structured", "hybrid"],
+                                "default": "hybrid",
+                                "description": "Search mode: semantic (vector), structured (graph), or hybrid (both)"
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "default": 10,
+                                "minimum": 1,
+                                "maximum": 100,
+                                "description": "Maximum results to return"
+                            },
+                            "filters": {
+                                "type": "object",
+                                "properties": {
+                                    "memory_type": {"type": "string"},
+                                    "min_importance": {"type": "integer", "minimum": 1, "maximum": 10},
+                                    "tags": {"type": "array", "items": {"type": "string"}},
+                                    "start_date": {"type": "string", "format": "date-time"},
+                                    "end_date": {"type": "string", "format": "date-time"}
+                                },
+                                "description": "Optional filters"
+                            },
+                            "min_similarity": {
+                                "type": "number",
+                                "default": 0.3,
+                                "minimum": 0.0,
+                                "maximum": 1.0,
+                                "description": "Minimum similarity threshold"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                ),
+                Tool(
+                    name="queryGraph",
+                    description="Execute Cypher-like queries on the knowledge graph for structured data retrieval. Use this for finding specific relationships and patterns.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "cypher_query": {
+                                "type": "string",
+                                "description": "Cypher query to execute"
+                            },
+                            "parameters": {
+                                "type": "object",
+                                "description": "Query parameters"
+                            }
+                        },
+                        "required": ["cypher_query"]
+                    }
+                ),
+                Tool(
+                    name="getContext",
+                    description="Retrieve comprehensive context for a session or task, including related memories, entities, and relationships.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "session_id": {
+                                "type": "string",
+                                "description": "Session UUID (optional)"
+                            },
+                            "depth": {
+                                "type": "integer",
+                                "default": 2,
+                                "minimum": 1,
+                                "maximum": 5,
+                                "description": "Relationship traversal depth"
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "default": 50,
+                                "minimum": 1,
+                                "maximum": 200,
+                                "description": "Maximum memories to retrieve"
+                            }
+                        }
+                    }
+                ),
+                Tool(
+                    name="createEntity",
+                    description="Create a new entity in the knowledge graph. Entities represent people, projects, files, concepts, etc.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Entity name"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": ["person", "project", "file", "concept", "technology", "task", "organization", "location", "event", "custom"],
+                                "description": "Entity type"
+                            },
+                            "properties": {
+                                "type": "object",
+                                "description": "Additional properties"
+                            }
+                        },
+                        "required": ["name", "type"]
+                    }
+                ),
+                Tool(
+                    name="createRelationship",
+                    description="Create a relationship between two entities in the knowledge graph.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "from_entity_id": {
+                                "type": "string",
+                                "description": "Source entity UUID"
+                            },
+                            "to_entity_id": {
+                                "type": "string",
+                                "description": "Target entity UUID"
+                            },
+                            "relationship_type": {
+                                "type": "string",
+                                "enum": ["relates_to", "depends_on", "part_of", "created_by", "references", "blocks", "implements", "uses", "custom"],
+                                "description": "Relationship type"
+                            },
+                            "properties": {
+                                "type": "object",
+                                "description": "Additional properties"
+                            }
+                        },
+                        "required": ["from_entity_id", "to_entity_id", "relationship_type"]
+                    }
+                ),
+                Tool(
+                    name="getStats",
+                    description="Get statistics about the memory system, including database sizes and health status.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {}
+                    }
+                )
+            ]
+        
+        @self.server.call_tool()
+        async def call_tool(name: str, arguments: Dict[str, Any]) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+            """Handle tool calls"""
+            self.logger.info(f"Tool called: {name}", arguments=arguments)
+            
+            try:
+                if name == "addMemory":
+                    result = await self._handle_add_memory(arguments)
+                elif name == "searchMemories":
+                    result = await self._handle_search_memories(arguments)
+                elif name == "queryGraph":
+                    result = await self._handle_query_graph(arguments)
+                elif name == "getContext":
+                    result = await self._handle_get_context(arguments)
+                elif name == "createEntity":
+                    result = await self._handle_create_entity(arguments)
+                elif name == "createRelationship":
+                    result = await self._handle_create_relationship(arguments)
+                elif name == "getStats":
+                    result = await self._handle_get_stats(arguments)
+                else:
+                    raise ValueError(f"Unknown tool: {name}")
+                
+                return [TextContent(
+                    type="text",
+                    text=json.dumps(result, indent=2, default=str)
+                )]
+                
+            except Exception as e:
+                self.logger.error(f"Tool execution failed: {name}", error=str(e), exc_info=True)
+                return [TextContent(
+                    type="text",
+                    text=json.dumps({
+                        "error": str(e),
+                        "tool": name,
+                        "success": False
+                    }, indent=2)
+                )]
+    
+    async def _handle_add_memory(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle addMemory tool call"""
+        memory = await self.orchestrator.add_memory(
+            content=args["content"],
+            memory_type=args.get("memory_type", "conversation"),
+            importance=args.get("importance", 5),
+            tags=args.get("tags"),
+            entities=args.get("entities"),
+            metadata=args.get("metadata")
+        )
+        
+        return {
+            "success": True,
+            "memory_id": str(memory.id),
+            "message": "Memory stored successfully",
+            "memory": memory.to_dict()
+        }
+    
+    async def _handle_search_memories(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle searchMemories tool call"""
+        # Parse mode
+        mode_str = args.get("mode", "hybrid")
+        mode = QueryMode(mode_str)
+        
+        # Parse filters
+        filters = None
+        if "filters" in args:
+            filter_data = args["filters"]
+            filters = SearchFilters(
+                memory_type=filter_data.get("memory_type"),
+                min_importance=filter_data.get("min_importance"),
+                max_importance=filter_data.get("max_importance"),
+                tags=filter_data.get("tags"),
+                start_date=datetime.fromisoformat(filter_data["start_date"]) if "start_date" in filter_data else None,
+                end_date=datetime.fromisoformat(filter_data["end_date"]) if "end_date" in filter_data else None
+            )
+        
+        # Search
+        results = await self.orchestrator.search_memories(
+            query=args["query"],
+            mode=mode,
+            limit=args.get("limit", 10),
+            filters=filters,
+            min_similarity=args.get("min_similarity", 0.3)
+        )
+        
+        return {
+            "success": True,
+            "count": len(results),
+            "results": [result.to_dict() for result in results]
+        }
+    
+    async def _handle_query_graph(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle queryGraph tool call"""
+        from src.core.graph_store import get_graph_store
+        
+        graph_store = get_graph_store()
+        # Note: Kuzu doesn't support parameterized queries in current implementation
+        results = await graph_store.execute_query(args["cypher_query"])
+        
+        return {
+            "success": True,
+            "count": len(results),
+            "results": results
+        }
+    
+    async def _handle_get_context(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle getContext tool call"""
+        session_id = None
+        if "session_id" in args:
+            session_id = UUID(args["session_id"])
+        
+        context = await self.orchestrator.get_context(
+            session_id=session_id,
+            depth=args.get("depth", 2),
+            limit=args.get("limit", 50)
+        )
+        
+        return {
+            "success": True,
+            "context": context
+        }
+    
+    async def _handle_create_entity(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle createEntity tool call"""
+        entity = await self.orchestrator.create_entity(
+            name=args["name"],
+            entity_type=args["type"],
+            properties=args.get("properties")
+        )
+        
+        return {
+            "success": True,
+            "entity_id": str(entity.id),
+            "message": "Entity created successfully",
+            "entity": entity.to_dict()
+        }
+    
+    async def _handle_create_relationship(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle createRelationship tool call"""
+        relationship = await self.orchestrator.create_relationship(
+            from_entity_id=UUID(args["from_entity_id"]),
+            to_entity_id=UUID(args["to_entity_id"]),
+            relationship_type=args["relationship_type"],
+            properties=args.get("properties")
+        )
+        
+        return {
+            "success": True,
+            "message": "Relationship created successfully",
+            "relationship": {
+                "from_entity_id": str(relationship.from_entity_id),
+                "to_entity_id": str(relationship.to_entity_id),
+                "type": relationship.relationship_type.value,
+                "properties": relationship.properties
+            }
+        }
+    
+    async def _handle_get_stats(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle getStats tool call"""
+        stats = await self.orchestrator.get_stats()
+        
+        return {
+            "success": True,
+            "stats": stats
+        }
+    
+    async def run(self):
+        """Run the MCP server"""
+        self.logger.info("Starting Elefante MCP Server...")
+        
+        async with stdio_server() as (read_stream, write_stream):
+            self.logger.info("MCP Server running on stdio")
+            await self.server.run(
+                read_stream,
+                write_stream,
+                self.server.create_initialization_options()
+            )
+
+
+async def main():
+    """Main entry point for MCP server"""
+    server = ElefanteMCPServer()
+    await server.run()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+# Made with Bob
