@@ -1,0 +1,32 @@
+# Core Dependencies
+chromadb>=0.4.22
+kuzu>=0.1.0
+sentence-transformers>=2.2.2
+
+# MCP Protocol
+mcp>=1.0.0
+
+# Async & HTTP
+aiohttp>=3.9.0
+asyncio>=3.4.3
+
+# Data Processing
+numpy>=1.24.0
+pydantic>=2.5.0
+
+# Configuration
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+
+# Logging & Monitoring
+structlog>=23.2.0
+
+# Optional: OpenAI embeddings (if user wants)
+# openai>=1.0.0
+
+# Development Dependencies (optional)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+black>=23.12.0
+mypy>=1.7.0

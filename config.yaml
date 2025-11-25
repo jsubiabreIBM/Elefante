@@ -1,0 +1,84 @@
+# Elefante Memory System Configuration
+# Version: 1.0.0
+
+elefante:
+  version: "1.0.0"
+  data_dir: "./data"
+  
+  # Vector Store Configuration (ChromaDB)
+  vector_store:
+    type: "chromadb"
+    persist_directory: "./data/chroma"
+    collection_name: "memories"
+    embedding_model: "all-MiniLM-L6-v2"
+    embedding_dimension: 384
+    distance_metric: "cosine"
+    
+  # Graph Store Configuration (Kuzu)
+  graph_store:
+    type: "kuzu"
+    database_path: "./data/kuzu"
+    buffer_pool_size: "512MB"
+    max_num_threads: 4
+    
+  # Hybrid Query Orchestrator
+  orchestrator:
+    default_mode: "hybrid"  # Options: semantic, structured, hybrid
+    vector_weight: 0.5      # Weight for semantic search (0.0-1.0)
+    graph_weight: 0.5       # Weight for graph search (0.0-1.0)
+    max_results: 10         # Maximum results to return
+    min_similarity: 0.3     # Minimum similarity threshold
+    
+  # MCP Server Configuration
+  mcp_server:
+    name: "elefante-memory"
+    version: "1.0.0"
+    description: "Local AI Memory System with Vector and Graph Storage"
+    # Optional HTTP endpoint (leave commented for stdio only)
+    # port: 3000
+    # host: "localhost"
+    
+  # Embedding Service Configuration
+  embeddings:
+    provider: "sentence-transformers"  # Options: sentence-transformers, openai
+    model: "all-MiniLM-L6-v2"
+    device: "cpu"  # Options: cpu, cuda, mps (for Apple Silicon)
+    batch_size: 32
+    normalize: true
+    
+    # Optional: OpenAI embeddings (requires API key in .env)
+    # provider: "openai"
+    # model: "text-embedding-3-small"
+    # dimensions: 1536
+    
+  # Logging Configuration
+  logging:
+    level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+    format: "json"  # Options: json, text
+    file: "./logs/elefante.log"
+    max_size: "10MB"
+    backup_count: 5
+    console: true
+    
+  # Memory Management
+  memory:
+    auto_consolidate: false  # Automatic memory consolidation (future feature)
+    consolidation_threshold: 1000  # Number of memories before consolidation
+    importance_decay: false  # Decay importance over time (future feature)
+    max_age_days: 365  # Maximum age before archival (0 = never)
+    
+  # Performance Tuning
+  performance:
+    cache_embeddings: true
+    cache_size: 1000
+    parallel_queries: true
+    query_timeout: 30  # seconds
+    
+  # Feature Flags
+  features:
+    enable_graph_store: true
+    enable_vector_store: true
+    enable_auto_tagging: false  # AI-powered auto-tagging (future)
+    enable_deduplication: true
+
+# Made with Bob
