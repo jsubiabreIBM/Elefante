@@ -12,11 +12,25 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field, validator
 from dotenv import load_dotenv
 
+# Define absolute paths relative to project root
+# This ensures databases are found regardless of working directory
+PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
+DATA_DIR = PROJECT_ROOT / "data"
+CHROMA_DIR = DATA_DIR / "chroma"
+KUZU_DIR = DATA_DIR / "kuzu"
+LOGS_DIR = PROJECT_ROOT / "logs"
+
+# Ensure directories exist
+DATA_DIR.mkdir(exist_ok=True)
+CHROMA_DIR.mkdir(exist_ok=True)
+KUZU_DIR.mkdir(exist_ok=True)
+LOGS_DIR.mkdir(exist_ok=True)
+
 
 class VectorStoreConfig(BaseModel):
     """Vector store (ChromaDB) configuration"""
     type: str = "chromadb"
-    persist_directory: str = "./data/chroma"
+    persist_directory: str = str(CHROMA_DIR)
     collection_name: str = "memories"
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_dimension: int = 384
@@ -26,7 +40,7 @@ class VectorStoreConfig(BaseModel):
 class GraphStoreConfig(BaseModel):
     """Graph store (Kuzu) configuration"""
     type: str = "kuzu"
-    database_path: str = "./data/kuzu"
+    database_path: str = str(KUZU_DIR)
     buffer_pool_size: str = "512MB"
     max_num_threads: int = 4
 
@@ -71,7 +85,7 @@ class LoggingConfig(BaseModel):
     """Logging configuration"""
     level: str = "INFO"
     format: str = "json"
-    file: str = "./logs/elefante.log"
+    file: str = str(LOGS_DIR / "elefante.log")
     max_size: str = "10MB"
     backup_count: int = 5
     console: bool = True
@@ -104,7 +118,7 @@ class FeaturesConfig(BaseModel):
 class ElefanteConfig(BaseModel):
     """Main Elefante configuration"""
     version: str = "1.0.0"
-    data_dir: str = "./data"
+    data_dir: str = str(DATA_DIR)
     vector_store: VectorStoreConfig = Field(default_factory=VectorStoreConfig)
     graph_store: GraphStoreConfig = Field(default_factory=GraphStoreConfig)
     orchestrator: OrchestratorConfig = Field(default_factory=OrchestratorConfig)

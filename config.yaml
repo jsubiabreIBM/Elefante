@@ -1,14 +1,18 @@
 # Elefante Memory System Configuration
 # Version: 1.0.0
+#
+# NOTE: Paths are now automatically resolved to absolute paths by config.py
+# to prevent database "amnesia" when starting from different directories.
+# You can override these with environment variables if needed.
 
 elefante:
   version: "1.0.0"
-  data_dir: "./data"
+  # data_dir is auto-set to absolute path in config.py
   
   # Vector Store Configuration (ChromaDB)
   vector_store:
     type: "chromadb"
-    persist_directory: "./data/chroma"
+    # persist_directory is auto-set to absolute path in config.py
     collection_name: "memories"
     embedding_model: "all-MiniLM-L6-v2"
     embedding_dimension: 384
@@ -17,7 +21,7 @@ elefante:
   # Graph Store Configuration (Kuzu)
   graph_store:
     type: "kuzu"
-    database_path: "./data/kuzu"
+    # database_path is auto-set to absolute path in config.py
     buffer_pool_size: "512MB"
     max_num_threads: 4
     
@@ -55,7 +59,7 @@ elefante:
   logging:
     level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
     format: "json"  # Options: json, text
-    file: "./logs/elefante.log"
+    # file path is auto-set to absolute path in config.py
     max_size: "10MB"
     backup_count: 5
     console: true

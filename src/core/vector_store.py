@@ -209,6 +209,9 @@ class VectorStore:
                     # For cosine distance: similarity = 1 - distance
                     similarity = 1.0 - distance
                     
+                    # Clamp similarity to [0.0, 1.0] to handle floating-point precision issues
+                    similarity = max(0.0, min(1.0, similarity))
+                    
                     # Filter by minimum similarity
                     if similarity < min_similarity:
                         continue
