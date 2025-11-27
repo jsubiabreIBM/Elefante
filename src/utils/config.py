@@ -12,13 +12,17 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field, validator
 from dotenv import load_dotenv
 
-# Define absolute paths relative to project root
-# This ensures databases are found regardless of working directory
-PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
-DATA_DIR = PROJECT_ROOT / "data"
+# Define absolute paths relative to user home directory for global persistence
+# This ensures databases are shared across all workspaces
+USER_HOME = Path.home()
+ELEFANTE_HOME = USER_HOME / ".elefante"
+DATA_DIR = ELEFANTE_HOME / "data"
 CHROMA_DIR = DATA_DIR / "chroma"
 KUZU_DIR = DATA_DIR / "kuzu"
-LOGS_DIR = PROJECT_ROOT / "logs"
+LOGS_DIR = ELEFANTE_HOME / "logs"
+
+# Ensure directories exist
+ELEFANTE_HOME.mkdir(exist_ok=True)
 
 # Ensure directories exist
 DATA_DIR.mkdir(exist_ok=True)
@@ -40,7 +44,7 @@ class VectorStoreConfig(BaseModel):
 class GraphStoreConfig(BaseModel):
     """Graph store (Kuzu) configuration"""
     type: str = "kuzu"
-    database_path: str = str(KUZU_DIR)
+    database_path: str = str(Path.home() / ".elefante" / "data" / "kuzu_db")
     buffer_pool_size: str = "512MB"
     max_num_threads: int = 4
 
@@ -115,6 +119,14 @@ class FeaturesConfig(BaseModel):
     enable_deduplication: bool = True
 
 
+class UserProfileConfig(BaseModel):
+    """User profile configuration"""
+    user_name: str = "User"
+    user_id: str = "user_default"
+    auto_link_first_person: bool = True
+    detect_code_blocks: bool = True
+
+
 class ElefanteConfig(BaseModel):
     """Main Elefante configuration"""
     version: str = "1.0.0"
@@ -128,6 +140,7 @@ class ElefanteConfig(BaseModel):
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)
+    user_profile: UserProfileConfig = Field(default_factory=UserProfileConfig)
 
 
 class Config:

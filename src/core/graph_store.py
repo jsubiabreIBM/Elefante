@@ -55,8 +55,8 @@ class GraphStore:
         try:
             import kuzu
             
-            # Create database directory if it doesn't exist
-            Path(self.database_path).mkdir(parents=True, exist_ok=True)
+            # Create database parent directory if it doesn't exist
+            Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
             
             # Initialize database
             db = kuzu.Database(self.database_path)
@@ -127,13 +127,13 @@ class GraphStore:
                 # Relationship tables
                 """
                 CREATE REL TABLE RELATES_TO(
-                    FROM Memory TO Entity,
+                    FROM Entity TO Entity,
                     strength DOUBLE
                 )
                 """,
                 """
                 CREATE REL TABLE PART_OF(
-                    FROM Memory TO Session
+                    FROM Entity TO Entity
                 )
                 """,
                 """
@@ -144,13 +144,13 @@ class GraphStore:
                 """,
                 """
                 CREATE REL TABLE REFERENCES(
-                    FROM Memory TO Memory,
+                    FROM Entity TO Entity,
                     reference_type STRING
                 )
                 """,
                 """
                 CREATE REL TABLE CREATED_IN(
-                    FROM Entity TO Session
+                    FROM Entity TO Entity
                 )
                 """
             ]

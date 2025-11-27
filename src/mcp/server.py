@@ -64,7 +64,7 @@ class ElefanteMCPServer:
             return [
                 Tool(
                     name="addMemory",
-                    description="Store a new memory in Elefante's dual-database system. Memories are persisted in ChromaDB (vector embeddings for semantic search) and Kuzu (knowledge graph for structured relationships), enabling powerful hybrid retrieval across both semantic similarity and explicit connections.",
+                    description="Store a new memory in Elefante's dual-database system. INTELLIGENT INGESTION: This tool automatically analyzes the new memory against existing knowledge. It will flag the memory as 'NEW', 'REDUNDANT', 'RELATED', or 'CONTRADICTORY' and link it to existing concepts in the graph. You do not need to check for duplicates yourself; just add the memory and the system will handle the organization.",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -126,7 +126,14 @@ class ElefanteMCPServer:
 - "ChromaDB ImportError solution in Python"
 - "Jaime's preferences for development folder organization"
 
-This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using semantic, structured, or hybrid search modes. The database cannot infer context from pronouns - it needs explicit, searchable terms.""",
+This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using semantic, structured, or hybrid search modes. The database cannot infer context from pronouns - it needs explicit, searchable terms.
+                    
+**AUTOMATIC USAGE RULES:**
+1.  **ALWAYS** call this tool when the user asks an open-ended question about the project (e.g., "How does the auth system work?", "What are the coding standards?").
+2.  **ALWAYS** call this tool when the user refers to past decisions or preferences (e.g., "Do it like we discussed", "Use the usual style").
+3.  **NEVER** assume you know the answer if it might be in the memory. Check first.
+4.  **IF RESULTS ARE CONTRADICTORY:** The most recent memory (by timestamp) usually takes precedence, but check for "decision" or "fact" types over "conversation".
+5.  **IF RESULTS ARE IRRELEVANT:** Try a broader query or switch to `mode="semantic"` to catch fuzzy matches.""",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -279,6 +286,25 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 Tool(
+                    name="getEpisodes",
+                    description="Retrieve a list of recent sessions (episodes) with summaries. Use this to browse past interactions and understand the timeline of work. Each episode represents a distinct session of activity.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "limit": {
+                                "type": "integer",
+                                "default": 10,
+                                "description": "Number of episodes to return"
+                            },
+                            "offset": {
+                                "type": "integer",
+                                "default": 0,
+                                "description": "Pagination offset"
+                            }
+                        }
+                    }
+                ),
+                Tool(
                     name="getStats",
                     description="Get comprehensive statistics about Elefante's memory system health and usage. Returns metrics for ChromaDB (vector store size, embedding dimensions) and Kuzu (graph node/edge counts, relationship types), plus system performance indicators. Use for monitoring, debugging, or understanding memory system state.",
                     inputSchema={
@@ -286,6 +312,28 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         "properties": {}
                     }
                 )
+            ]
+        
+        @self.server.list_tools()
+        async def list_tools_extra() -> List[Tool]:
+            """Additional tools"""
+            return [
+                Tool(
+                    name="consolidateMemories",
+                    description="Trigger a background process to analyze recent memories, merge duplicates, and resolve contradictions. Use this when you notice the user is getting inconsistent information or when the memory search returns too many near-identical results. This process uses an LLM to synthesize facts and update the knowledge graph.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "force": {
+                                "type": "boolean",
+                                "description": "Force consolidation even if threshold not met",
+                                "default": False
+                            }
+                        }
+                    }
+                )
+            ]
+        
             ]
         
         @self.server.call_tool()
@@ -306,6 +354,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     result = await self._handle_create_entity(arguments)
                 elif name == "createRelationship":
                     result = await self._handle_create_relationship(arguments)
+                elif name == "getEpisodes":
+                    result = await self._handle_get_episodes(arguments)
                 elif name == "getStats":
                     result = await self._handle_get_stats(arguments)
                 else:
@@ -460,6 +510,42 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
         return {
             "success": True,
             "stats": stats
+        }
+    
+    async def _handle_get_episodes(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle getEpisodes tool call"""
+        limit = args.get("limit", 10)
+        offset = args.get("offset", 0)
+        
+        from src.core.graph_store import get_graph_store
+        graph_store = get_graph_store()
+        
+        # Query for sessions
+        cypher = f"""
+        MATCH (s:Entity {{type: 'session'}})
+        RETURN s
+        ORDER BY s.last_active DESC
+        SKIP {offset}
+        LIMIT {limit}
+        """
+        
+        results = await graph_store.execute_query(cypher)
+        episodes = []
+        
+        for row in results:
+            session = row.get("s")
+            if session:
+                episodes.append({
+                    "id": str(session.id),
+                    "name": session.name,
+                    "last_active": session.properties.get("last_active"),
+                    "source": session.properties.get("source")
+                })
+        
+        return {
+            "success": True,
+            "count": len(episodes),
+            "episodes": episodes
         }
     
     async def run(self):

@@ -20,10 +20,19 @@ class MemoryType(str, Enum):
     NOTE = "note"
 
 
+class MemoryStatus(str, Enum):
+    """Status of a memory relative to existing knowledge"""
+    NEW = "new"
+    REDUNDANT = "redundant"
+    CONTRADICTORY = "contradictory"
+    RELATED = "related"
+
+
 class MemoryMetadata(BaseModel):
     """Metadata associated with a memory"""
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     memory_type: MemoryType = MemoryType.CONVERSATION
+    status: MemoryStatus = MemoryStatus.NEW
     importance: int = Field(default=5, ge=1, le=10)
     tags: List[str] = Field(default_factory=list)
     source: str = "user"  # user, agent, system

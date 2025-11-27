@@ -20,6 +20,8 @@ class EntityType(str, Enum):
     ORGANIZATION = "organization"
     LOCATION = "location"
     EVENT = "event"
+    SESSION = "session"
+    MEMORY = "memory"
     CUSTOM = "custom"
 
 

@@ -9,17 +9,19 @@ This is the central intelligence layer that:
 """
 
 import asyncio
+import re
 from typing import List, Optional, Dict, Any, Tuple
 from uuid import UUID, uuid4
 from datetime import datetime
 
-from src.models.memory import Memory, MemoryType, MemoryMetadata
+from src.models.memory import Memory, MemoryType, MemoryMetadata, MemoryStatus
 from src.models.entity import Entity, EntityType, Relationship, RelationshipType
 from src.models.query import QueryMode, QueryPlan, SearchResult, SearchFilters
 from src.core.vector_store import VectorStore, get_vector_store
 from src.core.graph_store import GraphStore, get_graph_store
 from src.core.embeddings import EmbeddingService, get_embedding_service
 from src.utils.logger import get_logger
+from src.utils.config import get_config
 from src.utils.validators import validate_memory_content, validate_uuid
 
 logger = get_logger(__name__)
@@ -53,6 +55,7 @@ class MemoryOrchestrator:
         self.vector_store = vector_store or get_vector_store()
         self.graph_store = graph_store or get_graph_store()
         self.embedding_service = embedding_service or get_embedding_service()
+        self.config = get_config()
         self.logger = get_logger(self.__class__.__name__)
         
         self.logger.info("Memory orchestrator initialized")
@@ -95,23 +98,50 @@ class MemoryOrchestrator:
         if importance < 1 or importance > 10:
             raise ValueError(f"Importance must be 1-10, got {importance}")
         
+        # Generate embedding first to check for existing memories
+        embedding = await self.embedding_service.generate_embedding(content)
+        
+        # Check for similar memories to determine status
+        # We search specifically for semantic similarity
+        similar_memories = await self.vector_store.search(
+            query=content,
+            limit=1,
+            min_similarity=0.8  # High threshold for relevance
+        )
+        
+        # Determine status based on similarity
+        status = MemoryStatus.NEW
+        related_id = None
+        
+        if similar_memories:
+            best_match = similar_memories[0]
+            if best_match.score >= 0.95:
+                status = MemoryStatus.REDUNDANT
+                related_id = best_match.memory.id
+                self.logger.info(f"Found redundant memory: {best_match.memory.id} (score={best_match.score:.2f})")
+            elif best_match.score >= 0.8:
+                status = MemoryStatus.RELATED
+                related_id = best_match.memory.id
+                self.logger.info(f"Found related memory: {best_match.memory.id} (score={best_match.score:.2f})")
+            
+            # TODO: Implement contradiction detection using LLM
+            # For now, we rely on the agent to flag contradictions explicitly via memory_type="decision"
+            # or by providing a "contradicts" entity link
+        
         self.logger.info(
             "Adding memory",
             memory_type=memory_type,
             importance=importance,
-            content_length=len(content),
-            num_tags=len(tags) if tags else 0,
-            num_entities=len(entities) if entities else 0
+            status=status.value,
+            content_length=len(content)
         )
         
         try:
-            # Generate embedding
-            embedding = await self.embedding_service.generate_embedding(content)
-            
             # Create memory object with proper metadata structure
             memory_metadata = MemoryMetadata(
                 memory_type=MemoryType(memory_type),
                 importance=importance,
+                status=status,
                 tags=tags or []
             )
             
@@ -126,25 +156,107 @@ class MemoryOrchestrator:
                 embedding=embedding
             )
             
-            # Store in vector database
+            # Store in vector database (we store even redundant ones to keep history, 
+            # but the status flag helps filter them later if needed)
             await self.vector_store.add_memory(memory)
             self.logger.debug(f"Memory stored in vector DB: {memory.id}")
             
             # Create graph node for memory
             memory_entity = Entity(
                 name=f"memory_{memory.id}",
-                type=EntityType.CUSTOM,
+                type=EntityType.MEMORY,
+                description=content[:200],  # Store truncated content in description field
                 properties={
-                    "content": content[:200],  # Store truncated content
+                    "content": content[:200],
                     "memory_type": memory_type,
                     "importance": importance,
-                    "timestamp": memory.metadata.timestamp,  # Pass datetime object directly
+                    "status": status.value,
+                    "timestamp": memory.metadata.timestamp,
                     "entity_subtype": "memory"
                 }
             )
             await self.graph_store.create_entity(memory_entity)
             self.logger.debug(f"Memory node created in graph: {memory_entity.id}")
             
+            # Link to related memory if found
+            if related_id:
+                rel_type = RelationshipType.SIMILAR_TO
+                if status == MemoryStatus.REDUNDANT:
+                    rel_type = RelationshipType.SIMILAR_TO # Could be specific "REDUNDANT_TO" if added to enum
+                
+                relationship = Relationship(
+                    from_entity_id=memory_entity.id,
+                    to_entity_id=related_id,
+                    relationship_type=rel_type,
+                    properties={
+                        "created_at": datetime.utcnow(),
+                        "similarity": best_match.score if similar_memories else 0.0
+                    }
+                )
+                await self.graph_store.create_relationship(relationship)
+            
+            # [NEW] Auto-link to User Entity for first-person memories
+            # This ensures "I live in Canada" is linked to the User node
+            if self._is_first_person_statement(content):
+                # Get configured user name
+                user_name = self.config.elefante.user_profile.user_name
+                
+                # Ensure User entity exists
+                user_entity = Entity(
+                    name=user_name,
+                    type=EntityType.PERSON,
+                    properties={"description": "The user interacting with the system", "is_user_profile": True}
+                )
+                # create_entity is idempotent (updates if exists)
+                await self.graph_store.create_entity(user_entity)
+                
+                # Link Memory -> User (RELATES_TO)
+                user_rel = Relationship(
+                    from_entity_id=memory_entity.id,
+                    to_entity_id=user_entity.id,
+                    relationship_type=RelationshipType.RELATES_TO,
+                    properties={"created_at": datetime.utcnow(), "auto_linked": True}
+                )
+                await self.graph_store.create_relationship(user_rel)
+                self.logger.debug(f"Auto-linked memory {memory.id} to User entity ({user_name})")
+
+            # [NEW] Link to Session Entity (Episodic Memory)
+            if memory.metadata.session_id:
+                session_id = str(memory.metadata.session_id)
+                now_iso = datetime.utcnow().isoformat()
+                
+                # Use MERGE to create or update Session entity with stats
+                # This tracks interaction count and last active time
+                session_cypher = f"""
+                MERGE (s:Entity {{id: '{session_id}'}})
+                ON CREATE SET 
+                    s.name = 'Session {session_id[:8]}',
+                    s.type = '{EntityType.SESSION.value}',
+                    s.created_at = '{now_iso}',
+                    s.last_active = '{now_iso}',
+                    s.interaction_count = 1,
+                    s.source = 'mcp'
+                ON MATCH SET 
+                    s.last_active = '{now_iso}',
+                    s.interaction_count = s.interaction_count + 1
+                RETURN s
+                """
+                try:
+                    # We execute raw cypher here because create_entity doesn't support MERGE/ON MATCH yet
+                    await self.graph_store.execute_query(session_cypher)
+                    
+                    # Link Memory -> Session (CREATED_IN)
+                    session_rel = Relationship(
+                        from_entity_id=memory_entity.id,
+                        to_entity_id=UUID(session_id),
+                        relationship_type=RelationshipType.CREATED_IN,
+                        properties={"created_at": datetime.utcnow()}
+                    )
+                    await self.graph_store.create_relationship(session_rel)
+                    self.logger.debug(f"Linked memory {memory.id} to Session {session_id}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to update Session entity: {e}")
+
             # Create entity nodes and relationships if provided
             if entities:
                 for entity_data in entities:
@@ -174,7 +286,7 @@ class MemoryOrchestrator:
                         from_entity_id=memory_entity.id,
                         to_entity_id=entity.id,
                         relationship_type=RelationshipType.RELATES_TO,
-                        properties={"created_at": datetime.utcnow()}  # Pass datetime object directly
+                        properties={"created_at": datetime.utcnow()}
                     )
                     await self.graph_store.create_relationship(relationship)
                     
@@ -184,7 +296,7 @@ class MemoryOrchestrator:
                         entity_type=entity.type
                     )
             
-            self.logger.info(f"Memory added successfully: {memory.id}")
+            self.logger.info(f"Memory added successfully: {memory.id} (Status: {status.value})")
             return memory
             
         except Exception as e:
@@ -678,8 +790,7 @@ class MemoryOrchestrator:
             if session_id:
                 validate_uuid(str(session_id))
                 cypher = f"""
-                MATCH (m:Entity {{type: 'memory'}})
-                WHERE m.session_id = '{session_id}'
+                MATCH (m:Entity {{type: 'memory'}})-[:CREATED_IN]->(s:Entity {{id: '{session_id}'}})
                 RETURN m
                 LIMIT {limit}
                 """
@@ -708,6 +819,61 @@ class MemoryOrchestrator:
                         "properties": entity.properties
                     })
             
+            # [NEW] Fetch User Profile Context
+            # Always try to find the "User" entity and its direct facts (location, role, preferences)
+            try:
+                user_name = self.config.elefante.user_profile.user_name
+                user_cypher = f"""
+                MATCH (u:Entity {{name: '{user_name}'}})-[r]-(fact:Entity)
+                RETURN u, r, fact
+                LIMIT 20
+                """
+                user_results = await self.graph_store.execute_query(user_cypher)
+                for row in user_results:
+                    # GraphStore returns {"values": [u, r, fact]}
+                    u_entity = row["values"][0]
+                    rel = row["values"][1]
+                    fact = row["values"][2]
+                    
+                    # Handle Kuzu dictionary results
+                    u_id = u_entity.get('id')
+                    if u_id and u_id not in [e["id"] for e in context["entities"]]:
+                        u_props = {k: v for k, v in u_entity.items() 
+                                 if k not in ['id', 'name', 'type', '_id', '_label']}
+                        context["entities"].append({
+                            "id": str(u_id),
+                            "name": u_entity.get('name'),
+                            "type": u_entity.get('type'),
+                            "properties": u_props,
+                            "is_user_profile": True
+                        })
+
+                    fact_id = fact.get('id')
+                    if fact_id and fact_id not in [e["id"] for e in context["entities"]]:
+                        # Extract properties (exclude internal/standard fields)
+                        fact_props = {k: v for k, v in fact.items() 
+                                    if k not in ['id', 'name', 'type', '_id', '_label']}
+                        
+                        context["entities"].append({
+                            "id": str(fact_id),
+                            "name": fact.get('name'),
+                            "type": fact.get('type'),
+                            "properties": fact_props,
+                            "is_user_fact": True  # Flag for client to prioritize
+                        })
+                        
+                        rel_props = {k: v for k, v in rel.items() 
+                                   if k not in ['_id', '_src', '_dst', '_label']}
+                        
+                        context["relationships"].append({
+                            "from": str(u_entity.get('id')),
+                            "to": str(fact_id),
+                            "type": rel.get('_label'), # Kuzu uses _label for relationship type
+                            "properties": rel_props
+                        })
+            except Exception as e:
+                self.logger.warning(f"Failed to fetch User Profile context: {e}")
+
             # Get full memory content from vector store
             for memory_id in memory_ids:
                 try:
@@ -760,6 +926,47 @@ class MemoryOrchestrator:
         except Exception as e:
             self.logger.error(f"Failed to retrieve context: {e}", exc_info=True)
             raise
+
+    def _is_first_person_statement(self, content: str) -> bool:
+        """
+        Check if content contains first-person statements using robust regex.
+        Avoids false positives from code (e.g., 'i = 0', 'my_var').
+        """
+        if not self.config.elefante.user_profile.auto_link_first_person:
+            return False
+            
+        # 1. Check if it looks like code (simple heuristic)
+        if self.config.elefante.user_profile.detect_code_blocks:
+            # Strong heuristic: Starts with code keyword
+            if any(content.strip().startswith(k) for k in ['return ', 'import ', 'def ', 'class ', 'for ', 'if ', 'async ', 'await ', 'try:', 'except', 'else', 'elif']):
+                return False
+
+            # If it has many code-like symbols, skip
+            code_symbols = [
+                '{', '}', 'def ', 'class ', 'return ', 'import ', ' = ', '(', ')', 
+                'for ', 'if ', 'else', 'elif', 'try:', 'except', 'in ', 'range', 
+                'print', '->', '[', ']', ':', 'await ', 'async '
+            ]
+            if sum(1 for s in code_symbols if s in content) >= 2:  # Lowered threshold to 2 for safety
+                return False
+        
+        # 2. Regex for natural language first-person pronouns
+        # \b ensures word boundaries
+        # Case insensitive
+        # Negative lookahead/behind to avoid variable names like my_var, i_index
+        
+        # Patterns:
+        # "I " (but not "i =")
+        # "my " (but not "my_")
+        # "me", "we", "our", "mine"
+        
+        patterns = [
+            r'\bI\b(?!\s*=)',  # "I" but not followed by "="
+            r'\b(my|me|we|our|mine)\b(?!_)'  # pronouns not followed by underscore
+        ]
+        
+        combined_pattern = '|'.join(patterns)
+        return bool(re.search(combined_pattern, content, re.IGNORECASE))
     
     async def create_entity(
         self,
