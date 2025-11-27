@@ -32,31 +32,26 @@ Elefante is a **production-ready, local, and zero-cost** persistent memory syste
 - 2GB RAM minimum (4GB recommended)
 - 1GB disk space for system + storage for your memories
 
-### Installation
+### One-Click Installation (Recommended)
 
+**Windows:**
+Double-click `install.bat`
+
+**Mac/Linux:**
 ```bash
-# 1. Clone the repository
-git clone <repository-url> Elefante
-cd Elefante
-
-# 2. Create virtual environment
-python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-
-# macOS/Linux
-source .venv/bin/activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Initialize databases
-python scripts/init_databases.py
-
-# 5. Verify installation
-python scripts/health_check.py
+chmod +x install.sh
+./install.sh
 ```
+
+This will automatically:
+1. Create a virtual environment
+2. Install all dependencies
+3. Initialize the databases
+4. Configure your IDE (VSCode/Bob)
+5. Verify the system is working
+
+### Manual Installation
+If you prefer to set up manually, see [SETUP.md](docs/SETUP.md).
 
 ### First Memory
 
