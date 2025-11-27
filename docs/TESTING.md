@@ -1,84 +1,88 @@
-# Quick Testing Instructions for Hybrid Search
+# Elefante Testing Guide
 
-## Prerequisites
-1. Elefante MCP server must be running
-2. You need a session UUID (generate one or use existing)
+## 🚀 Automated Testing (Recommended)
 
-## Test 1: Add Memory to LONG-TERM Storage
+The most reliable way to verify your installation is using the included test suite.
+
+### Run Full System Check
+
+```bash
+python scripts/test_end_to_end.py
 ```
-Use tool: addMemory
+
+**What it tests:**
+
+- ✅ Adding memories
+- ✅ Semantic search
+- ✅ Hybrid search
+- ✅ Entity creation
+- ✅ Context retrieval
+- ✅ System stats
+
+### Run Health Check
+
+```bash
+python scripts/health_check.py
+```
+
+**What it tests:**
+
+- ✅ Database connectivity
+- ✅ Configuration validity
+- ✅ Embedding model status
+
+---
+
+## 🛠️ Manual Testing (Debugging)
+
+If you need to debug specific MCP tools, you can use these JSON payloads in your MCP client (or via `curl` if running an HTTP wrapper).
+
+### 1. Add Memory
+
+```json
 {
-  "content": "Jaime prefers PostgreSQL for production databases",
-  "memory_type": "fact",
-  "importance": 8
+  "name": "addMemory",
+  "arguments": {
+    "content": "Jaime prefers PostgreSQL for production databases",
+    "memory_type": "fact",
+    "importance": 8
+  }
 }
 ```
-**Expected**: Success message with memory_id
 
-## Test 2: Search LONG-TERM Memory Only
-```
-Use tool: searchMemories
+### 2. Search Memory
+
+```json
 {
-  "query": "What database does Jaime prefer?",
-  "include_stored": true,
-  "include_conversation": false
+  "name": "searchMemories",
+  "arguments": {
+    "query": "What database does Jaime prefer?",
+    "mode": "hybrid"
+  }
 }
 ```
-**Expected**: Should find the PostgreSQL memory you just added
 
-## Test 3: Search with SHORT-TERM Context
-First, have a conversation in this session, then:
-```
-Use tool: searchMemories
+### 3. Query Graph
+
+```json
 {
-  "query": "What did we just discuss?",
-  "session_id": "YOUR-SESSION-UUID-HERE",
-  "include_conversation": true,
-  "include_stored": false
+  "name": "queryGraph",
+  "arguments": {
+    "cypher_query": "MATCH (m:Entity {type: 'memory'}) RETURN m LIMIT 5"
+  }
 }
 ```
-**Expected**: Should find recent messages from THIS session only
 
-## Test 4: Hybrid Search (SHORT + LONG)
+---
+
+## 🧪 Running Unit Tests
+
+For developers contributing to the codebase:
+
+```bash
+# Run all unit tests
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_orchestrator.py -v
 ```
-Use tool: searchMemories
-{
-  "query": "database preferences",
-  "session_id": "YOUR-SESSION-UUID-HERE",
-  "include_conversation": true,
-  "include_stored": true
-}
-```
-**Expected**: Results from BOTH current session AND stored memories
-
-## Test 5: Verify Deduplication
-Add the same content twice, then search:
-```
-Use tool: addMemory
-{"content": "Python is my favorite language", "importance": 7}
-
-Use tool: addMemory  
-{"content": "Python is my favorite language", "importance": 7}
-
-Use tool: searchMemories
-{"query": "favorite programming language"}
-```
-**Expected**: Should see merged/deduplicated results, not duplicates
-
-## Quick Verification Checklist
-- [ ] Can add memories (LONG-TERM storage works)
-- [ ] Can search stored memories (LONG-TERM search works)
-- [ ] Can search current session (SHORT-TERM search works)
-- [ ] Can search both together (HYBRID works)
-- [ ] Duplicates are removed (DEDUPLICATION works)
-
-## Troubleshooting
-- If no results: Check that memories were actually stored
-- If duplicates appear: Check deduplication threshold (default 0.95)
-- If session search fails: Verify session_id is correct UUID format
-
-## Success Criteria
-✅ All 5 tests pass
-✅ No errors in responses
-✅ Results are relevant to queries
-✅ No duplicate results in hybrid search
