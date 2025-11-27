@@ -1,6 +1,7 @@
 # Elefante Memory System - Python Dependencies
 
 # Core Dependencies
+numpy<2.0.0
 pydantic>=2.0.0,<3.0.0
 pyyaml>=6.0.0,<7.0.0
 
