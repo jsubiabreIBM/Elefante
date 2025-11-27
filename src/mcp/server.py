@@ -8,12 +8,13 @@ for AI assistants to store and retrieve memories.
 
 import asyncio
 import json
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 from datetime import datetime
 from uuid import UUID
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
+from mcp import types
 from mcp.types import (
     Tool,
     TextContent,
@@ -59,10 +60,11 @@ class ElefanteMCPServer:
         """Register all MCP tool handlers"""
         
         @self.server.list_tools()
-        async def list_tools() -> List[Tool]:
+        async def list_tools() -> list[types.Tool]:
             """List all available tools"""
-            return [
-                Tool(
+            self.logger.info("=== list_tools() handler called by MCP client ===")
+            tools = [
+                types.Tool(
                     name="addMemory",
                     description="Store a new memory in Elefante's dual-database system. INTELLIGENT INGESTION: This tool automatically analyzes the new memory against existing knowledge. It will flag the memory as 'NEW', 'REDUNDANT', 'RELATED', or 'CONTRADICTORY' and link it to existing concepts in the graph. You do not need to check for duplicates yourself; just add the memory and the system will handle the organization.",
                     inputSchema={
@@ -110,7 +112,7 @@ class ElefanteMCPServer:
                         "required": ["content"]
                     }
                 ),
-                Tool(
+                types.Tool(
                     name="searchMemories",
                     description="""**CRITICAL: USE THIS TOOL FOR ALL MEMORY QUERIES** - Search Elefante's memory system when user asks about their preferences, past conversations, or anything they want you to remember. DO NOT search workspace files for memory queries.
 
@@ -190,7 +192,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         "required": ["query"]
                     }
                 ),
-                Tool(
+                types.Tool(
                     name="queryGraph",
                     description="Execute Cypher queries directly on Elefante's Kuzu knowledge graph for advanced structured data retrieval. Use this for complex relationship traversals, pattern matching, and graph analytics. Ideal for queries like 'Find all entities connected to X', 'Show the path between A and B', or 'List all relationships of type Y'.",
                     inputSchema={
@@ -208,7 +210,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         "required": ["cypher_query"]
                     }
                 ),
-                Tool(
+                types.Tool(
                     name="getContext",
                     description="Retrieve comprehensive context from Elefante's memory system for a specific session or task. Returns related memories from ChromaDB, connected entities and relationships from Kuzu graph, with configurable traversal depth. Use this to gather full context before making decisions or generating responses.",
                     inputSchema={
@@ -235,7 +237,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         }
                     }
                 ),
-                Tool(
+                types.Tool(
                     name="createEntity",
                     description="Create a new entity node in Elefante's Kuzu knowledge graph. Entities represent people, projects, files, concepts, technologies, tasks, organizations, locations, or events. These nodes can be linked via relationships to build a rich semantic network of knowledge.",
                     inputSchema={
@@ -258,7 +260,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         "required": ["name", "type"]
                     }
                 ),
-                Tool(
+                types.Tool(
                     name="createRelationship",
                     description="Create a directed relationship edge in Elefante's Kuzu knowledge graph connecting two existing entities. Relationships define how entities relate (e.g., 'depends_on', 'part_of', 'created_by') and enable graph traversal queries to discover connections and patterns.",
                     inputSchema={
@@ -285,7 +287,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         "required": ["from_entity_id", "to_entity_id", "relationship_type"]
                     }
                 ),
-                Tool(
+                types.Tool(
                     name="getEpisodes",
                     description="Retrieve a list of recent sessions (episodes) with summaries. Use this to browse past interactions and understand the timeline of work. Each episode represents a distinct session of activity.",
                     inputSchema={
@@ -304,7 +306,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         }
                     }
                 ),
-                Tool(
+                types.Tool(
                     name="getStats",
                     description="Get comprehensive statistics about Elefante's memory system health and usage. Returns metrics for ChromaDB (vector store size, embedding dimensions) and Kuzu (graph node/edge counts, relationship types), plus system performance indicators. Use for monitoring, debugging, or understanding memory system state.",
                     inputSchema={
@@ -312,7 +314,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         "properties": {}
                     }
                 ),
-                Tool(
+                types.Tool(
                     name="consolidateMemories",
                     description="Trigger a background process to analyze recent memories, merge duplicates, and resolve contradictions. Use this when you notice the user is getting inconsistent information or when the memory search returns too many near-identical results. This process uses an LLM to synthesize facts and update the knowledge graph.",
                     inputSchema={
@@ -327,6 +329,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 )
             ]
+            self.logger.info(f"=== Returning {len(tools)} tools to MCP client ===")
+            return tools
         
 
         
