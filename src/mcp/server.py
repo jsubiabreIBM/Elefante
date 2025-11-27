@@ -176,12 +176,12 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                             },
                             "include_conversation": {
                                 "type": "boolean",
-                                "default": true,
+                                "default": True,
                                 "description": "Include recent conversation context in search results"
                             },
                             "include_stored": {
                                 "type": "boolean",
-                                "default": true,
+                                "default": True,
                                 "description": "Include stored memories from vector/graph databases"
                             },
                             "session_id": {
