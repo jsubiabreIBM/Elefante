@@ -67,7 +67,7 @@ class VectorStore:
             self._client = chromadb.PersistentClient(
                 path=self.persist_directory,
                 settings=Settings(
-                    anonymized_telemetry=False,
+                    anonymized_telemetry=self.config.elefante.anonymized_telemetry,
                     allow_reset=True
                 )
             )

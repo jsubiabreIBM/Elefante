@@ -8,6 +8,7 @@
 elefante:
   version: "1.0.0"
   # data_dir is auto-set to absolute path in config.py
+  anonymized_telemetry: false
   
   # Vector Store Configuration (ChromaDB)
   vector_store:

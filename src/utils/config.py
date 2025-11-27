@@ -131,6 +131,7 @@ class ElefanteConfig(BaseModel):
     """Main Elefante configuration"""
     version: str = "1.0.0"
     data_dir: str = str(DATA_DIR)
+    anonymized_telemetry: bool = False
     vector_store: VectorStoreConfig = Field(default_factory=VectorStoreConfig)
     graph_store: GraphStoreConfig = Field(default_factory=GraphStoreConfig)
     orchestrator: OrchestratorConfig = Field(default_factory=OrchestratorConfig)

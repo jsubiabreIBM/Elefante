@@ -10,6 +10,7 @@ import io
 # Fix Windows console encoding for emojis
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 from datetime import datetime
 from src.core.orchestrator import get_orchestrator
 from src.models.memory import Memory, MemoryMetadata, MemoryType

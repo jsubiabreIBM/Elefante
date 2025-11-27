@@ -14,101 +14,126 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-def get_vscode_settings_path():
-    """Get the VSCode settings.json path"""
+def get_settings_paths():
+    """Get potential settings.json paths for VSCode and Bob-IDE"""
+    paths = []
+    
     if os.name == 'nt':  # Windows
         appdata = os.environ.get('APPDATA')
-        if not appdata:
-            raise Exception("APPDATA environment variable not found")
-        return Path(appdata) / "Code" / "User" / "settings.json"
+        if appdata:
+            # Standard VSCode
+            paths.append(Path(appdata) / "Code" / "User" / "settings.json")
+            # Bob-IDE (User provided path)
+            paths.append(Path(appdata) / "Bob-IDE" / "User" / "globalStorage" / "ibm.bob-code" / "settings" / "mcp_settings.json")
+            # Bob-IDE (Standard User settings)
+            paths.append(Path(appdata) / "Bob-IDE" / "User" / "settings.json")
+            
     elif os.name == 'posix':  # macOS/Linux
         home = Path.home()
         if os.uname().sysname == 'Darwin':  # macOS
-            return home / "Library" / "Application Support" / "Code" / "User" / "settings.json"
+            paths.append(home / "Library" / "Application Support" / "Code" / "User" / "settings.json")
+            paths.append(home / "Library" / "Application Support" / "Bob-IDE" / "User" / "settings.json")
         else:  # Linux
-            return home / ".config" / "Code" / "User" / "settings.json"
-    else:
-        raise Exception(f"Unsupported operating system: {os.name}")
+            paths.append(home / ".config" / "Code" / "User" / "settings.json")
+            paths.append(home / ".config" / "Bob-IDE" / "User" / "settings.json")
+            
+    return paths
 
-def configure_vscode_mcp():
-    """Configure VSCode/Bob to use Elefante MCP server"""
+def configure_mcp():
+    """Configure IDE to use Elefante MCP server"""
     
     print("\n" + "="*70)
-    print("🐘 ELEFANTE - VSCode/Bob MCP Configuration")
+    print("🐘 ELEFANTE - IDE MCP Configuration")
     print("="*70 + "\n")
     
-    # Get paths
-    settings_path = get_vscode_settings_path()
-    elefante_path = Path(__file__).parent.absolute()
+    # Get current Elefante path (AGNOSTIC)
+    # We use the parent of the 'scripts' directory where this script resides
+    elefante_path = Path(__file__).parent.parent.absolute()
     
-    print(f"📁 VSCode settings: {settings_path}")
-    print(f"📁 Elefante path: {elefante_path}\n")
+    print(f"📁 Elefante Location: {elefante_path}")
     
-    # Load existing settings
-    if not settings_path.exists():
-        print("❌ VSCode settings.json not found!")
-        print(f"Expected location: {settings_path}")
+    # Find valid settings files
+    potential_paths = get_settings_paths()
+    found_paths = [p for p in potential_paths if p.exists()]
+    
+    if not found_paths:
+        print("❌ No compatible IDE settings found!")
+        print("Checked locations:")
+        for p in potential_paths:
+            print(f" - {p}")
         return False
+        
+    print(f"✅ Found {len(found_paths)} configuration file(s).")
     
-    print("📄 Loading VSCode settings...")
-    with open(settings_path, 'r', encoding='utf-8') as f:
-        settings = json.load(f)
-    
-    # Ensure MCP is enabled
-    if not settings.get('chat.mcp.gallery.enabled'):
-        print("⚠️  MCP gallery not enabled. Enabling it now...")
-        settings['chat.mcp.gallery.enabled'] = True
-    
-    # Add MCP servers configuration
-    if 'chat.mcp.servers' not in settings:
-        settings['chat.mcp.servers'] = {}
-    
-    # Configure Elefante MCP server
-    elefante_config = {
-        "command": "python",
-        "args": ["-m", "src.mcp.server"],
-        "cwd": str(elefante_path),
-        "env": {
-            "PYTHONPATH": str(elefante_path)
-        },
-        "autoStart": True  # Auto-start when VSCode opens!
-    }
-    
-    settings['chat.mcp.servers']['elefante'] = elefante_config
-    
-    # Save settings
-    print("💾 Saving configuration...")
-    with open(settings_path, 'w', encoding='utf-8') as f:
-        json.dump(settings, f, indent=4)
-    
-    print("\n✅ Configuration complete!\n")
-    print("="*70)
-    print("📋 CONFIGURATION ADDED:")
-    print("="*70)
-    print(json.dumps(elefante_config, indent=2))
+    # Configure each found settings file
+    for settings_path in found_paths:
+        print(f"\n📄 Configuring: {settings_path}")
+        
+        try:
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+        except json.JSONDecodeError:
+            print(f"⚠️  Error reading {settings_path}. Skipping.")
+            continue
+            
+        # Determine config structure based on file type
+        is_mcp_settings = "mcp_settings.json" in str(settings_path)
+        
+        # Prepare Elefante config
+        elefante_config = {
+            "command": "python",
+            "args": ["-m", "src.mcp.server"],
+            "cwd": str(elefante_path),
+            "env": {
+                "PYTHONPATH": str(elefante_path),
+                "ANONYMIZED_TELEMETRY": "False" # Disable ChromaDB telemetry
+            },
+            "disabled": False,
+            "alwaysAllow": [
+                "searchMemories", "addMemory", "getStats", 
+                "getContext", "createEntity", "createRelationship", "queryGraph"
+            ]
+        }
+        
+        # Inject config
+        if is_mcp_settings:
+            # Bob-IDE specific mcp_settings.json structure
+            if "mcpServers" not in settings:
+                settings["mcpServers"] = {}
+            settings["mcpServers"]["elefante"] = elefante_config
+        else:
+            # Standard VSCode settings.json structure
+            if not settings.get('chat.mcp.gallery.enabled'):
+                settings['chat.mcp.gallery.enabled'] = True
+                
+            if 'chat.mcp.servers' not in settings:
+                settings['chat.mcp.servers'] = {}
+            
+            # VSCode uses a slightly different format for autoStart
+            vscode_config = elefante_config.copy()
+            vscode_config["autoStart"] = True
+            settings['chat.mcp.servers']['elefante'] = vscode_config
+            
+        # Save settings
+        print("💾 Saving configuration...")
+        with open(settings_path, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=4)
+            
     print("\n" + "="*70)
-    print("🎯 NEXT STEPS:")
+    print("✅ Configuration complete!")
     print("="*70)
-    print("1. ✅ Restart VSCode/Bob (close and reopen)")
-    print("2. ✅ Elefante will auto-start with the AI assistant")
-    print("3. ✅ Test: Ask Bob 'Remember that I'm Jaime from IBM Toronto'")
-    print("4. ✅ Query: Ask Bob 'What do you know about me?'")
-    print("\n🎉 Elefante will now give Bob persistent memory automatically!")
+    print("1. Restart your IDE")
+    print("2. Elefante will auto-connect from:")
+    print(f"   {elefante_path}")
     print("="*70 + "\n")
     
     return True
 
 if __name__ == "__main__":
     try:
-        success = configure_vscode_mcp()
-        if success:
-            print("✅ Setup successful! Restart VSCode/Bob to activate Elefante.\n")
-        else:
-            print("❌ Setup failed. Please check the error messages above.\n")
+        success = configure_mcp()
+        if not success:
+            sys.exit(1)
     except Exception as e:
         print(f"\n❌ Error: {e}\n")
-        print("Please configure manually - see VSCODE_BOB_SETUP.md")
-    
-    input("Press Enter to exit...")
-
-# Made with Bob
+        sys.exit(1)

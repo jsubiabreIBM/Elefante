@@ -18,6 +18,7 @@ class MemoryType(str, Enum):
     DECISION = "decision"
     TASK = "task"
     NOTE = "note"
+    PREFERENCE = "preference"
 
 
 class MemoryStatus(str, Enum):
