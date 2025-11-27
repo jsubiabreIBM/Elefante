@@ -311,13 +311,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         "type": "object",
                         "properties": {}
                     }
-                )
-            ]
-        
-        @self.server.list_tools()
-        async def list_tools_extra() -> List[Tool]:
-            """Additional tools"""
-            return [
+                ),
                 Tool(
                     name="consolidateMemories",
                     description="Trigger a background process to analyze recent memories, merge duplicates, and resolve contradictions. Use this when you notice the user is getting inconsistent information or when the memory search returns too many near-identical results. This process uses an LLM to synthesize facts and update the knowledge graph.",
