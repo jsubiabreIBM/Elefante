@@ -461,18 +461,36 @@ For more issues, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 ## 📖 Documentation
 
 ### Core Documentation
-- [SETUP_GUIDE.md](SETUP_GUIDE.md) - Step-by-step installation for new environments
-- [TESTING_INSTRUCTIONS.md](TESTING_INSTRUCTIONS.md) - User testing guide
+- [SETUP.md](docs/SETUP.md) - **Start Here**: Step-by-step installation.
+- [IDE_SETUP.md](docs/IDE_SETUP.md) - Connect Elefante to VS Code, Cursor, or Claude Desktop.
+- [TUTORIAL.md](docs/TUTORIAL.md) - Hands-on guide with real examples.
+- [TESTING.md](docs/TESTING.md) - How to run the test suite.
 
 ### Architecture Documentation
-- [HYBRID_SEARCH_ARCHITECTURE.md](docs/HYBRID_SEARCH_ARCHITECTURE.md) - System design
-- [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - Development roadmap
-- [HYBRID_SEARCH_IMPLEMENTATION_SUMMARY.md](docs/HYBRID_SEARCH_IMPLEMENTATION_SUMMARY.md) - Complete implementation details
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - High-level system design.
+- [ARCHITECTURE_DEEP_DIVE.md](docs/ARCHITECTURE_DEEP_DIVE.md) - Deep technical analysis.
+- [STRUCTURE.md](docs/STRUCTURE.md) - Project directory layout.
 
 ### Additional Resources
-- [API Reference](docs/API.md) - Complete API documentation
-- [Examples](docs/EXAMPLES.md) - More usage examples
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues
+- [API Reference](docs/API.md) - Complete API documentation.
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues.
+
+---
+
+## 🗺️ Directory Structure
+
+```
+Elefante/
+├── src/                # Source code
+│   ├── core/           # Orchestrator, Vector/Graph Stores
+│   ├── mcp/            # MCP Server
+│   └── models/         # Data Models
+├── scripts/            # Setup, Deployment & Maintenance scripts
+├── examples/           # Demo scripts & usage examples
+├── tests/              # Comprehensive test suite
+├── docs/               # Documentation
+└── data/               # Database storage (auto-created)
+```
 
 ---
 
