@@ -9,7 +9,7 @@ elefante:
   version: "1.0.0"
   # data_dir is auto-set to absolute path in config.py
   anonymized_telemetry: false
-  
+
   # Vector Store Configuration (ChromaDB)
   vector_store:
     type: "chromadb"
@@ -18,22 +18,22 @@ elefante:
     embedding_model: "all-MiniLM-L6-v2"
     embedding_dimension: 384
     distance_metric: "cosine"
-    
+
   # Graph Store Configuration (Kuzu)
   graph_store:
     type: "kuzu"
     # database_path is auto-set to absolute path in config.py
     buffer_pool_size: "512MB"
     max_num_threads: 4
-    
+
   # Hybrid Query Orchestrator
   orchestrator:
-    default_mode: "hybrid"  # Options: semantic, structured, hybrid
-    vector_weight: 0.5      # Weight for semantic search (0.0-1.0)
-    graph_weight: 0.5       # Weight for graph search (0.0-1.0)
-    max_results: 10         # Maximum results to return
-    min_similarity: 0.3     # Minimum similarity threshold
-    
+    default_mode: "hybrid" # Options: semantic, structured, hybrid
+    vector_weight: 0.5 # Weight for semantic search (0.0-1.0)
+    graph_weight: 0.5 # Weight for graph search (0.0-1.0)
+    max_results: 10 # Maximum results to return
+    min_similarity: 0.3 # Minimum similarity threshold
+
   # MCP Server Configuration
   mcp_server:
     name: "elefante-memory"
@@ -42,48 +42,56 @@ elefante:
     # Optional HTTP endpoint (leave commented for stdio only)
     # port: 3000
     # host: "localhost"
-    
+
   # Embedding Service Configuration
   embeddings:
-    provider: "sentence-transformers"  # Options: sentence-transformers, openai
+    provider: "sentence-transformers" # Options: sentence-transformers, openai
     model: "all-MiniLM-L6-v2"
-    device: "cpu"  # Options: cpu, cuda, mps (for Apple Silicon)
+    device: "cpu" # Options: cpu, cuda, mps (for Apple Silicon)
     batch_size: 32
     normalize: true
-    
+
     # Optional: OpenAI embeddings (requires API key in .env)
     # provider: "openai"
     # model: "text-embedding-3-small"
     # dimensions: 1536
-    
+
+  # LLM Configuration (for Consolidation & Curation)
+  llm:
+    provider: "openai" # Options: openai, anthropic, local
+    model: "gpt-4o"
+    temperature: 0.0
+    max_tokens: 1000
+    # api_key: set via env var OPENAI_API_KEY or ANTHROPIC_API_KEY
+
   # Logging Configuration
   logging:
-    level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
-    format: "json"  # Options: json, text
+    level: "INFO" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+    format: "json" # Options: json, text
     # file path is auto-set to absolute path in config.py
     max_size: "10MB"
     backup_count: 5
     console: true
-    
+
   # Memory Management
   memory:
-    auto_consolidate: false  # Automatic memory consolidation (future feature)
-    consolidation_threshold: 1000  # Number of memories before consolidation
-    importance_decay: false  # Decay importance over time (future feature)
-    max_age_days: 365  # Maximum age before archival (0 = never)
-    
+    auto_consolidate: false # Automatic memory consolidation (future feature)
+    consolidation_threshold: 1000 # Number of memories before consolidation
+    importance_decay: false # Decay importance over time (future feature)
+    max_age_days: 365 # Maximum age before archival (0 = never)
+
   # Performance Tuning
   performance:
     cache_embeddings: true
     cache_size: 1000
     parallel_queries: true
-    query_timeout: 30  # seconds
-    
+    query_timeout: 30 # seconds
+
   # Feature Flags
   features:
     enable_graph_store: true
     enable_vector_store: true
-    enable_auto_tagging: false  # AI-powered auto-tagging (future)
+    enable_auto_tagging: false # AI-powered auto-tagging (future)
     enable_deduplication: true
 
   # User Profile Configuration
@@ -92,5 +100,4 @@ elefante:
     user_id: "enterprise_user_001"
     auto_link_first_person: true
     detect_code_blocks: true
-
 # Made with Bob

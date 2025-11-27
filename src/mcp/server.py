@@ -21,6 +21,11 @@ from mcp.types import (
     ImageContent,
     EmbeddedResource,
 )
+import webbrowser
+from src.dashboard.server import serve_dashboard_in_thread
+
+# Global flag to track dashboard status
+DASHBOARD_STARTED = False
 
 from src.core.orchestrator import get_orchestrator
 from src.models.query import QueryMode, SearchFilters
@@ -46,15 +51,23 @@ class ElefanteMCPServer:
     """
     
     def __init__(self):
-        """Initialize MCP server with Elefante orchestrator"""
+        """Initialize MCP server with lazy loading"""
         self.server = Server("elefante-memory")
-        self.orchestrator = get_orchestrator()
+        self.orchestrator = None # Lazy loaded
         self.logger = get_logger(self.__class__.__name__)
         
         # Register tool handlers
         self._register_handlers()
         
-        self.logger.info("Elefante MCP Server initialized")
+        self.logger.info("Elefante MCP Server initialized (Lazy Loading enabled)")
+
+    async def _get_orchestrator(self):
+        """Lazy load the orchestrator"""
+        if self.orchestrator is None:
+            self.logger.info("Initializing Orchestrator (First Run)...")
+            self.orchestrator = get_orchestrator()
+            self.logger.info("Orchestrator initialized")
+        return self.orchestrator
     
     def _register_handlers(self):
         """Register all MCP tool handlers"""
@@ -327,6 +340,14 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                             }
                         }
                     }
+                ),
+                types.Tool(
+                    name="openDashboard",
+                    description="Launch and open the Elefante Knowledge Garden Dashboard in the user's browser. This visual interface allows the user to explore their memory graph, view connections between concepts, and filter by 'Spaces'. Use this when the user wants to 'see' their memory or explore the knowledge graph visually.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {}
+                    }
                 )
             ]
             self.logger.info(f"=== Returning {len(tools)} tools to MCP client ===")
@@ -356,6 +377,10 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     result = await self._handle_get_episodes(arguments)
                 elif name == "getStats":
                     result = await self._handle_get_stats(arguments)
+                elif name == "consolidateMemories":
+                    result = await self._handle_consolidate_memories(arguments)
+                elif name == "openDashboard":
+                    result = await self._handle_open_dashboard(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
                 
@@ -377,7 +402,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
     
     async def _handle_add_memory(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle addMemory tool call"""
-        memory = await self.orchestrator.add_memory(
+        orchestrator = await self._get_orchestrator()
+        memory = await orchestrator.add_memory(
             content=args["content"],
             memory_type=args.get("memory_type", "conversation"),
             importance=args.get("importance", 5),
@@ -418,7 +444,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
             session_id = UUID(args["session_id"])
         
         # Search with conversation context support
-        results = await self.orchestrator.search_memories(
+        orchestrator = await self._get_orchestrator()
+        results = await orchestrator.search_memories(
             query=args["query"],
             mode=mode,
             limit=args.get("limit", 10),
@@ -455,7 +482,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
         if "session_id" in args:
             session_id = UUID(args["session_id"])
         
-        context = await self.orchestrator.get_context(
+        orchestrator = await self._get_orchestrator()
+        context = await orchestrator.get_context(
             session_id=session_id,
             depth=args.get("depth", 2),
             limit=args.get("limit", 50)
@@ -468,7 +496,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
     
     async def _handle_create_entity(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle createEntity tool call"""
-        entity = await self.orchestrator.create_entity(
+        orchestrator = await self._get_orchestrator()
+        entity = await orchestrator.create_entity(
             name=args["name"],
             entity_type=args["type"],
             properties=args.get("properties")
@@ -483,7 +512,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
     
     async def _handle_create_relationship(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle createRelationship tool call"""
-        relationship = await self.orchestrator.create_relationship(
+        orchestrator = await self._get_orchestrator()
+        relationship = await orchestrator.create_relationship(
             from_entity_id=UUID(args["from_entity_id"]),
             to_entity_id=UUID(args["to_entity_id"]),
             relationship_type=args["relationship_type"],
@@ -503,12 +533,21 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
     
     async def _handle_get_stats(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle getStats tool call"""
-        stats = await self.orchestrator.get_stats()
+        orchestrator = await self._get_orchestrator()
+        stats = await orchestrator.get_stats()
         
         return {
             "success": True,
             "stats": stats
         }
+    
+    async def _handle_consolidate_memories(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle consolidateMemories tool call"""
+        orchestrator = await self._get_orchestrator()
+        result = await orchestrator.consolidate_memories(
+            force=args.get("force", False)
+        )
+        return result
     
     async def _handle_get_episodes(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle getEpisodes tool call"""
@@ -544,6 +583,36 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
             "success": True,
             "count": len(episodes),
             "episodes": episodes
+        }
+    
+    async def _handle_open_dashboard(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle openDashboard tool call"""
+        global DASHBOARD_STARTED
+        
+        port = 8000
+        url = f"http://localhost:{port}"
+        
+        if not DASHBOARD_STARTED:
+            try:
+                serve_dashboard_in_thread(port=port)
+                DASHBOARD_STARTED = True
+                self.logger.info(f"Dashboard server started on port {port}")
+            except Exception as e:
+                # It might already be running (e.g. from another instance or previous run)
+                self.logger.warning(f"Failed to start dashboard server (might be running): {e}")
+                DASHBOARD_STARTED = True # Assume it's running
+        
+        # Open browser
+        try:
+            webbrowser.open(url)
+            message = f"Dashboard opened at {url}"
+        except Exception as e:
+            message = f"Dashboard server running at {url}, but failed to open browser: {e}"
+            
+        return {
+            "success": True,
+            "message": message,
+            "url": url
         }
     
     async def run(self):

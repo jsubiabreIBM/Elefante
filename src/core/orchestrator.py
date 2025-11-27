@@ -20,6 +20,7 @@ from src.models.query import QueryMode, QueryPlan, SearchResult, SearchFilters
 from src.core.vector_store import VectorStore, get_vector_store
 from src.core.graph_store import GraphStore, get_graph_store
 from src.core.embeddings import EmbeddingService, get_embedding_service
+from src.core.llm import get_llm_service
 from src.utils.logger import get_logger
 from src.utils.config import get_config
 from src.utils.validators import validate_memory_content, validate_uuid
@@ -55,6 +56,7 @@ class MemoryOrchestrator:
         self.vector_store = vector_store or get_vector_store()
         self.graph_store = graph_store or get_graph_store()
         self.embedding_service = embedding_service or get_embedding_service()
+        self.llm_service = get_llm_service()
         self.config = get_config()
         self.logger = get_logger(self.__class__.__name__)
         
@@ -97,6 +99,17 @@ class MemoryOrchestrator:
         validate_memory_content(content, min_length=1, max_length=10000)
         if importance < 1 or importance > 10:
             raise ValueError(f"Importance must be 1-10, got {importance}")
+            
+        # [NEW] Auto-extract entities if none provided and enabled
+        if not entities and self.config.elefante.features.enable_auto_tagging:
+            try:
+                self.logger.info("Auto-extracting entities with LLM...")
+                extracted = await self.llm_service.extract_entities(content)
+                if extracted:
+                    entities = extracted
+                    self.logger.info(f"Extracted {len(entities)} entities: {[e['name'] for e in entities]}")
+            except Exception as e:
+                self.logger.warning(f"Auto-extraction failed: {e}")
         
         # Generate embedding first to check for existing memories
         embedding = await self.embedding_service.generate_embedding(content)
@@ -1042,6 +1055,21 @@ class MemoryOrchestrator:
         )
         
         return relationship
+    
+    async def consolidate_memories(self, force: bool = False) -> Dict[str, Any]:
+        """
+        Trigger memory consolidation process
+        """
+        from src.core.consolidation import MemoryConsolidator
+        
+        consolidator = MemoryConsolidator()
+        new_memories = await consolidator.consolidate_recent(force=force)
+        
+        return {
+            "success": True,
+            "consolidated_count": len(new_memories),
+            "new_memory_ids": [str(m.id) for m in new_memories]
+        }
     
     async def get_stats(self) -> Dict[str, Any]:
         """

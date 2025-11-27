@@ -1,15 +1,19 @@
 # Elefante Memory System - Python Dependencies
 
 # Core Dependencies
-numpy<2.0.0
+numpy>=1.26.0
 pydantic>=2.0.0,<3.0.0
 pyyaml>=6.0.0,<7.0.0
 
 # Vector Database
-chromadb>=0.4.0,<0.5.0
+chromadb>=0.5.0
+fastapi>=0.109.0
+uvicorn>=0.27.0
+python-multipart>=0.0.9
+
 
 # Graph Database
-kuzu>=0.1.0,<0.2.0
+kuzu>=0.11.0
 
 # Embeddings
 sentence-transformers>=2.2.0,<3.0.0

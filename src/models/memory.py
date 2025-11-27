@@ -27,6 +27,8 @@ class MemoryStatus(str, Enum):
     REDUNDANT = "redundant"
     CONTRADICTORY = "contradictory"
     RELATED = "related"
+    CONSOLIDATED = "consolidated" # Has been merged into an insight
+    REFINED = "refined" # Manually or automatically curated
 
 
 class MemoryMetadata(BaseModel):

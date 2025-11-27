@@ -85,6 +85,15 @@ class EmbeddingsConfig(BaseModel):
     normalize: bool = True
 
 
+class LLMConfig(BaseModel):
+    """LLM service configuration"""
+    provider: str = "openai"
+    model: str = "gpt-4o"
+    temperature: float = 0.0
+    max_tokens: int = 1000
+    api_key: Optional[str] = None
+
+
 class LoggingConfig(BaseModel):
     """Logging configuration"""
     level: str = "INFO"
@@ -137,6 +146,7 @@ class ElefanteConfig(BaseModel):
     orchestrator: OrchestratorConfig = Field(default_factory=OrchestratorConfig)
     mcp_server: MCPServerConfig = Field(default_factory=MCPServerConfig)
     embeddings: EmbeddingsConfig = Field(default_factory=EmbeddingsConfig)
+    llm: LLMConfig = Field(default_factory=LLMConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
@@ -239,7 +249,13 @@ class Config:
             if 'embeddings' not in config_dict:
                 config_dict['embeddings'] = {}
             # Store for later use if provider is set to openai
+            # Store for later use if provider is set to openai
             config_dict['embeddings']['openai_api_key'] = openai_key
+            
+            # Also set for LLM if provider is openai
+            if 'llm' not in config_dict:
+                config_dict['llm'] = {}
+            config_dict['llm']['api_key'] = openai_key
         
         return config_dict
     
