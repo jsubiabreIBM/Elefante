@@ -20,6 +20,13 @@ class EntityType(str, Enum):
     ORGANIZATION = "organization"
     LOCATION = "location"
     EVENT = "event"
+    # New Cognitive Types
+    COMPANY = "company"
+    GOAL = "goal"
+    RULE = "rule"
+    PROTOCOL = "protocol"
+    METRIC = "metric"
+    ROLE = "role"
     SESSION = "session"
     MEMORY = "memory"
     CUSTOM = "custom"

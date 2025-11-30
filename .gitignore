@@ -26,3 +26,12 @@ elefante.db
 elefante_vector_store/
 logs/
 temp_benchmark_data/
+*.log
+rejection.log
+data/
+test_kuzu_db/
+test_kuzu_db
+lib/
+install.log
+install_verify.log
+install_verify_antigravity.log

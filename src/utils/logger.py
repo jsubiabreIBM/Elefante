@@ -52,7 +52,7 @@ def setup_logging(
         processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(log_level),
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
+        logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
         cache_logger_on_first_use=True,
     )
     
@@ -65,7 +65,7 @@ def setup_logging(
     
     # Console handler
     if console:
-        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setLevel(log_level)
         
         if format_type == "json":

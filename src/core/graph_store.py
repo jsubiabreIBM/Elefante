@@ -113,6 +113,7 @@ class GraphStore:
                     type STRING,
                     description STRING,
                     created_at TIMESTAMP,
+                    properties STRING,
                     PRIMARY KEY(id)
                 )
                 """,
@@ -182,6 +183,7 @@ class GraphStore:
             Entity ID
         """
         self._initialize_connection()
+        import json
         
         # Validate entity name
         validate_entity_name(entity.name)
@@ -192,16 +194,24 @@ class GraphStore:
                 name: $name,
                 type: $type,
                 description: $description,
-                created_at: $created_at
+                created_at: $created_at,
+                properties: $properties
             })
         """
         
+        # Helper for JSON serialization
+        def json_serializer(obj):
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            raise TypeError(f"Type {type(obj)} not serializable")
+
         params = {
             "id": str(entity.id),
             "name": entity.name,
             "type": entity.type.value,
             "description": entity.description or "",
-            "created_at": entity.created_at  # Pass datetime object directly for Kuzu
+            "created_at": entity.created_at,  # Pass datetime object directly for Kuzu
+            "properties": json.dumps(entity.properties, default=json_serializer) # Serialize properties to JSON string
         }
         
         try:
@@ -235,11 +245,12 @@ class GraphStore:
             Entity object or None if not found
         """
         self._initialize_connection()
+        import json
         
         query = """
             MATCH (e:Entity)
             WHERE e.id = $id
-            RETURN e.id, e.name, e.type, e.description, e.created_at
+            RETURN e.id, e.name, e.type, e.description, e.created_at, e.properties
         """
         
         try:
@@ -254,12 +265,22 @@ class GraphStore:
                 return None
             
             row = rows[0]
+            
+            # Parse properties JSON if present
+            props = {}
+            if len(row) > 5 and row[5]:
+                try:
+                    props = json.loads(row[5])
+                except:
+                    props = {}
+
             entity = Entity(
                 id=UUID(row[0]),
                 name=row[1],
                 type=EntityType(row[2]),
                 description=row[3] if row[3] else None,
-                created_at=datetime.fromisoformat(row[4])
+                created_at=datetime.fromisoformat(row[4]),
+                properties=props
             )
             
             return entity
@@ -409,11 +430,17 @@ class GraphStore:
                 params or {}
             )
             
+            # Get column names
+            column_names = result.get_column_names()
+            
             # Convert results to list of dictionaries
             results = []
-            for row in self._get_query_results(result):
-                # Create dict from row (simplified - may need column names)
-                result_dict = {"values": row}
+            while result.has_next():
+                row = result.get_next()
+                # Map column names to values
+                result_dict = {name: val for name, val in zip(column_names, row)}
+                # Also keep "values" for backward compatibility if needed, but preferably not
+                result_dict["values"] = row
                 results.append(result_dict)
             
             logger.info("query_executed", query=cypher_query[:100])

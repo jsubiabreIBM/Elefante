@@ -25,11 +25,13 @@ sys.path.append(str(Path(__file__).parent))
 
 # Import existing configuration logic
 try:
-    from configure_vscode_bob import configure_mcp
+    from configure_vscode_bob import configure_mcp as configure_vscode
+    from configure_antigravity import configure_mcp as configure_antigravity
 except ImportError:
     # Fallback if running from root
     sys.path.append(str(Path(__file__).parent / "scripts"))
-    from configure_vscode_bob import configure_mcp
+    from configure_vscode_bob import configure_mcp as configure_vscode
+    from configure_antigravity import configure_mcp as configure_antigravity
 
 class Logger:
     def __init__(self, log_file=None):
@@ -221,10 +223,19 @@ def main():
         # 4. MCP Configuration
         print_step(4, "IDE Configuration")
         try:
-            if configure_mcp():
+            vscode_success = configure_vscode()
+            antigravity_success = configure_antigravity()
+            
+            if vscode_success:
                 logger.log("✅ MCP Server configured for VSCode/Bob.")
-            else:
-                logger.log("⚠️  MCP Configuration skipped or failed (check logs above).")
+            
+            if antigravity_success:
+                logger.log("✅ MCP Server configured for Antigravity.")
+                
+            if not vscode_success and not antigravity_success:
+                logger.log("⚠️  Automatic MCP Configuration skipped.")
+                logger.log("   Please configure your IDE manually.")
+                logger.log("   See docs/IDE_SETUP.md for instructions.")
         except Exception as e:
             logger.log(f"❌ Error configuring MCP: {e}")
             
@@ -241,7 +252,7 @@ def main():
     if success:
         print_header("INSTALLATION COMPLETE! 🎉")
         logger.log("Next Steps:")
-        logger.log("1. Restart your IDE (VSCode/Bob) to load the MCP server.")
+        logger.log("1. Restart your IDE to load the MCP server.")
         logger.log("2. Start using Elefante commands in your AI chat!")
         logger.log("   - 'Remember that...'\n   - 'What do you know about...'\n")
     else:

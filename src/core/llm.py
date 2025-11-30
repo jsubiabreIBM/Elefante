@@ -97,6 +97,103 @@ class LLMService:
             logger.error(f"Entity extraction failed: {e}")
             return []
 
+    async def analyze_memory(self, content: str) -> Dict[str, Any]:
+        """
+        Analyze memory content to extract deep cognitive structure.
+        Returns a dictionary matching the CognitiveAnalysis schema.
+        """
+        if not self.client:
+            # Fallback for no API key
+            return {
+                "title": content[:50] + "..." if len(content) > 50 else content,
+                "summary": content,
+                "intent": "statement",
+                "emotional_context": {"valence": 0.0, "arousal": 0.0, "mood": "Neutral"},
+                "entities": [],
+                "relationships": [],
+                "strategic_insight": None,
+                "action": "ADD"
+            }
+
+        system_prompt = """
+        You are the Cortex of an advanced AI memory system. 
+        Analyze the incoming memory to extract its "Cognitive Delta"—the structural change it imposes on the World Model.
+        
+        Output JSON ONLY matching this schema:
+        {
+            "title": "Concise, semantic title (e.g., 'User Language Preference')",
+            "summary": "Brief summary of the content",
+            "intent": "teaching" | "venting" | "planning" | "reflecting" | "deciding" | "querying" | "statement",
+            "emotional_context": {
+                "valence": float (-1.0 to 1.0),
+                "arousal": float (0.0 to 1.0),
+                "mood": "string (e.g., Frustrated, Determined)"
+            },
+            "entities": [
+                {"name": "EntityName", "type": "Type", "description": "Context"}
+            ],
+            "relationships": [
+                {"source": "EntityName", "target": "EntityName", "type": "RELATIONSHIP_TYPE", "reason": "Context"}
+            ],
+            "strategic_insight": "Actionable takeaway or rule (optional)",
+            "action": "ADD" | "UPDATE" | "IGNORE"
+        }
+        
+        RELATIONSHIP GUIDELINES:
+        - Use semantic types: LOVES, HATES, BLOCKS, ENABLES, DEPENDS_ON, IS_A, HAS_PART.
+        - Connect the 'User' entity to concepts they express opinions about.
+        
+        Example Input: "I hate Python's GIL, it slows everything down. We should use Rust."
+        Example Output:
+        {
+            "title": "Python GIL vs Rust",
+            "summary": "User expresses frustration with Python's GIL performance and suggests Rust as an alternative.",
+            "intent": "deciding",
+            "emotional_context": {"valence": -0.6, "arousal": 0.7, "mood": "Frustrated"},
+            "entities": [
+                {"name": "User", "type": "Person"},
+                {"name": "Python", "type": "Technology"},
+                {"name": "Rust", "type": "Technology"},
+                {"name": "GIL", "type": "Concept"}
+            ],
+            "relationships": [
+                {"source": "User", "target": "Python", "type": "DISLIKES", "reason": "GIL performance"},
+                {"source": "User", "target": "Rust", "type": "PREFERS", "reason": "Performance"},
+                {"source": "Python", "target": "GIL", "type": "HAS_PART"}
+            ],
+            "strategic_insight": "User prefers Rust over Python for performance-critical tasks due to GIL limitations.",
+            "action": "ADD"
+        }
+        """
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": content}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.0
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return result
+            
+        except Exception as e:
+            logger.error(f"Memory analysis failed: {e}")
+            # Fallback
+            return {
+                "title": content[:50] + "...",
+                "summary": content,
+                "intent": "statement",
+                "emotional_context": {"valence": 0.0, "arousal": 0.0, "mood": "Error"},
+                "entities": [],
+                "relationships": [],
+                "strategic_insight": None,
+                "action": "ADD"
+            }
+
 # Global singleton
 _llm_service: Optional[LLMService] = None
 

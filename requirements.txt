@@ -25,6 +25,12 @@ mcp>=0.1.0
 # Utilities
 python-dotenv>=1.0.0,<2.0.0
 structlog>=24.1.0,<25.0.0
+openai
+aiosqlite>=0.19.0
+
+# Dashboard
+streamlit>=1.30.0
+pyvis>=0.3.2
 
 # Development Dependencies (optional)
 pytest>=7.4.0,<8.0.0
