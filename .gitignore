@@ -53,4 +53,11 @@ src/dashboard/ui/node_modules/
 # Temporary files
 temp_*
 *.tmp
+
+# Cleanup and planning artifacts
 CLEANUP_PLAN.md
+RELEASE_V1.1.0_PREPARATION.md
+*_SUMMARY_*.md
+
+# Session notes
+CURRENT_SESSION_*.md

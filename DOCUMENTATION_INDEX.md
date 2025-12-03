@@ -82,6 +82,7 @@ cd Elefante
 
 Historical documents preserved for reference (not actively maintained):
 
+### Installation & Setup Archives
 | Document | Original Purpose | Date Archived |
 |----------|-----------------|---------------|
 | [docs/archive/INSTALLATION_COMPLETE_REPORT_2025-11-27.md](docs/archive/INSTALLATION_COMPLETE_REPORT_2025-11-27.md) | Installation report | 2024-11-29 |
@@ -92,12 +93,62 @@ Historical documents preserved for reference (not actively maintained):
 | [docs/archive/TROUBLESHOOTING_LOG.md](docs/archive/TROUBLESHOOTING_LOG.md) | Troubleshooting log | 2024-11-29 |
 | [docs/archive/DEPLOYMENT_DEBUG_LOG.md](docs/archive/DEPLOYMENT_DEBUG_LOG.md) | Deployment log | 2024-11-29 |
 
+### v1.1.0 Cleanup Archives (2025-12-03)
+| Document | Original Purpose | Reason Archived |
+|----------|-----------------|-----------------|
+| [docs/archive/COMPLETE_DOCUMENTATION_INDEX.md](docs/archive/COMPLETE_DOCUMENTATION_INDEX.md) | Documentation index | Duplicate of DOCUMENTATION_INDEX.md |
+| [docs/archive/MCP_ENABLED_SOLUTION.md](docs/archive/MCP_ENABLED_SOLUTION.md) | MCP database lock fix | Historical fix, issue resolved |
+| [docs/archive/MCP_FIX_DOCUMENTATION.md](docs/archive/MCP_FIX_DOCUMENTATION.md) | MCP troubleshooting | Overlaps with main troubleshooting |
+| [docs/archive/MCP_TROUBLESHOOTING_GUIDE.md](docs/archive/MCP_TROUBLESHOOTING_GUIDE.md) | MCP troubleshooting | Consolidated into main docs |
+| [docs/archive/ZLCTP_PROJECT_DOCUMENTATION.md](docs/archive/ZLCTP_PROJECT_DOCUMENTATION.md) | Project overview | Content overlaps with README |
+
 ---
 
 ## 🛠️ Utility Scripts
 
+### Memory Management
 | Script | Purpose | Location |
 |--------|---------|----------|
+| `add_memories.py` | Batch add memories | `scripts/utils/` |
+| `add_debugging_lessons.py` | Add debugging insights | `scripts/utils/` |
+| `verify_memories.py` | Verify stored memories | `scripts/utils/` |
+| `manual_test_memory_persistence.py` | Manual persistence testing | `scripts/utils/` |
+
+### Dashboard Management
+| Script | Purpose | Location |
+|--------|---------|----------|
+| `restart_dashboard.bat` | Clean dashboard restart | `scripts/dashboard/` |
+
+### Debug Tools
+| Script | Purpose | Location |
+|--------|---------|----------|
+| `auto_repair_chromadb.py` | Repair ChromaDB issues | `scripts/debug/` |
+| `inspect_chromadb.py` | Inspect ChromaDB structure | `scripts/debug/` |
+| `repair_chromadb.py` | Manual ChromaDB repair | `scripts/debug/` |
+| `nuclear_reset_kuzu.py` | Reset Kuzu database | `scripts/debug/` |
+| `remove_kuzu_lock.py` | Remove Kuzu lock file | `scripts/debug/` |
+| `fix_segments_table.py` | Fix ChromaDB segments | `scripts/debug/` |
+| `test_tools.py` | Test MCP tools | `scripts/debug/` |
+
+---
+
+## 📋 Quick Reference
+
+### Common Tasks
+- **Install**: Run `install.bat` (Windows) or `./install.sh` (Mac/Linux)
+- **Start Dashboard**: `.venv\Scripts\python.exe -m src.dashboard.server`
+- **Run Tests**: `.venv\Scripts\python.exe -m pytest tests/`
+- **Verify Memories**: `.venv\Scripts\python.exe scripts/utils/verify_memories.py`
+
+### Getting Help
+1. Check [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common issues
+2. Review [NEVER_AGAIN_COMPLETE_GUIDE.md](NEVER_AGAIN_COMPLETE_GUIDE.md) for installation problems
+3. Search [DEBUG/](DEBUG/) folder for post-mortem analysis
+4. Check archived docs in [docs/archive/](docs/archive/) for historical context
+
+---
+
+**Last Updated**: 2025-12-03 (v1.1.0 Release)
 | `add_memories.py` | Batch add memories | [scripts/utils/](scripts/utils/add_memories.py) |
 | `add_debugging_lessons.py` | Add debugging insights | [scripts/utils/](scripts/utils/add_debugging_lessons.py) |
 | `restart_dashboard.bat` | Clean dashboard restart | [scripts/dashboard/](scripts/dashboard/restart_dashboard.bat) |

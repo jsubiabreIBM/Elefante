@@ -5,7 +5,89 @@ All notable changes to the Elefante project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-12-03
+
+### Added
+- **Dashboard Visualization** - Interactive knowledge graph visualization at http://127.0.0.1:8000
+  - Real-time memory graph with force-directed layout
+  - Node labels showing truncated memory descriptions
+  - Hover tooltips with full content and timestamps
+  - Statistics panel showing memory count and episodes
+  - Spaces filter for categorizing memories
+  - Auto-refresh capability (no server restart needed)
+- **Dashboard Documentation** - Comprehensive usage guide in `docs/DASHBOARD.md`
+- **Utility Scripts** - Helper scripts for memory management
+  - `scripts/utils/add_memories.py` - Batch add memories
+  - `scripts/utils/add_debugging_lessons.py` - Add debugging insights
+  - `scripts/utils/manual_test_memory_persistence.py` - Manual testing utility
+  - `scripts/utils/verify_memories.py` - Memory verification tool
+  - `scripts/dashboard/restart_dashboard.bat` - Clean dashboard restart
+- **Debug Tools** - Organized debug utilities in `scripts/debug/`
+  - Database repair and inspection tools
+  - Kuzu lock management utilities
+- **Integration Tests** - Dashboard and memory persistence tests in `tests/integration/`
+- **Debug Documentation** - Post-mortem analysis in `DEBUG/DASHBOARD_DEBUGGING_POSTMORTEM.md`
+
+### Fixed
+- **Kuzu 0.11.x Compatibility** - Fixed database initialization for Kuzu 0.11.0+
+  - Changed from directory-based to single-file database format
+  - Fixed `buffer_pool_size` parameter parsing (string to bytes conversion)
+  - Added automatic backup and migration for existing databases
+- **Dashboard Stats Display** - Fixed memory count showing 0 despite having memories
+  - Corrected API response path from `stats.total_memories` to `stats.vector_store.total_memories`
+  - Updated `App.tsx` line 36 to read nested response structure
+- **Graph Node Labels** - Fixed unlabeled memory nodes in visualization
+  - Added default labels showing first 3 words of description
+  - Implemented hover tooltips with full content
+  - Modified `GraphCanvas.tsx` to extract and display node properties
+- **Browser Caching Issues** - Documented proper cache clearing procedures
+  - Added hard refresh instructions (Ctrl+Shift+R)
+  - Created restart utility for clean server restarts
+  - Updated troubleshooting guide
+
+### Changed
+- **Repository Organization** - Major cleanup for production release
+  - Removed 9 development debug scripts from root directory
+  - Moved 2 utility scripts to `scripts/utils/`
+  - Moved 7 debug scripts from `DEBUG/` to `scripts/debug/`
+  - Archived 5 redundant documentation files to `docs/archive/`
+  - DEBUG folder now contains documentation only
+- **Documentation Structure** - Improved clarity and navigation
+  - Archived redundant MCP troubleshooting docs (3 files)
+  - Archived COMPLETE_DOCUMENTATION_INDEX.md (duplicate)
+  - Archived ZLCTP_PROJECT_DOCUMENTATION.md (overlaps README)
+  - Created single source of truth for each topic
+  - Added cross-references between related docs
+- **.gitignore Updates** - Enhanced exclusion patterns
+  - Added cleanup and planning artifacts
+  - Added session notes patterns
+  - Added `*.log` files
+  - Added test artifacts (`.pytest_cache/`, `.coverage`)
+  - Added dashboard build artifacts
+  - Added database backups and temporary files
+
+### Improved
+- **Error Handling** - Better error messages and logging
+  - Added traceback output in dashboard server
+  - Improved Kuzu initialization error messages
+  - Enhanced memory addition error reporting
+- **Testing Methodology** - Established end-to-end testing protocol
+  - Always verify complete user experience before claiming success
+  - Account for browser caching in web application testing
+  - Test data flow from database through API to frontend
+  - Wait for user confirmation before proceeding
+- **Code Quality** - Enforced clean codebase standards
+  - No leftover test files in repository
+  - No temporary files or artifacts
+  - Proper cleanup after testing
+  - Minimal, purposeful files only
+
 ## [Unreleased]
+
+### Planned
+- Additional MCP tools for advanced memory operations
+- Performance optimizations for large memory sets
+- Enhanced dashboard filtering and search capabilities
 
 ### Added
 - **Dashboard Visualization** - Interactive knowledge graph visualization at http://127.0.0.1:8000
