@@ -95,18 +95,30 @@ See [`docs/technical/architecture.md`](docs/technical/architecture.md) for detai
 
 ---
 
-## 🔌 MCP Tools
+## 🔌 MCP Tools (11 Total)
 
 Once installed, your AI agent gets these tools:
 
 | Tool | Purpose | Example |
 |------|---------|---------|
-| `addMemory` | Store information | "Remember I'm working on Project Omega" |
-| `searchMemories` | Retrieve memories | "What do you know about Omega?" |
-| `queryGraph` | Complex queries | "Show all AI-related projects" |
-| `getContext` | Session context | (Auto-called by agent) |
-| `createEntity` | Manual graph building | "Create entity for 'Bob'" |
-| `createRelationship` | Link entities | "Link Bob to Elefante as Maintainer" |
+| `addMemory` | Store information with intelligent ingestion | "Remember I'm working on Project Omega" |
+| `searchMemories` | Retrieve memories (semantic/structured/hybrid) | "What do you know about Omega?" |
+| `queryGraph` | Execute Cypher queries on knowledge graph | "Show all AI-related projects" |
+| `getContext` | Get comprehensive session context | (Auto-called by agent) |
+| `createEntity` | Create nodes in knowledge graph | "Create entity for 'Bob'" |
+| `createRelationship` | Link entities with relationships | "Link Bob to Elefante as Maintainer" |
+| `getEpisodes` | Browse past sessions with summaries | "Show recent work sessions" |
+| `getStats` | Get system health & usage statistics | "Show memory system stats" |
+| `consolidateMemories` | Merge duplicates & resolve contradictions | (Auto-triggered or manual) |
+| `listAllMemories` | Export/inspect all memories (no filtering) | "List all memories for backup" |
+| `openDashboard` | Launch visual Knowledge Garden UI | "Open the dashboard" |
+
+**Key Features**:
+- **Intelligent Ingestion**: `addMemory` auto-detects NEW/REDUNDANT/RELATED/CONTRADICTORY
+- **Query Rewriting**: `searchMemories` requires explicit, standalone queries (no pronouns)
+- **Hybrid Search**: Combines semantic (ChromaDB) + structured (Kuzu) + context
+- **Graph Analytics**: Direct Cypher query support via `queryGraph`
+- **Visual Exploration**: Interactive dashboard via `openDashboard`
 
 See [`docs/technical/usage.md`](docs/technical/usage.md) for complete API reference.
 

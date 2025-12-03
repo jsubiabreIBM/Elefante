@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2025-12-03
 
 ### Added
+- **11 MCP Tools** - Complete Model Context Protocol integration
+  - `addMemory` - Store with intelligent ingestion (NEW/REDUNDANT/RELATED/CONTRADICTORY detection)
+  - `searchMemories` - Hybrid search (semantic + structured + context) with query rewriting
+  - `queryGraph` - Execute Cypher queries on Kuzu knowledge graph
+  - `getContext` - Retrieve comprehensive session context
+  - `createEntity` - Create nodes in knowledge graph
+  - `createRelationship` - Link entities with relationships
+  - `getEpisodes` - Browse past sessions with summaries
+  - `getStats` - System health & usage statistics
+  - `consolidateMemories` - Merge duplicates & resolve contradictions
+  - `listAllMemories` - Export/inspect all memories without filtering
+  - `openDashboard` - Launch visual Knowledge Garden UI in browser
 - **Dashboard Visualization** - Interactive knowledge graph visualization at http://127.0.0.1:8000
   - Real-time memory graph with force-directed layout
   - Node labels showing truncated memory descriptions
@@ -84,8 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- Additional MCP tools for advanced memory operations
+### Planned (v1.2.0)
+- **Advanced Memory Intelligence Pipeline**
+  - Enhanced LLM extraction (deeper semantic understanding)
+  - Smart UPDATE (intelligent merge logic)
+  - Smart EXTEND (automatic relationship discovery)
 - Performance optimizations for large memory sets
 - Enhanced dashboard filtering and search capabilities
 
