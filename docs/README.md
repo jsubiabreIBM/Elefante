@@ -51,11 +51,11 @@
 - [`memory-neural-register.md`](debug/memory-neural-register.md) - Memory system failure laws
 
 **Source Documents by Topic**:
-- **[`installation/`](debug/installation/)** (6 files) - Installation troubleshooting
-- **[`dashboard/`](debug/dashboard/)** (2 files) - Dashboard debugging
-- **[`database/`](debug/database/)** (5 files) - Database issues
-- **[`memory/`](debug/memory/)** (3 files) - Memory system debugging
-- **[`general/`](debug/general/)** (13 files) - Cross-cutting concerns
+- **[`installation/`](debug/installation/)** (1 file) - Installation troubleshooting
+- **[`dashboard/`](debug/dashboard/)** (1 file) - Dashboard debugging
+- **[`database/`](debug/database/)** (1 file) - Database issues
+- **[`memory/`](debug/memory/)** (1 file) - Memory system debugging
+- **[`general/`](debug/general/)** (1 file) - Cross-cutting concerns
 
 **See**: [`debug/README.md`](debug/README.md) for complete index
 
@@ -112,8 +112,8 @@ Elefante provides **11 MCP tools** for AI agents:
 ### "I'm new to Elefante"
 1. Read [`../README.md`](../README.md) - High-level overview
 2. Follow [`technical/installation.md`](technical/installation.md) - Install
-3. Try [`technical/walkthrough.md`](technical/walkthrough.md) - Hands-on guide
-4. Explore [`technical/dashboard.md`](technical/dashboard.md) - Visual interface
+3. Explore [`technical/dashboard.md`](technical/dashboard.md) - Visual interface
+4. Review [`technical/usage.md`](technical/usage.md) - Complete API reference
 
 ### "I want to use the API"
 1. Start with [`technical/usage.md`](technical/usage.md) - Complete API reference

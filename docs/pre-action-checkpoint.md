@@ -51,7 +51,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 **Search Query:** `searchMemories("dashboard browser cache refresh common mistakes")`
 
-**Neural Register:** `docs/debug/DASHBOARD_NEURAL_REGISTER.md`
+**Neural Register:** `docs/debug/dashboard-neural-register.md`
 
 ---
 
@@ -69,7 +69,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 **Search Query:** `searchMemories("installation kuzu database path common mistakes")`
 
-**Neural Register:** `docs/debug/INSTALLATION_NEURAL_REGISTER.md`
+**Neural Register:** `docs/debug/installation-neural-register.md`
 
 ---
 
@@ -87,7 +87,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 **Search Query:** `searchMemories("MCP memory ChromaDB type signature common mistakes")`
 
-**Neural Register:** `docs/debug/MCP_CODE_NEURAL_REGISTER.md`
+**Neural Register:** `docs/debug/mcp-code-neural-register.md`
 
 ---
 
@@ -105,7 +105,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 **Search Query:** `searchMemories("kuzu reserved words properties database common mistakes")`
 
-**Neural Register:** `docs/debug/DATABASE_NEURAL_REGISTER.md`
+**Neural Register:** `docs/debug/database-neural-register.md`
 
 ---
 
@@ -157,11 +157,11 @@ This document exists because:
 
 ## RELATED FILES
 
-- `docs/debug/DASHBOARD_NEURAL_REGISTER.md`
-- `docs/debug/INSTALLATION_NEURAL_REGISTER.md`
-- `docs/debug/DATABASE_NEURAL_REGISTER.md`
-- `docs/debug/MCP_CODE_NEURAL_REGISTER.md`
-- `docs/debug/MEMORY_NEURAL_REGISTER.md`
+- `docs/debug/dashboard-neural-register.md`
+- `docs/debug/installation-neural-register.md`
+- `docs/debug/database-neural-register.md`
+- `docs/debug/mcp-code-neural-register.md`
+- `docs/debug/memory-neural-register.md`
 - `docs/debug/dashboard/dashboard-compendium.md`
 
 ---

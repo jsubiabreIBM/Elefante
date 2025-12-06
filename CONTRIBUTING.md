@@ -31,16 +31,20 @@ Elefante/
 │   ├── core/              # Core functionality
 │   ├── models/            # Data models
 │   ├── mcp/               # MCP server
+│   ├── dashboard/         # React dashboard
 │   └── utils/             # Utilities
 ├── scripts/               # Utility scripts
-├── setup/                 # Setup and configuration scripts
 ├── examples/              # Example usage scripts
 ├── docs/                  # Documentation
-├── tests/                 # Test files (not in repo yet)
+│   ├── technical/         # Production reference docs
+│   ├── debug/             # Neural registers & compendiums
+│   ├── planning/          # Roadmaps
+│   └── archive/           # Historical docs
+├── tests/                 # Test files
 ├── README.md              # Main documentation
-├── QUICK_START.md         # Quick start guide
-├── requirements.txt       # Dependencies
-└── setup.py               # Package setup
+├── CHANGELOG.md           # Version history
+├── RELEASES.md            # Release notes
+└── requirements.txt       # Dependencies
 ```
 
 ## 🔧 Development Workflow
