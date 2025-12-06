@@ -314,6 +314,12 @@ class VectorStore:
         if filters.memory_type:
             where["memory_type"] = filters.memory_type
         
+        if filters.domain:
+            where["domain"] = filters.domain
+        
+        if filters.category:
+            where["category"] = filters.category
+        
         if filters.source:
             where["source"] = filters.source
         

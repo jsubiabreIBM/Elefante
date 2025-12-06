@@ -93,6 +93,16 @@ class ElefanteMCPServer:
                                 "default": "conversation",
                                 "description": "Type of memory"
                             },
+                            "domain": {
+                                "type": "string",
+                                "enum": ["work", "personal", "learning", "project", "reference", "system"],
+                                "default": "reference",
+                                "description": "High-level context domain"
+                            },
+                            "category": {
+                                "type": "string",
+                                "description": "Mid-level grouping (e.g., 'elefante', 'ai-ml', 'debugging')"
+                            },
                             "importance": {
                                 "type": "integer",
                                 "minimum": 1,
@@ -173,6 +183,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                                 "type": "object",
                                 "properties": {
                                     "memory_type": {"type": "string"},
+                                    "domain": {"type": "string", "enum": ["work", "personal", "learning", "project", "reference", "system"]},
+                                    "category": {"type": "string"},
                                     "min_importance": {"type": "integer", "minimum": 1, "maximum": 10},
                                     "tags": {"type": "array", "items": {"type": "string"}},
                                     "start_date": {"type": "string", "format": "date-time"},
@@ -449,13 +461,20 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
         """Handle addMemory tool call - now uses shared singleton connection"""
         orchestrator = await self._get_orchestrator()
         
+        # Build metadata with domain/category if provided
+        metadata = args.get("metadata") or {}
+        if args.get("domain"):
+            metadata["domain"] = args["domain"]
+        if args.get("category"):
+            metadata["category"] = args["category"]
+        
         memory = await orchestrator.add_memory(
             content=args["content"],
             memory_type=args.get("memory_type", "conversation"),
             importance=args.get("importance", 5),
             tags=args.get("tags"),
             entities=args.get("entities"),
-            metadata=args.get("metadata")
+            metadata=metadata if metadata else None
         )
         
         return {
@@ -477,6 +496,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
             filter_data = args["filters"]
             filters = SearchFilters(
                 memory_type=filter_data.get("memory_type"),
+                domain=filter_data.get("domain"),
+                category=filter_data.get("category"),
                 min_importance=filter_data.get("min_importance"),
                 max_importance=filter_data.get("max_importance"),
                 tags=filter_data.get("tags"),
@@ -597,6 +618,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
             filter_data = args["filters"]
             filters = SearchFilters(
                 memory_type=filter_data.get("memory_type"),
+                domain=filter_data.get("domain"),
+                category=filter_data.get("category"),
                 min_importance=filter_data.get("min_importance"),
                 max_importance=filter_data.get("max_importance"),
                 tags=filter_data.get("tags")

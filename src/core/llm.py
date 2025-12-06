@@ -194,6 +194,66 @@ class LLMService:
                 "action": "ADD"
             }
 
+    async def classify_memory(self, content: str, tags: Optional[List[str]] = None) -> Dict[str, str]:
+        """
+        Auto-classify memory content into domain and category.
+        Returns: {"domain": "work|personal|learning|project|reference|system", "category": "string"}
+        """
+        if not self.client:
+            # Fallback: Use tags or default
+            return {
+                "domain": "reference",
+                "category": tags[0] if tags else "general"
+            }
+
+        system_prompt = """
+        You are a memory classification expert. Classify the given memory content.
+        
+        Return ONLY a JSON object with:
+        {
+            "domain": "work" | "personal" | "learning" | "project" | "reference" | "system",
+            "category": "<string - specific topic like 'elefante', 'python', 'debugging', 'preferences', 'ai-ml'>"
+        }
+        
+        DOMAIN DEFINITIONS:
+        - work: Professional tasks, meetings, decisions, architecture
+        - personal: Health, relationships, hobbies, personal preferences
+        - learning: Tutorials, courses, research, educational content
+        - project: Specific project work (identify project name as category)
+        - reference: Documentation, APIs, best practices, general knowledge
+        - system: System-generated metadata, internal operations
+        
+        CATEGORY GUIDELINES:
+        - Use lowercase, hyphenated names (e.g., "ai-ml", "code-review")
+        - Be specific but not too granular
+        - If about a named project, use project name as category
+        """
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Content: {content}\nTags: {tags or []}"}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.0
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return {
+                "domain": result.get("domain", "reference"),
+                "category": result.get("category", "general")
+            }
+            
+        except Exception as e:
+            logger.error(f"Memory classification failed: {e}")
+            return {
+                "domain": "reference",
+                "category": tags[0] if tags else "general"
+            }
+
+
 # Global singleton
 _llm_service: Optional[LLMService] = None
 

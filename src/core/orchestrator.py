@@ -171,6 +171,20 @@ class MemoryOrchestrator:
                     if k not in ["domain", "category", "intent", "confidence", "source"]
                 }
             
+            # AUTO-CLASSIFICATION: If domain/category not provided, use LLM
+            if not domain or not category:
+                try:
+                    classification = await self.llm_service.classify_memory(content, tags)
+                    if not domain:
+                        domain = classification.get("domain", "reference")
+                    if not category:
+                        category = classification.get("category", "general")
+                    self.logger.info(f"Auto-classified: domain={domain}, category={category}")
+                except Exception as e:
+                    self.logger.warning(f"Auto-classification failed: {e}")
+                    domain = domain or "reference"
+                    category = category or "general"
+            
             # Safely convert intent, mapping unknown values to REFERENCE
             intent_value = IntentType.REFERENCE
             if intent:

@@ -92,6 +92,8 @@ class SearchResult(BaseModel):
 class SearchFilters(BaseModel):
     """Filters for search operations"""
     memory_type: Optional[str] = None
+    domain: Optional[str] = None
+    category: Optional[str] = None
     min_importance: Optional[int] = Field(None, ge=1, le=10)
     max_importance: Optional[int] = Field(None, ge=1, le=10)
     tags: Optional[List[str]] = None
@@ -126,6 +128,10 @@ class SearchFilters(BaseModel):
         
         if self.memory_type:
             filters["memory_type"] = self.memory_type
+        if self.domain:
+            filters["domain"] = self.domain
+        if self.category:
+            filters["category"] = self.category
         if self.min_importance is not None:
             filters["min_importance"] = self.min_importance
         if self.max_importance is not None:
