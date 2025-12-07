@@ -62,7 +62,9 @@ interface Node {
   color?: string; // DNA-mapped color from memory_type
   opacity?: number; // DNA-mapped opacity from status
   importance?: number; // DNA-mapped importance (1-10)
-  memoryType?: string; // DNA-mapped memory type (fact/episodic/procedural)
+  memoryType?: string; // DNA-mapped memory type
+  layer?: 'self' | 'world' | 'intent'; // V3 Schema
+  sublayer?: string; // V3 Schema 9 types
   short_label?: string; // DNA-mapped short label
   originalLabel?: string; // Original full label
 }
@@ -163,6 +165,24 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ space }) => {
         const allowedNodeIds = new Set(allowedNodes.map((n: any) => n.id));
         console.log(`✂️ Nodes after guillotine: ${json.nodes.length} → ${allowedNodes.length}`);
         
+        // V3 HIERARCHY: Inject Anchor Nodes
+        // Triangulate around center
+        const cx = width / 2;
+        const cy = height / 2;
+        const anchors = [
+          { id: 'v3_anchor_intent', label: 'INTENT', type: 'anchor', layer: 'intent', x: cx, y: cy - 250, fx: cx, fy: cy - 250, color: '#FFFFFF', radius: 30, importance: 10 },
+          { id: 'v3_anchor_self', label: 'SELF', type: 'anchor', layer: 'self', x: cx - 250, y: cy + 150, fx: cx - 250, fy: cy + 150, color: '#EF4444', radius: 30, importance: 10 },
+          { id: 'v3_anchor_world', label: 'WORLD', type: 'anchor', layer: 'world', x: cx + 250, y: cy + 150, fx: cx + 250, fy: cy + 150, color: '#3B82F6', radius: 30, importance: 10 }
+        ];
+        
+        // Add anchors if not present
+        anchors.forEach(anchor => {
+             if (!allowedNodes.find((n:any) => n.id === anchor.id)) {
+                 allowedNodes.push(anchor);
+                 allowedNodeIds.add(anchor.id); // Valid target for edges? maybe not.
+             }
+        });
+        
         // 2. Strict Edge Scrubbing (BOTH ends must exist in allowedNodes)
         const cleanEdges = json.edges.filter((e: any) => {
             // Handle D3 object references vs String IDs
@@ -209,6 +229,8 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ space }) => {
           
           // V27.0 SEMANTIC TOPOLOGY: ORBITAL HIERARCHY
           const importance = props.importance || 5;
+          const layer = props.layer || 'world';
+          const sublayer = props.sublayer || 'fact';
           
           // SIZE: Enforce Gravity Hierarchy (SUN → PLANET → SATELLITE)
           let radius;
@@ -220,28 +242,37 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ space }) => {
             radius = 6;  // SATELLITE (Facts/Logs)
           }
           
-          // COLOR: Enforce Spectrum by Memory Type
-          let color;
+          // V3 COLOR SCHEME: Layer-aware Gradients
+          // SELF: Red-Orange-Yellow
+          // WORLD: Blue-Purple-Green
+          // INTENT: White-Green-Blue
+          let color = '#3b82f6'; // Default Blue
+
           if (n.type === 'memory') {
-            const memType = props.memory_type || 'fact';
-            switch(memType) {
-              case 'decision':
-                color = '#ef4444'; // Red (Laws/Decisions)
-                break;
-              case 'insight':
-                color = '#a855f7'; // Purple (Wisdom)
-                break;
-              case 'preference':
-                color = '#eab308'; // Gold (User Style)
-                break;
-              case 'episodic':
-                color = '#10B981'; // Green (Personal)
-                break;
-              case 'procedural':
-                color = '#8B5CF6'; // Purple (How-To)
-                break;
-              default:
-                color = '#3b82f6'; // Blue (Facts)
+            if (layer === 'self') {
+               switch(sublayer) {
+                  case 'identity': color = '#EF4444'; break; // Red
+                  case 'preference': color = '#F97316'; break; // Orange
+                  case 'constraint': color = '#EAB308'; break; // Yellow
+                  default: color = '#F97316'; // Fallback
+               }
+            } else if (layer === 'world') {
+               switch(sublayer) {
+                  case 'fact': color = '#3B82F6'; break; // Blue
+                  case 'failure': color = '#7C3AED'; break; // Purple
+                  case 'method': color = '#10B981'; break; // Green
+                  default: color = '#3B82F6'; // Fallback
+               }
+            } else if (layer === 'intent') {
+               switch(sublayer) {
+                  case 'rule': color = '#FFFFFF'; break; // White (Stark)
+                  case 'goal': color = '#22C55E'; break; // Toxic Green
+                  case 'anti-pattern': color = '#F43F5E'; break; // Rose
+                  default: color = '#FFFFFF'; // Fallback
+               }
+            } else {
+               // Fallback for legacy memories
+               color = '#94A3B8'; // Slate
             }
           } else {
             color = n.type === 'entity' ? '#E6E6FA' : '#FFD700';
@@ -286,7 +317,9 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ space }) => {
             opacity: opacity,
             degree: degreeMap.get(n.id) || 0,
             importance: importance,
-            memoryType: props.memory_type || 'fact'
+            memoryType: props.memory_type || 'fact',
+            layer: layer, // V3
+            sublayer: sublayer // V3
           };
           } catch (error) {
             console.error("❌ Error processing node:", n.id, error);
@@ -532,6 +565,25 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ space }) => {
         node.vx *= 0.1; // 1 - 0.9 = 0.1 (90% friction)
         node.vy *= 0.1;
         
+        // V3 LAYER GRAVITY: Pull memories to their Anchor
+        if (node.type === 'memory' && node.layer) {
+             // Find corresponding anchor in the nodes array
+             const anchorId = `v3_anchor_${node.layer}`;
+             const anchor = nodes.find(n => n.id === anchorId);
+             
+             if (anchor) {
+                 const dx = anchor.x - node.x;
+                 const dy = anchor.y - node.y;
+                 const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                 
+                 // Strong pull (gravity)
+                 // V28: TEMPORAL HEAT check? No, purely structural for now.
+                 const strength = 0.02; // 2% pull per frame
+                 node.vx += dx * strength;
+                 node.vy += dy * strength;
+             }
+        }
+        
         // Update position (unless dragging)
         if (draggingNode.current?.id !== node.id) {
           node.x += node.vx;
@@ -654,6 +706,9 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ space }) => {
       // Filter nodes by visibility toggles
       const visibleNodes = nodes.filter(n => visibleTypes[n.type as keyof typeof visibleTypes]);
       
+      // Update pulse phase ONCE per frame
+      pulsePhase += PULSE_SPEED;
+
       // Draw Nodes with shape mapping
       visibleNodes.forEach(node => {
         // Focus mode dimming
@@ -665,11 +720,12 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ space }) => {
         // DNA MAPPING: Use color from metadata (memory_type)
         let baseColor = node.color || '#10b981'; // Use DNA-mapped color or fallback to Emerald
         
-        // V28: PULSE ANIMATION for critical memories (importance >= 9)
+        // V28: PULSE ANIMATION for critical memories OR Electric Effect
         const isCritical = (node.importance || 0) >= 9;
+        const isElectric = isFocused || isAdjacent; // Electric Effect active?
+        
         let pulseGlow = 0;
-        if (isCritical) {
-          pulsePhase += PULSE_SPEED;
+        if (isCritical || (focusedNode && isElectric)) {
           pulseGlow = Math.sin(pulsePhase) * 0.5 + 0.5; // 0 to 1 oscillation
         }
         
@@ -698,12 +754,14 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ space }) => {
           ctx.shadowColor = baseColor;
           ctx.shadowBlur = 5;
           ctx.globalAlpha = 0.25 * opacity; // Combine dimming with DNA opacity
-        } else if (isCritical) {
-          // V28: PULSE EFFECT for critical memories
+        } else if (isCritical || (focusedNode && isElectric)) {
+          // V28: PULSE EFFECT for critical memories AND Electric Connections
           ctx.fillStyle = baseColor;
           ctx.shadowColor = baseColor;
-          ctx.shadowBlur = 15 + (pulseGlow * 25); // Pulse between 15-40px glow
-          ctx.globalAlpha = 0.8 + (pulseGlow * 0.2); // Pulse between 0.8-1.0 opacity
+          // Intense glow for Electric Effect
+          const intensity = isElectric ? 40 : 25; 
+          ctx.shadowBlur = 15 + (pulseGlow * intensity); 
+          ctx.globalAlpha = 0.8 + (pulseGlow * 0.2); 
         } else {
           ctx.fillStyle = baseColor;
           ctx.shadowColor = baseColor;
