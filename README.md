@@ -98,7 +98,7 @@ See [`docs/technical/architecture.md`](docs/technical/architecture.md) for detai
 
 ---
 
-## MCP Tools (14 Total)
+## MCP Tools (16 Total)
 
 Once installed, your AI agent gets these tools:
 
@@ -156,7 +156,7 @@ See [`docs/technical/dashboard.md`](docs/technical/dashboard.md) for complete gu
 
 ### Implemented
 -  Triple-layer architecture (ChromaDB + Kuzu + Context)
--  MCP server with 14 tools
+-  MCP server with 16 tools
 -  ELEFANTE_MODE (Multi-IDE safety with exclusive locking)
 -  Auto-Inject Pitfalls (Protocol enforcement in responses)
 -  Cognitive memory model (LLM extracts emotions, intent, entities, relationships)

@@ -181,7 +181,7 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory.
 
 **Looking for specific topics**:
 - Installation -> `technical/installation.md` or `debug/installation-neural-register.md`
-- API/Tools -> `technical/usage.md` (all 14 tools)
+- API/Tools -> `technical/usage.md` (all 16 tools)
 - Architecture -> `technical/architecture.md`
 - Dashboard -> `technical/dashboard.md` or `debug/dashboard-neural-register.md`
 - Database -> `technical/kuzu-best-practices.md` or `debug/database-neural-register.md`

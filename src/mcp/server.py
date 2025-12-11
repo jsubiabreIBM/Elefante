@@ -74,24 +74,24 @@ class ElefanteMCPServer:
         This ensures the agent CANNOT ignore them, as they are part of the data payload.
         """
         pitfalls = [
-            "🛑 CRITICAL PROTOCOL: You MUST check for existing memories before creating new ones to avoid duplication.",
-            "🛑 CRITICAL PROTOCOL: If you are debugging, you MUST read the relevant 'Neural Register' in docs/debug/ first.",
-            "🛑 CRITICAL PROTOCOL: Do not rely on your internal knowledge base for project specifics; use the memory system."
+            "CRITICAL PROTOCOL: You MUST check for existing memories before creating new ones to avoid duplication.",
+            "CRITICAL PROTOCOL: If you are debugging, you MUST read the relevant 'Neural Register' in docs/debug/ first.",
+            "CRITICAL PROTOCOL: Do not rely on your internal knowledge base for project specifics; use the memory system."
         ]
         
         # Context-specific injections
         if tool_name == "addMemory":
-            pitfalls.append("⚠️ MEMORY INTEGRITY: Ensure 'layer' and 'sublayer' are correctly classified. Do not default to 'world/fact' if unsure.")
+            pitfalls.append("WARNING - MEMORY INTEGRITY: Ensure 'layer' and 'sublayer' are correctly classified. Do not default to 'world/fact' if unsure.")
         
         if tool_name == "searchMemories":
-             pitfalls.append("⚠️ SEARCH BIAS: If results are empty, try broader terms. Do not assume non-existence without a semantic search.")
-             pitfalls.append("⚠️ CONTRADICTIONS: If you find contradictory memories, prioritize the most recent one but note the conflict.")
+             pitfalls.append("WARNING - SEARCH BIAS: If results are empty, try broader terms. Do not assume non-existence without a semantic search.")
+             pitfalls.append("WARNING - CONTRADICTIONS: If you find contradictory memories, prioritize the most recent one but note the conflict.")
 
         if tool_name in ["queryGraph", "createEntity", "createRelationship"]:
-            pitfalls.append("⚠️ GRAPH CONSISTENCY: Ensure entity types match the allowed enum values. Do not invent new types without updating the schema.")
+            pitfalls.append("WARNING - GRAPH CONSISTENCY: Ensure entity types match the allowed enum values. Do not invent new types without updating the schema.")
 
         # Add to result with a key that demands attention
-        result["🛑_MANDATORY_PROTOCOLS_READ_THIS_FIRST"] = pitfalls
+        result["MANDATORY_PROTOCOLS_READ_THIS_FIRST"] = pitfalls
         return result
 
     async def _get_orchestrator(self):

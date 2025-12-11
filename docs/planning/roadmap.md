@@ -27,7 +27,7 @@
 - **Cognitive Memory Model** - LLM extracts emotional context, intent, entities, relationships
 - **Temporal Decay** - Memories decay over time, reinforced on access
 - **Dual Storage** - ChromaDB (vectors) + Kuzu (graph)
-- **MCP Server** - 14 tools for IDE integration
+- **MCP Server** - 16 tools for IDE integration
 - **Dashboard** - React/Vite visualization (functional but needs UX work)
 
 ###  Partial Implementation

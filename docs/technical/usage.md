@@ -13,9 +13,9 @@ Once connected to your IDE, use natural language to interact with Elefante.
 
 ---
 
-## 2. MCP Tools (14 Total)
+## 2. MCP Tools (16 Total)
 
-The MCP server exposes 14 tools to your AI agent:
+The MCP server exposes 16 tools to your AI agent:
 
 ### Core Memory Operations
 
@@ -255,6 +255,37 @@ RETURN p
 **Example**:
 ```
 "Open the dashboard" or "Show me my knowledge graph"
+```
+
+#### `refreshDashboardData`
+**Purpose**: Regenerate `data/dashboard_snapshot.json` used by the dashboard.
+
+**When to use**:
+- After adding or consolidating memories
+- When the dashboard looks out of sync with the memory store
+
+**Parameters**: None
+
+**Example**:
+```
+"Refresh dashboard data"
+```
+
+---
+
+#### `migrateMemoriesV3`
+**Purpose**: Administrative migration tool that re-classifies existing memories into V3 schema (`layer`/`sublayer`) and writes updates back.
+
+**When to use**:
+- After changing classification logic
+- After importing legacy memories that lack V3 fields
+
+**Parameters**:
+- `limit` (optional): Batch size per iteration (default: 500)
+
+**Example**:
+```
+"Migrate memories to V3"
 ```
 
 ---

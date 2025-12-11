@@ -61,7 +61,7 @@ First stable production release with comprehensive documentation cleanup.
   - Kuzu for knowledge graph relationships
   - Session context for conversation continuity
 
-- **MCP Server with 14 Tools**
+- **MCP Server with 16 Tools**
   - `addMemory` - Store with intelligent ingestion (NEW/REDUNDANT/RELATED/CONTRADICTORY)
   - `searchMemories` - Hybrid search (semantic + structured + context)
   - `queryGraph` - Execute Cypher queries on knowledge graph
