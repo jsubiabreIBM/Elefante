@@ -115,6 +115,21 @@ async def check_configuration():
         }
 
 
+async def cleanup_resources():
+    """Clean up database connections to prevent async cleanup errors"""
+    try:
+        # Close graph store connection
+        from src.core.graph_store import get_graph_store, reset_graph_store
+        graph_store = get_graph_store()
+        graph_store.close()
+        reset_graph_store()
+    except Exception:
+        pass
+    
+    # Give background threads a moment to complete
+    await asyncio.sleep(0.1)
+
+
 async def main():
     """Run health checks"""
     logger.info("=" * 60)
@@ -160,11 +175,14 @@ async def main():
     if all_healthy:
         logger.info("✓ All systems operational!")
         logger.info("=" * 60)
-        return 0
     else:
         logger.error("✗ Some systems are unhealthy")
         logger.error("=" * 60)
-        return 1
+    
+    # Clean up resources before event loop closes
+    await cleanup_resources()
+    
+    return 0 if all_healthy else 1
 
 
 if __name__ == "__main__":

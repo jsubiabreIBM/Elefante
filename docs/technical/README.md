@@ -16,13 +16,26 @@
 
 ## Documentation Map
 
+### Installation & Setup (START HERE)
+| File | Purpose |
+|------|---------|
+| [`python-version-requirements.md`](python-version-requirements.md) | **MANDATORY: Python 3.11 locking** |
+| [`installation.md`](installation.md) | Full installation guide |
+| [`installation-safeguards.md`](installation-safeguards.md) | Pre-flight checks & Kuzu compatibility |
+
+### Running Elefante
+| File | Purpose | Status |
+|------|---------|--------|
+| [`mcp-server-startup.md`](mcp-server-startup.md) | **Start MCP server, verification, troubleshooting** | ✅ NEW |
+| [`dashboard-startup.md`](dashboard-startup.md) | **Start Dashboard, verification, troubleshooting** | ✅ NEW |
+| [`kuzu-lock-monitoring.md`](kuzu-lock-monitoring.md) | **Prevent single-writer lock deadlocks** | ✅ NEW |
+
 ### Core System
 | File | Purpose |
 |------|---------|
 | [`architecture.md`](architecture.md) | System design, triple-layer brain |
-| [`installation.md`](installation.md) | Setup guide |
 | [`usage.md`](usage.md) | API reference, MCP tools |
-| [`dashboard.md`](dashboard.md) | Visualization guide |
+| [`dashboard.md`](dashboard.md) | Legacy dashboard guide (see dashboard-startup.md) |
 
 ### Memory Intelligence
 | File | Purpose | Status |

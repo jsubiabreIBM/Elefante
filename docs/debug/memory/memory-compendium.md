@@ -1,9 +1,9 @@
 # Memory System Debug Compendium
 
 > **Domain:** Memory Retrieval, Storage & Reinforcement  
-> **Last Updated:** 2025-12-07  
-> **Total Issues Documented:** 6  
-> **Status:** Production Reference  
+> **Last Updated:** 2025-12-10  
+> **Total Issues Documented:** 9  
+> **Status:** Production Reference - 3 OPEN Design Flaws  
 > **Maintainer:** Add new issues following Issue #N template at bottom
 
 ---
@@ -19,6 +19,9 @@
 | 5   | Verify code works BEFORE claiming completion                               | User frustration  |
 | 6   | Memory metadata has 40+ fields - don't assume structure                    | Silent data loss  |
 | 7   | V3 Schema: layer/sublayer must be saved in BOTH add_memory AND reconstruct | 8 hours           |
+| 8   | **searchMemories returns BLOATED JSON - 90% null fields waste tokens**     | Context window    |
+| 9   | **Similarity scores 0.3-0.4 for exact matches = embedding quality issue**  | Poor retrieval    |
+| 10  | **MCP response lacks actionable summary - agent must parse raw JSON**      | Integration fail  |
 
 ---
 
@@ -30,6 +33,9 @@
 - [Issue #4: Temporal Decay Implementation Failure](#issue-4-temporal-decay-implementation-failure)
 - [Issue #5: Memory Schema Mismatch](#issue-5-memory-schema-mismatch)
 - [Issue #6: V3 Layer Metadata Not Persisting](#issue-6-v3-layer-metadata-not-persisting)
+- [Issue #7: searchMemories Response Bloat](#issue-7-searchmemories-response-bloat-token-waste) 🔴 OPEN
+- [Issue #8: Low Similarity Scores](#issue-8-low-similarity-scores-for-exact-matches) 🔴 OPEN
+- [Issue #9: No Actionable Integration](#issue-9-no-actionable-integration-in-search-results) 🔴 OPEN
 - [Memory Export Guide](#memory-export-guide)
 - [Reinforcement Protocol](#reinforcement-protocol)
 - [Prevention Protocol](#prevention-protocol)
@@ -579,6 +585,251 @@ assert count > 0, 'No memories found!'
 
 ---
 
+## Issue #7: searchMemories Response Bloat (Token Waste)
+
+**Date:** 2025-12-10  
+**Duration:** Observed in production testing  
+**Severity:** CRITICAL  
+**Status:** 🔴 OPEN (Design Flaw)
+
+### Problem
+
+searchMemories returns ~500 tokens of metadata per memory, 90% of which is null/default values.
+
+### Symptom
+
+```json
+// Query: "Developer Etiquette Standards"
+// Response per memory (~500 tokens EACH):
+{
+  "memory": {
+    "id": "d6636cc1-...",
+    "content": "Actual useful content here",
+    "metadata": {
+      "created_at": "2025-12-10",
+      "subcategory": null,        // WASTED
+      "verified": false,          // WASTED  
+      "verified_by": null,        // WASTED
+      "verified_at": null,        // WASTED
+      "session_id": null,         // WASTED
+      "project": null,            // WASTED
+      "workspace": null,          // WASTED
+      "file_path": null,          // WASTED
+      "line_number": null,        // WASTED
+      "url": null,                // WASTED
+      "location": null,           // WASTED
+      // ... 30+ more null fields
+    }
+  }
+}
+```
+
+**Token math:** 3 memories × 500 tokens = 1500 tokens. Useful content: ~150 tokens. **90% waste.**
+
+### Root Cause
+
+1. Memory model has 60+ fields for extensibility
+2. MCP tool serializes ENTIRE metadata dict including nulls
+3. No response filtering or compression
+4. No "slim" response mode
+
+### Solution (PROPOSED - NOT IMPLEMENTED)
+
+**Option 1: Filter nulls in MCP response**
+```python
+# In src/mcp/server.py searchMemories handler
+def filter_null_metadata(metadata: dict) -> dict:
+    return {k: v for k, v in metadata.items() if v is not None}
+```
+
+**Option 2: Add slim_response parameter**
+```python
+searchMemories(query="...", slim_response=True)
+# Returns only: id, content, score, importance, layer, sublayer
+```
+
+**Option 3: Return summary instead of full metadata**
+```python
+# Instead of full metadata, return:
+{
+  "id": "...",
+  "content": "...",
+  "score": 0.59,
+  "summary": "Rule about collaboration documentation (importance: 10)"
+}
+```
+
+### Why This Matters
+
+- Agent context window is FINITE
+- Every wasted token = less room for actual work
+- 3 memories already consume 1500+ tokens
+- At scale (10+ memories), search results dominate context
+
+### Lesson
+
+> **Every null field in MCP response is a stolen token. Filter aggressively.**
+
+---
+
+## Issue #8: Low Similarity Scores for Exact Matches
+
+**Date:** 2025-12-10  
+**Duration:** Observed in production testing  
+**Severity:** HIGH  
+**Status:** 🔴 OPEN (Embedding Quality Issue)
+
+### Problem
+
+Query for "Developer Etiquette Standards" returns memories ABOUT developer etiquette with only 0.37-0.39 similarity scores.
+
+### Symptom
+
+```python
+# Query: "Developer Etiquette Standards Project Hydro Documentation"
+# Results:
+# Memory 1: "ELEFANTE_DEVELOPER_CORE_V4 Agent Etiquette..." → similarity: 0.392
+# Memory 2: "Collaboration Rules: Bus Factor..." → similarity: 0.377
+# Memory 3: "Technical Best Practices Checklist..." → similarity: 0.377
+
+# Expected: 0.7+ for topic-relevant memories
+# Actual: 0.37-0.39 (barely above default min_similarity of 0.3!)
+```
+
+### Root Cause
+
+**Possible causes (need investigation):**
+
+1. **Embedding model mismatch**: all-MiniLM-L6-v2 may not capture domain terminology
+2. **Query too long**: Multi-word queries dilute embedding focus
+3. **Content structure**: Long markdown content embeds poorly vs short queries
+4. **No query expansion**: System doesn't try synonyms or related terms
+
+### Solution (PROPOSED - NOT IMPLEMENTED)
+
+**Option 1: Query preprocessing**
+```python
+# Break long query into key terms
+query = "Developer Etiquette Standards"
+expanded = ["developer etiquette", "coding standards", "best practices"]
+# Search with each, combine results
+```
+
+**Option 2: Hybrid scoring boost**
+```python
+# If keyword match exists, boost similarity score
+if "etiquette" in memory.content.lower():
+    score *= 1.5  # Boost for keyword presence
+```
+
+**Option 3: Better embedding model**
+```python
+# Consider: text-embedding-3-small (OpenAI) or larger sentence-transformers
+embedding_model = "BAAI/bge-base-en-v1.5"  # Better for retrieval
+```
+
+### Why This Matters
+
+- Memories exist but aren't found reliably
+- Agent may miss critical guidance
+- Default min_similarity=0.3 barely catches relevant results
+- System feels "dumb" despite having knowledge
+
+### Lesson
+
+> **Similarity 0.3-0.4 for exact topic match = retrieval is broken. Investigate embedding quality.**
+
+---
+
+## Issue #9: No Actionable Integration in Search Results
+
+**Date:** 2025-12-10  
+**Duration:** Observed in production testing  
+**Severity:** HIGH  
+**Status:** 🔴 OPEN (Design Gap)
+
+### Problem
+
+searchMemories returns raw JSON that agent must parse and interpret. No guidance on WHAT TO DO with results.
+
+### Symptom
+
+```
+Agent receives:
+{
+  "success": true,
+  "count": 3,
+  "results": [{ huge json }, { huge json }, { huge json }]
+}
+
+Agent must then:
+1. Parse JSON
+2. Extract content from each memory
+3. Identify which memories are relevant
+4. Determine how to apply them
+5. Actually apply them (often forgotten!)
+```
+
+### Root Cause
+
+MCP tool designed as "data retrieval" not "decision support":
+- Returns data, not guidance
+- No summary of findings
+- No suggested actions
+- No conflict detection between memories
+
+### Solution (PROPOSED - NOT IMPLEMENTED)
+
+**Option 1: Add summary field to response**
+```json
+{
+  "success": true,
+  "count": 3,
+  "summary": "Found 3 rules about developer etiquette: (1) Document for bus factor, (2) Criticize code not coder, (3) Test happy & sad paths. Highest importance: 10.",
+  "suggested_action": "Apply these standards to current task.",
+  "results": [...]
+}
+```
+
+**Option 2: Add conflict detection**
+```json
+{
+  "conflicts": [
+    {
+      "memory_a": "uuid-1",
+      "memory_b": "uuid-2", 
+      "conflict_type": "contradictory_rules",
+      "resolution": "Memory A is more recent, prefer it"
+    }
+  ]
+}
+```
+
+**Option 3: Agent-friendly format**
+```json
+{
+  "for_agent": {
+    "key_facts": ["Fact 1", "Fact 2"],
+    "rules_to_follow": ["Rule 1", "Rule 2"],
+    "warnings": ["Don't do X"],
+    "apply_to": "current task context"
+  }
+}
+```
+
+### Why This Matters
+
+- Agent retrieves knowledge but doesn't USE it
+- "Knowledge Gap" vs "Application Gap" - this is Application Gap
+- Raw data ≠ actionable intelligence
+- Users frustrated: "You have the memory, why didn't you follow it?"
+
+### Lesson
+
+> **Data retrieval without action guidance = useless. Memory system must DIRECT agent behavior.**
+
+---
+
 ## Appendix: Issue Template
 
 ```markdown
@@ -616,4 +867,4 @@ assert count > 0, 'No memories found!'
 
 ---
 
-_Last verified: 2025-12-05 | Memory count: 71 | ChromaDB version: check requirements.txt_
+_Last verified: 2025-12-10 | Issues: 9 | Status: 3 OPEN design flaws identified_

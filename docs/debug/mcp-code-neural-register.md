@@ -303,6 +303,15 @@ print("Initializing...", file=sys.stderr)
 **Resolution**: Created standalone script (`scripts/migrate_v3_direct.py`) to bypass cache  
 **Prevention**: Restart servers after code changes; use `--reload` flag in development
 
+### Pattern #5: Uvicorn Stdout Pollution (2025-12-09)
+
+**Trigger**: Launching Dashboard Server (FastAPI/Uvicorn) from within MCP tool
+**Symptom**: `connection closed: invalid character 'I'` immediately upon launch
+**Root Cause**: Uvicorn defaults to logging startup info (`INFO: Started server...`) to `stdout`
+**Impact**: Immediate MCP connection termination (protocol corruption)
+**Resolution**: Configure Uvicorn logging to use `sys.stderr` explicitly
+**Prevention**: **ALWAYS** configure `log_config` for any subprocess or library that might print to stdout. **NEVER** assume a library is silent.
+
 ---
 
 ## 🛡️ SAFEGUARDS (Active Protections)

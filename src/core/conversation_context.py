@@ -81,7 +81,7 @@ class ConversationSearcher:
             
             for memory in memories:
                 # Calculate composite score
-                recency_score = self._score_by_recency(memory.metadata.timestamp, now)
+                recency_score = self._score_by_recency(memory.metadata.created_at, now)
                 keyword_score = self._score_by_keywords(memory.content, query_terms)
                 role_score = self._score_by_role(memory.metadata.source)
                 
@@ -97,10 +97,10 @@ class ConversationSearcher:
                     score=final_score,
                     source="conversation",
                     metadata={
-                        "timestamp": memory.metadata.timestamp.isoformat(),
-                        "role": memory.metadata.source,
+                        "timestamp": memory.metadata.created_at.isoformat(),
+                        "role": memory.metadata.source.value if hasattr(memory.metadata.source, 'value') else str(memory.metadata.source),
                         "session_id": str(session_id),
-                        "memory_type": memory.metadata.memory_type.value,
+                        "memory_type": memory.metadata.memory_type.value if hasattr(memory.metadata.memory_type, 'value') else str(memory.metadata.memory_type),
                         "recency_score": recency_score,
                         "keyword_score": keyword_score,
                         "role_score": role_score
@@ -168,7 +168,7 @@ class ConversationSearcher:
             
             # Sort by timestamp (newest first) and limit to window
             session_memories.sort(
-                key=lambda m: m.metadata.timestamp,
+                key=lambda m: m.metadata.created_at,
                 reverse=True
             )
             session_memories = session_memories[:self.max_window]
@@ -230,25 +230,36 @@ class ConversationSearcher:
         # Normalize by number of query terms
         return matches / len(query_terms)
     
-    def _score_by_role(self, role: str) -> float:
+    def _score_by_role(self, source) -> float:
         """
-        Score based on message role
+        Score based on message source type
         
-        User messages are prioritized over assistant messages,
+        User inputs are prioritized over agent-generated content,
         as they often contain the context we're looking for.
         
         Args:
-            role: Message role (user, assistant, system)
+            source: SourceType enum or string
             
         Returns:
             Score between 0.0 and 1.0
         """
+        # Handle both enum values and strings
+        source_str = source.value if hasattr(source, 'value') else str(source)
+        
         role_weights = {
-            "user": 1.0,
-            "assistant": 0.7,
-            "system": 0.5
+            "user_input": 1.0,
+            "user": 1.0,  # Legacy support
+            "agent_generated": 0.7,
+            "assistant": 0.7,  # Legacy support
+            "conversation": 0.8,
+            "system_inferred": 0.5,
+            "system": 0.5,  # Legacy support
+            "external_api": 0.6,
+            "document": 0.6,
+            "web_scrape": 0.4,
+            "code_analysis": 0.6,
         }
-        return role_weights.get(role, 0.5)
+        return role_weights.get(source_str, 0.5)
     
     def _extract_keywords(self, query: str) -> Set[str]:
         """

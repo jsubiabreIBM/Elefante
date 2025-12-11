@@ -105,7 +105,7 @@ class TestVectorStoreV2Metadata:
             memory_type="conversation",
             importance=5,
             tags=["v1", "legacy"],
-            source="user",
+            source="user_input",
             project="test-project"
         )
         

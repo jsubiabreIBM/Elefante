@@ -15,6 +15,15 @@ echo ============================================================
 echo.
 
 cd /d "%~dp0"
+cd ..
+
+IF EXIST .venv (
+    echo [INFO] Activating virtual environment...
+    call .venv\Scripts\activate
+) ELSE (
+    echo [WARN] No .venv found. Trying global python...
+)
+
 python -m src.mcp.server
 
 pause

@@ -7,7 +7,10 @@
 
 ## Prerequisites
 
-- **Python**: 3.10 or higher
+- **Python**: **3.11 ONLY** (See [`python-version-requirements.md`](python-version-requirements.md) for mandatory details)
+  - 3.9, 3.10: ❌ Not supported
+  - **3.11**: ✅ Required and tested
+  - 3.12+: ❌ Not supported
 - **Git**: For cloning the repository
 - **Disk Space**: Minimum 5GB free
 - **OS**: Windows, macOS, or Linux
@@ -17,6 +20,7 @@
 ## 1. Automated Installation (Recommended)
 
 The installation scripts handle everything automatically:
+
 - Create virtual environment
 - Install dependencies
 - Initialize databases (ChromaDB + Kuzu)
@@ -24,11 +28,13 @@ The installation scripts handle everything automatically:
 - Run health checks
 
 ### Windows
+
 ```cmd
 install.bat
 ```
 
 ### Mac/Linux
+
 ```bash
 chmod +x install.sh
 ./install.sh
@@ -37,23 +43,27 @@ chmod +x install.sh
 ### What Happens During Installation
 
 1. **Pre-Flight Checks** (automated safeguards)
+
    - Disk space verification (5GB+ required)
    - Dependency version compatibility
    - Kuzu database path validation
    - See [`installation-safeguards.md`](installation-safeguards.md) for details
 
 2. **Environment Setup**
+
    - Creates `.venv` virtual environment
    - Installs all dependencies from `requirements.txt`
    - Configures Python path
 
 3. **Database Initialization**
+
    - Creates `~/.elefante/data/` directory
    - Initializes ChromaDB (vector store)
    - Initializes Kuzu (graph database)
    - Creates default schema
 
 4. **IDE Configuration**
+
    - Auto-detects VS Code, Cursor, or Bob IDE
    - Configures MCP (Model Context Protocol)
    - Sets up server connection
@@ -72,28 +82,42 @@ chmod +x install.sh
 If automated installation fails or you prefer manual control:
 
 ### Step 1: Clone Repository
+
 ```bash
 git clone https://github.com/yourusername/Elefante.git
 cd Elefante
 ```
 
 ### Step 2: Create Virtual Environment
+
+**CRITICAL**: Use Python 3.11 explicitly (see [`python-version-requirements.md`](python-version-requirements.md))
+
+Mac/Linux:
 ```bash
-python -m venv .venv
-
-# Activate (Windows)
-.venv\Scripts\activate
-
-# Activate (Mac/Linux)
+python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
+Windows:
+```bash
+python3.11 -m venv .venv
+.venv\Scripts\activate
+```
+
+**Verify Python 3.11 is active**:
+```bash
+python --version
+# Must output: Python 3.11.x
+```
+
 ### Step 3: Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### Step 4: Initialize Databases
+
 ```bash
 python scripts/init_databases.py
 ```
@@ -115,6 +139,7 @@ python scripts/configure_vscode_bob.py
 ```
 
 Supported IDEs:
+
 - VS Code (with Roo-Cline extension)
 - Cursor
 - Bob IDE
@@ -124,6 +149,7 @@ Supported IDEs:
 If automatic configuration fails, add this to your IDE's MCP config:
 
 **VS Code** (`settings.json`):
+
 ```json
 {
   "roo-cline.mcpServers": {
@@ -140,6 +166,7 @@ If automatic configuration fails, add this to your IDE's MCP config:
 ```
 
 **Cursor/Bob** (`mcp_config.json`):
+
 ```json
 {
   "mcpServers": {
@@ -164,11 +191,13 @@ If automatic configuration fails, add this to your IDE's MCP config:
 After installation, verify everything works:
 
 ### Test MCP Connection
+
 ```bash
 python scripts/health_check.py
 ```
 
 Expected output:
+
 ```
 ✅ ChromaDB: Connected
 ✅ Kuzu: Connected
@@ -176,16 +205,28 @@ Expected output:
 ✅ All systems operational
 ```
 
-### Test Memory Operations
+### 6. System Verification (Automated)
+
+The installation script checks:
+
+- **MCP Liveness**: Performs a real JSON-RPC handshake (`scripts/verify_mcp_handshake.py`).
+- **Inception Memory**: Ingests the "Agentic Optimization Protocol" (`scripts/ingest_inception.py`).
+
+### Verification Command (Manual)
+
+To verify the system yourself after install:
+
 ```bash
-python examples/validate_system.py
+python scripts/health_check.py
 ```
 
-This will:
-- Store a test memory
-- Search for it
-- Query the graph
-- Verify all operations work
+To verify the Inception Memory (The Prime Directive):
+
+```bash
+python -c "import sys; sys.path.append('.'); import asyncio; from src.core.orchestrator import get_orchestrator; asyncio.run(get_orchestrator().search_memories('Agentic Protocol'))"
+```
+
+_(This should return the 'Elefante Agentic Optimization Protocol')_
 
 ---
 
@@ -201,6 +242,7 @@ This will:
 
 **Issue**: `MCP server not responding`
 **Solution**:
+
 1. Check virtual environment is activated
 2. Verify Python path in MCP config points to venv Python
 3. Restart IDE

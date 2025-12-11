@@ -107,6 +107,14 @@ elefante:
     enable_auto_tagging: false # AI-powered auto-tagging (future)
     enable_deduplication: true
 
+  # Elefante Mode (v1.0.1) - Multi-IDE Safety
+  # When OFF: Server returns graceful disabled responses, releases all locks
+  # When ON: Full memory system active with protocol enforcement
+  elefante_mode:
+    enabled: false  # Default OFF - user must explicitly enable
+    lock_timeout_seconds: 5  # Max time to wait for lock acquisition
+    cleanup_on_disable: true  # Release all resources when switching to OFF
+
   # User Profile Configuration
   user_profile:
     user_name: "EnterpriseUser"

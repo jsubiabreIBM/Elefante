@@ -32,8 +32,13 @@ from src.models.query import QueryMode, SearchFilters
 from src.models.entity import EntityType, RelationshipType
 from src.utils.logger import get_logger
 from src.utils.validators import validate_memory_content, validate_uuid
+from src.utils.elefante_mode import get_mode_manager, is_elefante_enabled
 
 logger = get_logger(__name__)
+
+# Tools that do NOT require Elefante Mode to be enabled
+# These are safe to call even when databases are locked by another IDE
+SAFE_TOOLS = {"enableElefante", "disableElefante", "getElefanteStatus", "getStats"}
 
 
 class ElefanteMCPServer:
@@ -55,11 +60,39 @@ class ElefanteMCPServer:
         self.server = Server("elefante-memory")
         self.orchestrator = None # Lazy loaded
         self.logger = get_logger(self.__class__.__name__)
+        self.mode_manager = get_mode_manager()  # Elefante Mode manager (v1.0.1)
         
         # Register tool handlers
         self._register_handlers()
         
-        self.logger.info("Elefante MCP Server initialized (Lazy Loading enabled)")
+        self.logger.info("Elefante MCP Server initialized (Lazy Loading enabled, Mode: OFF by default)")
+
+    def _inject_pitfalls(self, result: Dict[str, Any], tool_name: str) -> Dict[str, Any]:
+        """
+        SURGICAL INJECTION (v1.0.1): 
+        Injects mandatory protocols and known pitfalls directly into the tool response.
+        This ensures the agent CANNOT ignore them, as they are part of the data payload.
+        """
+        pitfalls = [
+            "🛑 CRITICAL PROTOCOL: You MUST check for existing memories before creating new ones to avoid duplication.",
+            "🛑 CRITICAL PROTOCOL: If you are debugging, you MUST read the relevant 'Neural Register' in docs/debug/ first.",
+            "🛑 CRITICAL PROTOCOL: Do not rely on your internal knowledge base for project specifics; use the memory system."
+        ]
+        
+        # Context-specific injections
+        if tool_name == "addMemory":
+            pitfalls.append("⚠️ MEMORY INTEGRITY: Ensure 'layer' and 'sublayer' are correctly classified. Do not default to 'world/fact' if unsure.")
+        
+        if tool_name == "searchMemories":
+             pitfalls.append("⚠️ SEARCH BIAS: If results are empty, try broader terms. Do not assume non-existence without a semantic search.")
+             pitfalls.append("⚠️ CONTRADICTIONS: If you find contradictory memories, prioritize the most recent one but note the conflict.")
+
+        if tool_name in ["queryGraph", "createEntity", "createRelationship"]:
+            pitfalls.append("⚠️ GRAPH CONSISTENCY: Ensure entity types match the allowed enum values. Do not invent new types without updating the schema.")
+
+        # Add to result with a key that demands attention
+        result["🛑_MANDATORY_PROTOCOLS_READ_THIS_FIRST"] = pitfalls
+        return result
 
     async def _get_orchestrator(self):
         """Lazy load the orchestrator"""
@@ -257,7 +290,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                 ),
                 types.Tool(
                     name="getContext",
-                    description="Retrieve comprehensive context from Elefante's memory system for a specific session or task. Returns related memories from ChromaDB, connected entities and relationships from Kuzu graph, with configurable traversal depth. Use this to gather full context before making decisions or generating responses.",
+                    description="**CONTEXTUAL GROUNDING**: Retrieve comprehensive context from Elefante's memory system for a specific session or task. Returns related memories from ChromaDB, connected entities and relationships from Kuzu graph, with configurable traversal depth. Use this to gather full context before making decisions or generating responses.",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -361,7 +394,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                 ),
                 types.Tool(
                     name="consolidateMemories",
-                    description="Trigger a background process to analyze recent memories, merge duplicates, and resolve contradictions. Use this when you notice the user is getting inconsistent information or when the memory search returns too many near-identical results. This process uses an LLM to synthesize facts and update the knowledge graph.",
+                    description="**MEMORY MAINTENANCE**: Trigger a background process to analyze recent memories, merge duplicates, and resolve contradictions. Use this when you notice the user is getting inconsistent information or when the memory search returns too many near-identical results. This process uses an LLM to synthesize facts and update the knowledge graph.",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -418,7 +451,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                 ),
                 types.Tool(
                     name="openDashboard",
-                    description="Launch and open the Elefante Knowledge Garden Dashboard in the user's browser. This visual interface allows the user to explore their memory graph, view connections between concepts, and filter by 'Spaces'. Use this when the user wants to 'see' their memory or explore the knowledge graph visually.",
+                    description="**VISUAL INTERFACE**: Launch and open the Elefante Knowledge Garden Dashboard in the user's browser. This visual interface allows the user to explore their memory graph, view connections between concepts, and filter by 'Spaces'. Use this when the user wants to 'see' their memory or explore the knowledge graph visually.",
                     inputSchema={
                         "type": "object",
                         "properties": {}
@@ -441,6 +474,52 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                         "type": "object",
                         "properties": {}
                     }
+                ),
+                types.Tool(
+                    name="enableElefante",
+                    description="""**REQUIRED FIRST STEP**: Enable Elefante Mode to activate the memory system.
+
+Elefante starts in DISABLED mode by default for multi-IDE safety. You MUST call this tool before using any memory operations (addMemory, searchMemories, etc.).
+
+This tool:
+1. Acquires exclusive locks on ChromaDB and Kuzu databases
+2. Enables full memory system functionality
+3. Activates protocol enforcement
+
+If another IDE is using Elefante, this will fail gracefully with lock information.""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "force": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Force enable (use with caution - may cause conflicts)"
+                            }
+                        }
+                    }
+                ),
+                types.Tool(
+                    name="disableElefante",
+                    description="""Disable Elefante Mode and release all database locks.
+
+Use this when:
+- Switching to another IDE that needs Elefante access
+- Finishing a session and allowing other processes to access the databases
+- Troubleshooting lock-related issues
+
+This will gracefully close connections and clear all locks.""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {}
+                    }
+                ),
+                types.Tool(
+                    name="getElefanteStatus",
+                    description="Check the current status of Elefante Mode. Returns whether the mode is enabled, which locks are held, and system health information. Use this to diagnose issues or verify the system state.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {}
+                    }
                 )
             ]
             self.logger.info(f"=== Returning {len(tools)} tools to MCP client ===")
@@ -454,6 +533,22 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
             self.logger.info(f"Tool called: {name}", arguments=arguments)
             
             try:
+                # Handle mode management tools FIRST (always available)
+                if name == "enableElefante":
+                    result = await self._handle_enable_elefante(arguments)
+                    return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
+                elif name == "disableElefante":
+                    result = await self._handle_disable_elefante(arguments)
+                    return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
+                elif name == "getElefanteStatus":
+                    result = await self._handle_get_elefante_status(arguments)
+                    return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
+                
+                # Check if Elefante Mode is enabled for other tools
+                if name not in SAFE_TOOLS and not self.mode_manager.is_enabled:
+                    result = self.mode_manager.get_disabled_response(name)
+                    return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
+                
                 if name == "addMemory":
                     result = await self._handle_add_memory(arguments)
                 elif name == "searchMemories":
@@ -483,6 +578,11 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                 else:
                     raise ValueError(f"Unknown tool: {name}")
                 
+                # INJECT PITFALLS (v1.0.1)
+                # Ensure the agent sees the protocols by embedding them in the response
+                if isinstance(result, dict):
+                    result = self._inject_pitfalls(result, name)
+
                 return [TextContent(
                     type="text",
                     text=json.dumps(result, indent=2, default=str)
@@ -499,6 +599,41 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }, indent=2)
                 )]
     
+    async def _handle_enable_elefante(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle enableElefante tool call - Activate Elefante Mode"""
+        force = args.get("force", False)
+        result = self.mode_manager.enable(force=force)
+        
+        if result["success"]:
+            # Store orchestrator reference for cleanup
+            try:
+                orchestrator = await self._get_orchestrator()
+                self.mode_manager.set_orchestrator_ref(orchestrator)
+            except Exception as e:
+                self.logger.warning(f"Could not pre-load orchestrator: {e}")
+        
+        return result
+    
+    async def _handle_disable_elefante(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle disableElefante tool call - Deactivate Elefante Mode"""
+        result = self.mode_manager.disable()
+        
+        # Clear orchestrator reference
+        if result["success"]:
+            self.orchestrator = None
+        
+        return result
+    
+    async def _handle_get_elefante_status(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle getElefanteStatus tool call - Check system status"""
+        return {
+            "success": True,
+            "mode": "enabled" if self.mode_manager.is_enabled else "disabled",
+            "status": self.mode_manager.status,
+            "lock_status": self.mode_manager.check_locks(),
+            "message": "Elefante Mode is ENABLED - all tools available" if self.mode_manager.is_enabled else "Elefante Mode is DISABLED - call enableElefante to activate"
+        }
+
     async def _handle_add_memory(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle addMemory tool call - Authoritative Pipeline"""
         orchestrator = await self._get_orchestrator()
@@ -873,6 +1008,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
     async def _handle_refresh_dashboard_data(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle refreshDashboardData tool call"""
         import os
+        from src.utils.config import DATA_DIR
         orchestrator = await self._get_orchestrator()
         
         # 1. Fetch ALL memories from ChromaDB
@@ -992,7 +1128,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
             "edges": edges
         }
         
-        output_path = "data/dashboard_snapshot.json"
+        output_path = str(DATA_DIR / "dashboard_snapshot.json")
         # Ensure dir exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         

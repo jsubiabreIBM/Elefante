@@ -7,6 +7,49 @@ Project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.0.1] - 2025-12-11
+
+### Summary
+
+Critical update addressing protocol enforcement and multi-IDE safety.
+
+### Changes
+
+#### Auto-Inject Pitfalls (Protocol Enforcement)
+- MCP Server now injects mandatory protocols (`🛑_MANDATORY_PROTOCOLS_READ_THIS_FIRST`) directly into every tool response
+- Context-Aware Warnings for `addMemory` (integrity), `searchMemories` (bias), and graph tools (consistency)
+- Updated `ai-behavior-compendium.md` with Issue #6 (Passive Protocol Enforcement Failure)
+
+#### ELEFANTE_MODE (Multi-IDE Safety) 🆕
+- **Problem**: Multiple IDEs accessing same databases caused crashes/lock conflicts
+- **Solution**: Server starts OFF by default, user must explicitly enable
+
+##### New MCP Tools
+- `enableElefante` - Acquires exclusive locks, enables memory operations
+- `disableElefante` - Releases locks, cleans up, returns to OFF state
+- `getElefanteStatus` - Shows current mode, lock status, holder info
+
+##### New Files
+- `src/utils/elefante_mode.py` - Lock management singleton
+- `config.yaml` → `elefante_mode:` section added
+
+##### Behavior
+- When **OFF**: Memory tools return graceful "disabled" response with instructions
+- When **ON**: Full functionality with exclusive database access
+- Lock files stored in `~/.elefante/locks/` with PID/timestamp tracking
+- Safe tools (`enableElefante`, `disableElefante`, `getElefanteStatus`) always available
+
+##### Usage
+```
+User: "Enable Elefante"
+Agent calls: enableElefante → Acquires locks → Memory tools now work
+
+User: "Disable Elefante" (before switching IDEs)
+Agent calls: disableElefante → Releases locks → Safe for other IDE
+```
+
+---
+
 ## [1.0.0] - 2025-12-06
 
 ### Summary

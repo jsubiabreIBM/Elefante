@@ -156,6 +156,13 @@ class FeaturesConfig(BaseModel):
     enable_deduplication: bool = True
 
 
+class ElefanteModeConfig(BaseModel):
+    """Elefante Mode configuration (v1.0.1) - Multi-IDE Safety"""
+    enabled: bool = False  # Default OFF - user must explicitly enable
+    lock_timeout_seconds: int = Field(default=5, ge=1, le=30)
+    cleanup_on_disable: bool = True
+
+
 class UserProfileConfig(BaseModel):
     """User profile configuration"""
     user_name: str = "User"
@@ -181,6 +188,7 @@ class ElefanteConfig(BaseModel):
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)
     user_profile: UserProfileConfig = Field(default_factory=UserProfileConfig)
     temporal_decay: TemporalDecayConfig = Field(default_factory=TemporalDecayConfig)
+    elefante_mode: ElefanteModeConfig = Field(default_factory=ElefanteModeConfig)
 
 
 class Config:
@@ -272,6 +280,12 @@ class Config:
             if 'mcp_server' not in config_dict:
                 config_dict['mcp_server'] = {}
             config_dict['mcp_server']['port'] = int(mcp_port)
+        
+        # Elefante Mode override (ELEFANTE_MODE=Y or ELEFANTE_MODE=N)
+        if elefante_mode := os.getenv('ELEFANTE_MODE'):
+            if 'elefante_mode' not in config_dict:
+                config_dict['elefante_mode'] = {}
+            config_dict['elefante_mode']['enabled'] = elefante_mode.upper() in ('Y', 'YES', 'TRUE', '1', 'ON')
         
         # OpenAI API key (for optional OpenAI embeddings)
         if openai_key := os.getenv('OPENAI_API_KEY'):

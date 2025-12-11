@@ -22,15 +22,24 @@ log "🐘 ELEFANTE INSTALLER"
 log "============================================================"
 log ""
 
-# 1. Check for Python
-log "[INFO] Checking for Python..."
-if command -v python3 &> /dev/null; then
+# 1. Check for Python 3.11 explicitly (mandatory)
+log "[INFO] Checking for Python 3.11..."
+if command -v python3.11 &> /dev/null; then
+    PYTHON_CMD=python3.11
+elif command -v python3 &> /dev/null; then
     PYTHON_CMD=python3
 elif command -v python &> /dev/null; then
     PYTHON_CMD=python
 else
     log "[ERROR] Python is not installed."
-    log "Please install Python 3.10+"
+    log "Please install Python 3.11 from python.org or Homebrew (brew install python@3.11)."
+    exit 1
+fi
+
+PY_VER="$($PYTHON_CMD -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+if [ "$PY_VER" != "3.11" ]; then
+    log "[ERROR] Python 3.11 is required (found $PY_VER)."
+    log "Install Python 3.11 and re-run: python3.11 -m venv .venv"
     exit 1
 fi
 

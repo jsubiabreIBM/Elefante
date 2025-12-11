@@ -1,7 +1,23 @@
 # Elefante Development Roadmap
 
 **Current Version**: v1.0.0  
-**Last Updated**: 2025-12-06
+**Last Updated**: 2025-12-10
+
+---
+
+## 🚨 CRITICAL: Production Testing Findings (2025-12-10)
+
+**Real-world testing revealed fundamental design flaws that MUST be addressed before v1.1.0:**
+
+| Issue | Severity | Impact |
+|-------|----------|--------|
+| **Response Bloat** | CRITICAL | searchMemories returns ~500 tokens/memory (90% nulls) - wastes context window |
+| **Low Similarity Scores** | HIGH | Exact topic matches score 0.37-0.39 (should be 0.7+) - retrieval broken |
+| **No Action Guidance** | HIGH | Raw JSON dump with no summary - agent can't use results effectively |
+
+**Source**: See `docs/debug/memory/memory-compendium.md` Issues #7, #8, #9
+
+**Priority**: These MUST be fixed before any new feature work.
 
 ---
 

@@ -1,8 +1,8 @@
 # AI Behavior Debug Compendium
 
 > **Domain:** AI Protocol Failures, Self-Analysis & Methodology  
-> **Last Updated:** 2025-12-05  
-> **Total Issues Documented:** 5  
+> **Last Updated:** 2025-12-11  
+> **Total Issues Documented:** 6  
 > **Status:** Production Reference  
 > **Maintainer:** Add new issues following Issue #N template at bottom
 
@@ -18,6 +18,7 @@
 | 4 | Code mode has NO MCP access - switch modes first | Failed operations |
 | 5 | "Should be done" ≠ "Is done" - only real tests matter | False confidence |
 | 6 | User environment ≠ Test environment - account for differences | "It works for me" |
+| 7 | **PASSIVE protocols CANNOT force agent compliance** | System prompt ignored |
 
 ---
 
@@ -28,6 +29,7 @@
 - [Issue #3: Code Mode MCP Limitation](#issue-3-code-mode-mcp-limitation)
 - [Issue #4: Knowledge Not Applied](#issue-4-knowledge-not-applied)
 - [Issue #5: Environment Assumption Failures](#issue-5-environment-assumption-failures)
+- [Issue #6: Passive Protocol Enforcement Failure](#issue-6-passive-protocol-enforcement-failure) 🔴 CRITICAL
 - [The 5-Layer Protocol](#the-5-layer-protocol)
 - [Verification Checklist](#verification-checklist)
 - [Prevention Protocol](#prevention-protocol)
@@ -323,6 +325,132 @@ Please test:
 
 ### Lesson
 > **My test environment ≠ User's environment. Always account for caching.**
+
+---
+
+## Issue #6: Passive Protocol Enforcement Failure
+
+**Date:** 2025-12-11  
+**Duration:** Systemic (discovered after root cause analysis)  
+**Severity:** CRITICAL  
+**Status:** 🔴 OPEN (Architectural Problem)
+
+### Problem
+
+Elefante has comprehensive protocols (Inception Memory, Tool Descriptions, Documentation) but agents ignore them because ALL enforcement mechanisms are PASSIVE.
+
+### Symptom
+
+```
+EXISTING PROTOCOL (Inception Memory, importance=10):
+"PRIME DIRECTIVE: MEMORY FIRST
+1. Check Context: Before answering, ALWAYS search memory"
+
+EXISTING TOOL DESCRIPTION (searchMemories):
+"AUTOMATIC USAGE RULES:
+1. ALWAYS call this tool when user asks open-ended questions"
+
+EXISTING DOCUMENTATION:
+- pre-action-checkpoint.md (full protocol)
+- pitfall-index.md (searchable pitfalls)
+- Neural Registers (all laws)
+
+AGENT BEHAVIOR:
+- Attempted 15+ installation methods blindly
+- Never searched Elefante for "installation pitfalls"
+- Never consulted python-version-requirements.md
+- User had to manually run the command that WAS IN THE DOCS
+```
+
+### Root Cause
+
+**ALL enforcement mechanisms are PASSIVE - agent must CHOOSE to engage:**
+
+| Mechanism | Type | Why It Fails |
+|-----------|------|--------------|
+| Inception Memory | Passive | Agent must search to find it |
+| Tool Descriptions | Passive | Agent reads but can ignore |
+| Documentation | Passive | Agent must read files |
+| Pre-Action Checkpoint | Passive | Agent must follow protocol |
+| Pitfall Index | Passive | Agent must search it |
+
+**The Pattern:**
+
+```
+PASSIVE: Knowledge exists → Agent must actively engage → Agent doesn't
+ACTIVE:  System forces engagement → Agent cannot skip → Protocol followed
+```
+
+### Alternatives Analyzed
+
+| Alternative | Description | Enforcement | Result |
+|-------------|-------------|-------------|--------|
+| **Alt 1: System Prompt** | Add rules to agent instructions | Behavioral | **ALREADY EXISTS - IGNORED** |
+| **Alt 2: Gate Tool** | Tools fail without `clearForAction` | Structural | Not implemented |
+| **Alt 3: User Checkpoint** | Human must approve before action | Human | Not implemented |
+
+### Why Alternative 1 (System Prompt) Is Already Implemented
+
+1. **Inception Memory** = System prompt in memory form
+2. **Tool Descriptions** = "ALWAYS call this tool" rules
+3. **Documentation** = Full protocol specification
+
+**All three are being ignored because they require agent discipline.**
+
+### Solution Options (OPEN - Not Resolved)
+
+**Option A: Gate Tool Architecture**
+
+```python
+# Tools refuse to work without clearance
+@server.tool()
+async def clearForAction(task_type: str) -> dict:
+    """MUST call before any action. Returns relevant pitfalls."""
+    pitfalls = await search_memories(f"{task_type} pitfalls")
+    return {"cleared": True, "warnings": pitfalls}
+
+# Other tools check clearance
+@server.tool()  
+async def addMemory(content: str, clearance_token: str = None):
+    if not valid_clearance(clearance_token):
+        return {"error": "Must call clearForAction first"}
+```
+
+**Option B: User Checkpoint Mode**
+
+```
+Agent: "I need to install dependencies"
+
+System (auto-triggered):
+┌─────────────────────────────────────────────────────┐
+│ 🛑 ELEFANTE CHECKPOINT                              │
+│ Task: INSTALLATION                                  │
+│ Found 3 warnings:                                   │
+│ • Python 3.11 MANDATORY                             │
+│ • Do NOT pre-create kuzu_db directory              │
+│ Approve? [Y/N]                                      │
+└─────────────────────────────────────────────────────┘
+```
+
+**Option C: IDE-Level Enforcement**
+
+- VS Code / Cursor rules file
+- Custom mode with forced memory consultation
+- Different architectural layer
+
+### Why This Matters
+
+This is the **ROOT CAUSE** of repeated failures:
+
+- Installation nightmare (15+ attempts, answer was in docs)
+- Schema mismatches (documented but not consulted)
+- Every "lesson learned" that gets learned again
+
+**Elefante stores knowledge. Nothing forces agents to USE it.**
+
+### Lesson
+
+> **Passive protocols cannot enforce compliance. Structural enforcement (tools that refuse to work) or human gates (user approval) are required.**
 
 ---
 

@@ -48,9 +48,10 @@ async def get_graph(limit: int = 1000, space: Optional[str] = None):
     """
     import json
     from pathlib import Path
+    from src.utils.config import DATA_DIR
     
     try:
-        snapshot_path = Path("data/dashboard_snapshot.json")
+        snapshot_path = DATA_DIR / "dashboard_snapshot.json"
         
         if not snapshot_path.exists():
             logger.warning("Snapshot not found, returning empty graph")
@@ -120,9 +121,10 @@ async def get_stats():
     """Get system statistics from snapshot (LAW #1: No direct DB access)"""
     import json
     from pathlib import Path
+    from src.utils.config import DATA_DIR
     
     try:
-        snapshot_path = Path("data/dashboard_snapshot.json")
+        snapshot_path = DATA_DIR / "dashboard_snapshot.json"
         
         if not snapshot_path.exists():
             return {"error": "Snapshot not found. Run update_dashboard_data.py first."}
@@ -160,7 +162,13 @@ else:
 
 def start_server(host: str = "0.0.0.0", port: int = 8000):
     """Start the dashboard server"""
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    # Configure Uvicorn to log to stderr to avoid corrupting MCP stdout stream
+    # MCP uses stdout for JSON-RPC, so application logs must go to stderr
+    log_config = uvicorn.config.LOGGING_CONFIG.copy()
+    log_config["handlers"]["default"]["stream"] = "ext://sys.stderr"
+    log_config["handlers"]["access"]["stream"] = "ext://sys.stderr"
+    
+    uvicorn.run(app, host=host, port=port, log_config=log_config)
 
 def serve_dashboard_in_thread(host: str = "0.0.0.0", port: int = 8000):
     """Start the dashboard server in a background thread"""

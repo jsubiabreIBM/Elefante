@@ -187,8 +187,8 @@ class TestConversationSearcher:
             content="I need to configure the database",
             metadata=MemoryMetadata(
                 memory_type=MemoryType.CONVERSATION,
-                source="user",
-                timestamp=now - timedelta(minutes=5),
+                source="user_input",
+                created_at=now - timedelta(minutes=5),
                 session_id=session_id,
                 importance=5
             )
@@ -226,8 +226,8 @@ class TestConversationSearcher:
             content="configure database settings",
             metadata=MemoryMetadata(
                 memory_type=MemoryType.CONVERSATION,
-                source="user",
-                timestamp=now - timedelta(minutes=1),  # Very recent
+                source="user_input",
+                created_at=now - timedelta(minutes=1),  # Very recent
                 session_id=session_id,
                 importance=5
             )
@@ -238,8 +238,8 @@ class TestConversationSearcher:
             content="configure database settings",
             metadata=MemoryMetadata(
                 memory_type=MemoryType.CONVERSATION,
-                source="user",
-                timestamp=now - timedelta(hours=5),  # Old
+                source="user_input",
+                created_at=now - timedelta(hours=5),  # Old
                 session_id=session_id,
                 importance=5
             )
@@ -250,8 +250,8 @@ class TestConversationSearcher:
             content="something completely different",
             metadata=MemoryMetadata(
                 memory_type=MemoryType.CONVERSATION,
-                source="assistant",
-                timestamp=now - timedelta(minutes=2),
+                source="agent_generated",
+                created_at=now - timedelta(minutes=2),
                 session_id=session_id,
                 importance=5
             )
@@ -297,8 +297,8 @@ class TestConversationSearcher:
                 content=f"Message {i}",
                 metadata=MemoryMetadata(
                     memory_type=MemoryType.CONVERSATION,
-                    source="user",
-                    timestamp=now - timedelta(minutes=i),
+                    source="user_input",
+                    created_at=now - timedelta(minutes=i),
                     session_id=session_id,
                     importance=5
                 )
@@ -331,8 +331,8 @@ class TestConversationSearcher:
             content="Target session message",
             metadata=MemoryMetadata(
                 memory_type=MemoryType.CONVERSATION,
-                source="user",
-                timestamp=now,
+                source="user_input",
+                created_at=now,
                 session_id=target_session,
                 importance=5
             )
@@ -343,8 +343,8 @@ class TestConversationSearcher:
             content="Other session message",
             metadata=MemoryMetadata(
                 memory_type=MemoryType.CONVERSATION,
-                source="user",
-                timestamp=now,
+                source="user_input",
+                created_at=now,
                 session_id=other_session,
                 importance=5
             )

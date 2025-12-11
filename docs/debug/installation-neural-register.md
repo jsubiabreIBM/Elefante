@@ -269,3 +269,81 @@ import sys
 Installation scripts MUST aggressively purge `__pycache__` and `.pyc` files BEFORE starting operations.
 
 **Implementation**: `scripts/install.py::purge_bytecode()`
+
+---
+
+### LAW #10: Agentic Liveness Verification
+
+**Statement**: "Process Running" ≠ "Server Working". Checking if a PID exists or a port is open is insufficient. Verification MUST validate the application protocol (JSON-RPC).
+
+**Origin**: 2025-12-08 - "The Checkpoint Trap" / False Success
+**Root Cause**: `health_check.py` only checked if imports worked and processes started. It did not check if the server was _listening_ or _stuck_.
+**Symptom**: "Install Successful", but MCP Client shows "Connection Refused" or hangs.
+
+**Prevention Protocol**:
+Installation must perform a **Real Handshake**:
+
+1. Connect to stdio/socket.
+2. Send `initialize` JSON-RPC.
+3. Validate `capabilities` response.
+4. Fail if timeout or protocol error.
+
+**Implementation**: `scripts/verify_mcp_handshake.py` (integrated into `install.py`).
+
+---
+
+### LAW #11: The Inception Protocol (Identity Init)
+
+**Statement**: The First Memory determines the Agent's reality. Never initialize the database with "Garbage Test Data" (e.g., "This is a test"). Initialize it with the **Prime Directive** (Identity/Protocol).
+
+**Origin**: 2025-12-08 - User Request for "Garbage-Free" System
+**Root Cause**: `validate_system.py` inserted meaningless data to "prove" the DB worked, but this polluted the clean slate.
+**Symptom**: User has to manually delete test data; Agent lacks initial context.
+
+**Prevention Protocol**:
+Replace `validate_system.py` with `ingest_inception.py`.
+The Script MUST ingest:
+
+- **Identity**: "You are an Intelligent Agent..."
+- **Protocol**: "ALWAYS search memories first..."
+- **Tool Rules**: "Authoritative Storage..."
+
+**Implementation**: `scripts/ingest_inception.py` (Memory #1).
+---
+
+### LAW #12: Broken Venv Escape Protocol
+
+**Statement**: When workspace Python is corrupted, escape via subprocess to system Python with absolute path. The agent CANNOT fix itself from within a broken environment.
+
+**Origin**: 2025-12-11 - Agent trapped in corrupted venv during installation session
+**Root Cause**: VS Code/Copilot runs Python from workspace `.venv`. When that venv is corrupted, the agent is trapped in a circular dependency - it cannot run the install script that would fix the environment.
+**Symptom**: Any attempt to run `python scripts/install.py` fails with ImportError, wrong version, or module errors.
+
+**Prevention Protocol**:
+
+```python
+# When standard install fails due to broken venv:
+import subprocess
+
+# ❌ BROKEN (Uses corrupted workspace Python)
+subprocess.run(["python", "scripts/install.py"])
+
+# ✅ ESCAPE (Uses system Python with absolute path)
+subprocess.run([
+    "/opt/homebrew/bin/python3.11",  # macOS Homebrew
+    # or "C:\\Python311\\python.exe"  # Windows
+    "-c",
+    """
+import shutil, subprocess
+shutil.rmtree('.venv', ignore_errors=True)
+subprocess.run(['/opt/homebrew/bin/python3.11', '-m', 'venv', '.venv'])
+subprocess.run(['.venv/bin/pip', 'install', '-r', 'requirements.txt'])
+"""
+])
+```
+
+**Alternative**: Use shebang `#!/usr/bin/env python3.11` to force system Python at OS level.
+
+**Implementation**: See `docs/archive/historical/install-escape-2025-12-11/` for escape script examples.
+
+**Source Document**: `docs/debug/installation/installation-compendium.md` Issue #5

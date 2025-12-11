@@ -436,6 +436,26 @@ def main():
         if not run_health_check(root_dir, python_cmd):
             logger.log("⚠️  Health check failed. Please review the errors.")
             success = False
+
+        if success:
+             # 5a. MCP Handshake Verification (Real Liveness Check)
+             logger.log("\n🔌 Verifying MCP Handshake...")
+             handshake_script = root_dir / "scripts" / "verify_mcp_handshake.py"
+             if run_command([python_cmd, str(handshake_script)], cwd=root_dir):
+                 logger.log("✅ MCP Handshake Verified.")
+             else:
+                 logger.log("❌ MCP Handshake FAILED. Server is not responding to protocol.")
+                 success = False
+
+        if success:
+             # 5b. Inception Memory (Agentic Optimization)
+             logger.log("\n🧠 LOCATING INCEPTION MEMORY...")
+             inception_script = root_dir / "scripts" / "ingest_inception.py"
+             if run_command([python_cmd, str(inception_script)], cwd=root_dir):
+                 logger.log("✅ Inception Memory Ingested.")
+             else:
+                 logger.log("❌ Inception Memory FAILED.")
+                 success = False
     
     # Generate Proof
     generate_proof(root_dir, success)

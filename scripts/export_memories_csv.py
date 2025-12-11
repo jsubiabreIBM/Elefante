@@ -20,10 +20,23 @@ async def export_memories():
     print("Fetching all memories from Elefante...")
     
     # Use listAllMemories to get everything without semantic filtering
-    from src.core.vector_store import VectorStore
-    vector_store = VectorStore()
+    # Use the orchestrator's vector store which is already initialized (mostly)
+    # Actually Orchestrator initializes components in background task in constructor, 
+    # but we need to verify initialization 
     
-    # Get all memories directly from ChromaDB
+    # Wait a moment for async init if needed, or explicitly access it
+    vector_store = orchestrator.vector_store
+    
+    # We need to ensure the collection is loaded. 
+    # Since we are inside async function, we can await initialization if needed, 
+    # but VectorStore.initialize is async. It is called by Orchestrator.initialize() 
+    # which is scheduled as task.
+    # Let's ensure it's ready.
+    # Let's ensure it's ready.
+    if vector_store._collection is None:
+        # Access internal init directly since it's lazy loaded
+        vector_store._initialize_client()
+        
     collection = vector_store._collection
     results = collection.get(
         limit=1000,
@@ -86,7 +99,8 @@ async def export_memories():
         for i, memory_id in enumerate(results['ids']):
             metadata = results['metadatas'][i] if results['metadatas'] else {}
             content = results['documents'][i] if results['documents'] else ""
-            has_embedding = results['embeddings'][i] is not None if results.get('embeddings') else False
+            embeddings = results.get('embeddings')
+            has_embedding = embeddings[i] is not None if (embeddings is not None and len(embeddings) > i) else False
             
             # Extract nested metadata
             custom_meta = metadata.get('custom_metadata', {})

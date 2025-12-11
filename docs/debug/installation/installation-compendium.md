@@ -1,8 +1,8 @@
 # Installation Debug Compendium
 
 > **Domain:** Installation, Setup & Environment  
-> **Last Updated:** 2025-12-05  
-> **Total Issues Documented:** 4  
+> **Last Updated:** 2025-12-11  
+> **Total Issues Documented:** 5  
 > **Status:** Production Reference  
 > **Maintainer:** Add new issues following Issue #N template at bottom
 
@@ -346,6 +346,77 @@ python scripts/install.py
 python -c "from src.core.orchestrator import MemoryOrchestrator; print('✅ Import successful')"
 python scripts/health_check.py
 ```
+
+---
+
+## Issue #5: Broken Venv Escape (Trapped Agent)
+
+**Date:** 2025-12-11  
+**Duration:** ~2 hours  
+**Severity:** HIGH  
+**Status:** ✅ FIXED
+
+### Problem
+
+Agent trapped in corrupted workspace environment cannot run installation script.
+
+### Symptom
+
+```
+# Agent tries to run install.py but workspace Python is broken
+# Error varies: ImportError, ModuleNotFoundError, wrong Python version
+# VS Code terminal shows .venv/bin/python but it's corrupted
+```
+
+### Root Cause
+
+**Circular Dependency**: The agent (Claude/Copilot) runs within VS Code which uses the workspace's `.venv` Python. When that venv becomes corrupted:
+
+1. Agent's Python execution uses broken interpreter
+2. `scripts/install.py` can't run (needs working Python)
+3. Can't fix Python from within broken Python
+4. Agent has no "escape hatch" to system Python
+
+### Solution
+
+**Escape via subprocess to system Python with absolute path:**
+
+```python
+import subprocess
+
+# Escape the broken workspace environment
+subprocess.run([
+    "/opt/homebrew/bin/python3.11",  # Absolute path to SYSTEM Python
+    "-c",
+    """
+import os, shutil, subprocess
+# Now running in clean system Python
+shutil.rmtree('.venv', ignore_errors=True)
+subprocess.run(['/opt/homebrew/bin/python3.11', '-m', 'venv', '.venv'])
+# ... rest of installation
+"""
+])
+```
+
+**Alternative: Shebang override**
+```python
+#!/usr/bin/env python3.11  # Forces system Python at OS level
+```
+
+### Why This Took So Long
+
+1. **Environment blindness**: Agent didn't realize it was trapped
+2. **Assumed solutions work**: Kept trying `python scripts/install.py`
+3. **Multiple escape attempts**: Had to try several strategies before finding working one
+4. **No documented pattern**: First time encountering this failure mode
+
+### Lesson
+
+> **When workspace Python is corrupted, escape via subprocess to system Python with absolute path. The agent cannot fix itself from within a broken environment.**
+
+### Archived Scripts
+
+See `docs/archive/historical/install-escape-2025-12-11/` for the 6 scripts that document the escape progression.
 
 ---
 

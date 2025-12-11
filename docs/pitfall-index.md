@@ -29,6 +29,13 @@
 **Why:** Kuzu single-writer architecture  
 **Source:** debug/database-neural-register.md Law #2
 
+### pitfall: dashboard empty relative path
+
+**Trigger**: Dashboard works but is empty (0 nodes)
+**Action**: Check `server.py` uses `src.utils.config.DATA_DIR`
+**Why**: Relative paths (`./data`) depend on CWD. Use absolute `~/.elefante/data`.
+**Source**: debug/dashboard-neural-register.md Pattern #7
+
 ---
 
 ## INSTALLATION PITFALLS
@@ -82,6 +89,13 @@
 **Action:** Use `list[types.Tool]` not `List[Tool]`  
 **Why:** MCP SDK uses strict runtime type checking  
 **Source:** debug/mcp-code-neural-register.md Law #1
+
+### pitfall: mcp connection crash uvicorn
+
+**Trigger**: `invalid character 'I'` when launching dashboard
+**Action**: Redirect Uvicorn logs to `sys.stderr`
+**Why**: `INFO` logs on stdout corrupt MCP JSON-RPC protocol
+**Source**: debug/mcp-code-neural-register.md Pattern #5
 
 ### pitfall: memory export chromadb api
 

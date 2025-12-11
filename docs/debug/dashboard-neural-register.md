@@ -233,6 +233,24 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 **Resolution**: Added `getProp()` helper to check both paths; grep for ALL occurrences  
 **Prevention**: Document API response structure; grep for property paths when fixing one
 
+### Pattern #6: Relative Path Read-Only Trap (2025-12-09)
+
+**Trigger**: MCP Server attempting to write snapshot to `data/` (relative path)
+**Symptom**: `[Errno 30] Read-only file system` during `refreshDashboardData`
+**Root Cause**: Execution environment CWD was read-only; code relied on CWD
+**Impact**: Dashboard data refresh failed completely
+**Resolution**: Switch to centralized user data directory (`~/.elefante/data`) using `pathlib.Path.home()`
+**Prevention**: **ALWAYS** use `src.utils.config.DATA_DIR`, **NEVER** use relative paths for data persistence
+
+### Pattern #7: Writer/Reader Path Divergence "The Ghost Data" (2025-12-09)
+
+**Trigger**: Fixing Writer (MCP) to use Absolute Path, but leaving Reader (Dashboard) on Relative Path
+**Symptom**: Dashboard opens successfully but shows 0 nodes (Empty)
+**Root Cause**: Partial architectural fix. Writer saved to `~/.elefante/data`, Reader looked in `./data`
+**Impact**: "Fixed" bug reappeared immediately as storage mismatch
+**Resolution**: Unify BOTH servers to import `DATA_DIR` from `src.utils.config`
+**Prevention**: Search for all usages of a path string when changing it. Verify full pipeline (Producer → Consumer).
+
 ---
 
 ## 🛡️ SAFEGUARDS (Active Protections)

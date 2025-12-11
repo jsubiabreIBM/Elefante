@@ -112,6 +112,20 @@ async def verify_setup():
     return True
 
 
+async def cleanup_resources():
+    """Clean up database connections to prevent async cleanup errors"""
+    try:
+        from src.core.graph_store import get_graph_store, reset_graph_store
+        graph_store = get_graph_store()
+        graph_store.close()
+        reset_graph_store()
+    except Exception:
+        pass
+    
+    # Give background threads a moment to complete
+    await asyncio.sleep(0.1)
+
+
 async def main():
     """Main initialization routine"""
     logger.info("=" * 60)
@@ -151,13 +165,16 @@ async def main():
         logger.info("1. Start the MCP server: python -m src.mcp.server")
         logger.info("2. Configure your IDE to use the Elefante MCP server")
         logger.info("3. Start storing and retrieving memories!")
-        return 0
     else:
         logger.error("=" * 60)
         logger.error("✗ Some components failed to initialize")
         logger.error("=" * 60)
         logger.error("Please check the logs above for details")
-        return 1
+    
+    # Clean up resources before event loop closes
+    await cleanup_resources()
+    
+    return 0 if all_success else 1
 
 
 if __name__ == "__main__":

@@ -4,7 +4,19 @@
 
 **Purpose**: Permanent record of memory retrieval failures and cognitive architecture principles  
 **Status**: Active Neural Register  
-**Last Updated**: 2025-12-07
+**Last Updated**: 2025-12-10
+
+---
+
+## 🚨 CRITICAL DESIGN FLAWS (Open Issues)
+
+| # | Flaw | Impact | Status |
+|---|------|--------|--------|
+| 1 | **Response Bloat**: searchMemories returns 500+ tokens per memory (90% nulls) | Context window waste | 🔴 OPEN |
+| 2 | **Low Similarity**: Exact topic matches score 0.37-0.39 (should be 0.7+) | Poor retrieval | 🔴 OPEN |
+| 3 | **No Action Guidance**: Raw JSON dump, no summary or suggested actions | Integration fail | 🔴 OPEN |
+
+**See**: `docs/debug/memory/memory-compendium.md` Issues #7, #8, #9 for full analysis.
 
 ---
 
