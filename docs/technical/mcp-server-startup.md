@@ -46,10 +46,10 @@ The MCP Server:
 
 ### What It Does NOT Do
 
-- ❌ Does NOT output "Server listening on port 8000"
-- ❌ Does NOT create a web interface
-- ❌ Does NOT print regular status messages
-- ❌ Does NOT require manual connection - IDE connects automatically
+-  Does NOT output "Server listening on port 8000"
+-  Does NOT create a web interface
+-  Does NOT print regular status messages
+-  Does NOT require manual connection - IDE connects automatically
 
 ### Stdio Protocol (Not HTTP)
 
@@ -84,17 +84,17 @@ python scripts/verify_mcp_handshake.py
 **Expected Output**:
 
 ```json
-{"event": "🔌 Testing MCP Server Handshake...", "level": "info", "timestamp": "..."}
-{"event": "📢 Sending 'initialize'...", "level": "info", "timestamp": "..."}
-{"event": "✅ Server responded with 'initialize'", "level": "info", "timestamp": "..."}
-{"event": "✅ Handshake SUCCESSFUL", "level": "info", "timestamp": "..."}
+{"event": " Testing MCP Server Handshake...", "level": "info", "timestamp": "..."}
+{"event": " Sending 'initialize'...", "level": "info", "timestamp": "..."}
+{"event": " Server responded with 'initialize'", "level": "info", "timestamp": "..."}
+{"event": " Handshake SUCCESSFUL", "level": "info", "timestamp": "..."}
 ```
 
 **What This Tests**:
-- ✓ Server process starts
-- ✓ Server listens to stdin
-- ✓ Server responds to JSON-RPC
-- ✓ Protocol is working
+-  Server process starts
+-  Server listens to stdin
+-  Server responds to JSON-RPC
+-  Protocol is working
 
 ### Method 2: Check Health
 
@@ -106,8 +106,8 @@ python scripts/health_check.py
 **Expected Output** (includes MCP check):
 
 ```
-✓ MCP Server: Running
-✓ All systems operational!
+ MCP Server: Running
+ All systems operational!
 ```
 
 ### Method 3: List Available Tools
@@ -237,10 +237,10 @@ python -m src.mcp.server
 ```
 
 **Key Points**:
-- ✓ Use ABSOLUTE path to `.venv/bin/python` (not relative path)
-- ✓ Include `.venv/bin/python` in command (not just `python`)
-- ✓ Set `PYTHONPATH` to project directory
-- ✓ Set `cwd` to project directory
+-  Use ABSOLUTE path to `.venv/bin/python` (not relative path)
+-  Include `.venv/bin/python` in command (not just `python`)
+-  Set `PYTHONPATH` to project directory
+-  Set `cwd` to project directory
 
 ---
 

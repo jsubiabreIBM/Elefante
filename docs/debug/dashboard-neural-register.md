@@ -1,4 +1,4 @@
-# 🧠 DASHBOARD NEURAL REGISTER
+#  DASHBOARD NEURAL REGISTER
 
 ## System Immunity: Dashboard Failure Laws
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 📜 THE LAWS (Immutable Truths)
+##  THE LAWS (Immutable Truths)
 
 ### LAW #1: Data Path Separation
 
@@ -17,7 +17,7 @@
 **Architecture Mandate**:
 
 ```
-MCP Server (Write) → kuzu_db/ → Export Script → snapshot.json → Dashboard (Read)
+MCP Server (Write) -> kuzu_db/ -> Export Script -> snapshot.json -> Dashboard (Read)
 ```
 
 **Rationale**:
@@ -59,7 +59,7 @@ Zoom Level 3 (Near):  Show full subgraph with relationships (500+ nodes)
 - Dynamic label rendering (hide at distance)
 - Cluster aggregation for dense regions
 
-**Anti-Pattern**: Rendering all nodes at once → browser freeze  
+**Anti-Pattern**: Rendering all nodes at once -> browser freeze  
 **Correct Pattern**: Progressive rendering based on viewport
 
 ---
@@ -82,10 +82,10 @@ Zoom Level 3 (Near):  Show full subgraph with relationships (500+ nodes)
 
 **Failure Modes**:
 
-1. **Explosion**: Charge too high → nodes fly off screen
-2. **Collapse**: Charge too low → all nodes cluster at center
-3. **Jitter**: Alpha decay too fast → simulation never stabilizes
-4. **Perpetual Motion**: Velocity decay too low → nodes never stop
+1. **Explosion**: Charge too high -> nodes fly off screen
+2. **Collapse**: Charge too low -> all nodes cluster at center
+3. **Jitter**: Alpha decay too fast -> simulation never stabilizes
+4. **Perpetual Motion**: Velocity decay too low -> nodes never stop
 
 **Tuning Protocol**: Adjust one parameter at a time, test with real data (100+ nodes)
 
@@ -99,17 +99,17 @@ Zoom Level 3 (Near):  Show full subgraph with relationships (500+ nodes)
 
 **Core Spaces**:
 
-- 🏗️ **Architecture**: System design, technical decisions
-- 🐛 **Debug**: Failure patterns, troubleshooting
-- 📦 **Installation**: Setup, configuration, deployment
-- 🧠 **Memory**: Cognitive model, retrieval strategies
-- 🎨 **Dashboard**: Visualization, UI/UX
+-  **Architecture**: System design, technical decisions
+-  **Debug**: Failure patterns, troubleshooting
+-  **Installation**: Setup, configuration, deployment
+-  **Memory**: Cognitive model, retrieval strategies
+-  **Dashboard**: Visualization, UI/UX
 
 **Navigation Pattern**:
 
-1. User selects Space → Filter graph to Space entities
-2. User clicks entity → Show relationships within Space
-3. User explores → Cross-Space links shown as bridges
+1. User selects Space -> Filter graph to Space entities
+2. User clicks entity -> Show relationships within Space
+3. User explores -> Cross-Space links shown as bridges
 
 **Implementation**: Entity metadata includes `space` property
 
@@ -186,7 +186,7 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 
 ---
 
-## 🔬 FAILURE PATTERNS (Documented Cases)
+##  FAILURE PATTERNS (Documented Cases)
 
 ### Pattern #1: Direct Database Access Deadlock (2025-11-28)
 
@@ -249,11 +249,11 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 **Root Cause**: Partial architectural fix. Writer saved to `~/.elefante/data`, Reader looked in `./data`
 **Impact**: "Fixed" bug reappeared immediately as storage mismatch
 **Resolution**: Unify BOTH servers to import `DATA_DIR` from `src.utils.config`
-**Prevention**: Search for all usages of a path string when changing it. Verify full pipeline (Producer → Consumer).
+**Prevention**: Search for all usages of a path string when changing it. Verify full pipeline (Producer -> Consumer).
 
 ---
 
-## 🛡️ SAFEGUARDS (Active Protections)
+##  SAFEGUARDS (Active Protections)
 
 ### Safeguard #1: Snapshot Export Script
 
@@ -275,7 +275,7 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 
 ---
 
-## 📊 METRICS
+##  METRICS
 
 ### Dashboard Load Time
 
@@ -294,13 +294,13 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 
 ---
 
-## 🎯 IMPROVEMENT ROADMAP
+##  IMPROVEMENT ROADMAP
 
 ### Phase 1: Core Stability (COMPLETE)
 
-- ✅ Snapshot export pattern
-- ✅ Semantic zoom implementation
-- ✅ Dependency locking
+-  Snapshot export pattern
+-  Semantic zoom implementation
+-  Dependency locking
 
 ### Phase 2: Enhanced Visualization (PLANNED)
 
@@ -318,14 +318,14 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 
 ---
 
-## 🔗 RELATED REGISTERS
+##  RELATED REGISTERS
 
 - **DATABASE_NEURAL_REGISTER.md**: Kuzu lock architecture, connection lifecycle
 - **INSTALLATION_NEURAL_REGISTER.md**: Pre-flight checks, configuration hierarchy
 
 ---
 
-## 📚 SOURCE DOCUMENTS
+##  SOURCE DOCUMENTS
 
 - `docs/debug/dashboard/dashboard-postmortem.md` (detailed failure analysis)
 - `docs/debug/dashboard/dashboard-build-failure-2025-11-28.md` (build issues)
@@ -334,6 +334,6 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 
 ---
 
-**Neural Register Status**: ✅ ACTIVE  
+**Neural Register Status**:  ACTIVE  
 **Enforcement**: Architecture review, performance testing  
 **Last Validation**: 2025-12-06

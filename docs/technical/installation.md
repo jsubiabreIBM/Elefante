@@ -8,9 +8,9 @@
 ## Prerequisites
 
 - **Python**: **3.11 ONLY** (See [`python-version-requirements.md`](python-version-requirements.md) for mandatory details)
-  - 3.9, 3.10: ❌ Not supported
-  - **3.11**: ✅ Required and tested
-  - 3.12+: ❌ Not supported
+  - 3.9, 3.10:  Not supported
+  - **3.11**:  Required and tested
+  - 3.12+:  Not supported
 - **Git**: For cloning the repository
 - **Disk Space**: Minimum 5GB free
 - **OS**: Windows, macOS, or Linux
@@ -199,10 +199,10 @@ python scripts/health_check.py
 Expected output:
 
 ```
-✅ ChromaDB: Connected
-✅ Kuzu: Connected
-✅ MCP Server: Running
-✅ All systems operational
+ ChromaDB: Connected
+ Kuzu: Connected
+ MCP Server: Running
+ All systems operational
 ```
 
 ### 6. System Verification (Automated)

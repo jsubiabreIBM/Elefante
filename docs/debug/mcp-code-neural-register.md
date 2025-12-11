@@ -1,4 +1,4 @@
-# 🧠 MCP CODE NEURAL REGISTER
+#  MCP CODE NEURAL REGISTER
 
 ## System Immunity: MCP Protocol Failure Laws
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 📜 THE LAWS (Immutable Truths)
+##  THE LAWS (Immutable Truths)
 
 ### LAW #1: Type Signature Exactness
 
@@ -22,23 +22,23 @@
 from mcp import types
 
 @server.list_tools()
-async def list_tools() -> list[types.Tool]:  # ✅ Correct
+async def list_tools() -> list[types.Tool]:  #  Correct
     return [types.Tool(...)]
 ```
 
 **Common Errors**:
 
 ```python
-# ❌ Wrong: Missing types prefix
+#  Wrong: Missing types prefix
 async def list_tools() -> list[Tool]:
     return [Tool(...)]
 
-# ❌ Wrong: Using typing.List
+#  Wrong: Using typing.List
 from typing import List
 async def list_tools() -> List[types.Tool]:
     return [types.Tool(...)]
 
-# ❌ Wrong: No return type annotation
+#  Wrong: No return type annotation
 async def list_tools():
     return [types.Tool(...)]
 ```
@@ -60,13 +60,13 @@ Layer 1: Tool Registration (list_tools)
 Layer 2: Input Validation (call_tool receives arguments)
 Layer 3: Business Logic (execute operation)
 Layer 4: Error Handling (catch exceptions)
-Layer 5: Action Verification (confirm state change) ← CRITICAL
+Layer 5: Action Verification (confirm state change) <- CRITICAL
 ```
 
 **Anti-Pattern**: Assuming success without verification
 
 ```python
-# ❌ Wrong: No verification
+#  Wrong: No verification
 async def call_tool(name: str, arguments: dict):
     memory_store.add_memory(arguments["content"])
     return [types.TextContent(text="Memory added")]  # Did it actually add?
@@ -75,7 +75,7 @@ async def call_tool(name: str, arguments: dict):
 **Correct Pattern**: Verify state change
 
 ```python
-# ✅ Correct: Verify action
+#  Correct: Verify action
 async def call_tool(name: str, arguments: dict):
     memory_id = memory_store.add_memory(arguments["content"])
 
@@ -117,7 +117,7 @@ except Exception as e:
     logger.error(f"Tool execution failed: {error_context}")
 
     return [types.TextContent(
-        text=f"❌ {name} failed: {str(e)}\n"
+        text=f" {name} failed: {str(e)}\n"
              f"Context: {json.dumps(error_context, indent=2)}"
     )]
 ```
@@ -140,12 +140,12 @@ except Exception as e:
 **Synchronous Database** (Kuzu, ChromaDB):
 
 ```python
-# ❌ Wrong: Blocking call in async function
+#  Wrong: Blocking call in async function
 async def call_tool(name: str, arguments: dict):
     result = graph_store.create_entity(...)  # Blocks event loop!
     return [types.TextContent(text="Done")]
 
-# ✅ Correct: Wrap in executor
+#  Correct: Wrap in executor
 import asyncio
 async def call_tool(name: str, arguments: dict):
     loop = asyncio.get_event_loop()
@@ -160,7 +160,7 @@ async def call_tool(name: str, arguments: dict):
 **Asynchronous Database** (hypothetical):
 
 ```python
-# ✅ Correct: Native async
+#  Correct: Native async
 async def call_tool(name: str, arguments: dict):
     result = await async_db.create_entity(...)
     return [types.TextContent(text="Done")]
@@ -248,11 +248,11 @@ MCP communicates via stdin/stdout. Any stray `print()` or `logging.StreamHandler
 **Correct Pattern**:
 
 ```python
-# ❌ WRONG
+#  WRONG
 print("Initializing server...")  # BREAKS MCP
 logging.basicConfig(stream=sys.stdout) # BREAKS MCP
 
-# ✅ CORRECT
+#  CORRECT
 import sys
 import logging
 # Use stderr for logs
@@ -265,7 +265,7 @@ print("Initializing...", file=sys.stderr)
 
 ---
 
-## 🔬 FAILURE PATTERNS (Documented Cases)
+##  FAILURE PATTERNS (Documented Cases)
 
 ### Pattern #1: Silent Type Mismatch (2025-12-02)
 
@@ -314,7 +314,7 @@ print("Initializing...", file=sys.stderr)
 
 ---
 
-## 🛡️ SAFEGUARDS (Active Protections)
+##  SAFEGUARDS (Active Protections)
 
 ### Safeguard #1: Type Validation Tests
 
@@ -336,7 +336,7 @@ print("Initializing...", file=sys.stderr)
 
 ---
 
-## 📊 METRICS
+##  METRICS
 
 ### Tool Visibility Rate
 
@@ -355,7 +355,7 @@ print("Initializing...", file=sys.stderr)
 
 ---
 
-## 🎯 PROTOCOL ENFORCEMENT CHECKLIST
+##  PROTOCOL ENFORCEMENT CHECKLIST
 
 ### Pre-Deployment Validation
 
@@ -374,14 +374,14 @@ print("Initializing...", file=sys.stderr)
 
 ---
 
-## 🔗 RELATED REGISTERS
+##  RELATED REGISTERS
 
 - **DATABASE_NEURAL_REGISTER.md**: Connection lifecycle, lock management
 - **MEMORY_NEURAL_REGISTER.md**: Retrieval verification, export protocols
 
 ---
 
-## 📚 SOURCE DOCUMENTS
+##  SOURCE DOCUMENTS
 
 - `docs/debug/general/fixes-applied.md` (type signature fixes)
 - `docs/debug/general/critical-analysis.md` (Layer 5 protocol)
@@ -393,6 +393,6 @@ print("Initializing...", file=sys.stderr)
 
 ---
 
-**Neural Register Status**: ✅ ACTIVE  
+**Neural Register Status**:  ACTIVE  
 **Enforcement**: Type checking, integration tests, code review  
 **Last Validation**: 2025-12-06

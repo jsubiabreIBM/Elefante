@@ -14,10 +14,10 @@ Kuzu uses **file-based locking** to enforce single-writer access:
 
 ```
 ~/.elefante/data/kuzu_db/
-├── .lock                    ← Lock file (exists when in use)
-├── catalog/                 ← Metadata
-├── wal/                     ← Write-ahead log
-└── storage/                 ← Data files
+├── .lock                    <- Lock file (exists when in use)
+├── catalog/                 <- Metadata
+├── wal/                     <- Write-ahead log
+└── storage/                 <- Data files
 ```
 
 **Rule**: Only ONE process can access Kuzu database at a time.
@@ -25,9 +25,9 @@ Kuzu uses **file-based locking** to enforce single-writer access:
 ### When Lock is Acquired
 
 ```
-Process A opens Kuzu → .lock file created → Process A has exclusive access
-Process B tries to open Kuzu → Waits for lock → Blocked until Process A closes
-Process A closes Kuzu → .lock file removed → Process B acquires lock
+Process A opens Kuzu -> .lock file created -> Process A has exclusive access
+Process B tries to open Kuzu -> Waits for lock -> Blocked until Process A closes
+Process A closes Kuzu -> .lock file removed -> Process B acquires lock
 ```
 
 ### Why This Matters for Elefante
@@ -67,7 +67,7 @@ ls -la ~/.elefante/data/kuzu_db/.lock
 python -c "
 import kuzu
 db = kuzu.Database('/Users/jay/.elefante/data/kuzu_db')
-print('✓ Database unlocked and accessible')
+print(' Database unlocked and accessible')
 "
 
 # If fails with "Cannot acquire lock": database is locked
@@ -81,7 +81,7 @@ print('✓ Database unlocked and accessible')
 ps aux | grep python
 
 # Example output:
-# jay    1234  python -m src.mcp.server    ← MCP server holding lock
+# jay    1234  python -m src.mcp.server    <- MCP server holding lock
 # jay    5678  python -m src.dashboard.server
 ```
 
@@ -205,7 +205,7 @@ From [dashboard.md](dashboard.md):
 Dashboard reads from **static snapshot**, not live database:
 
 ```
-MCP (Write) → Kuzu → Export Script → Snapshot File → Dashboard (Read)
+MCP (Write) -> Kuzu -> Export Script -> Snapshot File -> Dashboard (Read)
 ```
 
 This prevents lock conflicts: Dashboard can run anytime without accessing Kuzu directly.
@@ -369,7 +369,7 @@ Before claiming "Lock is healthy":
 
 - [ ] Only one process (MCP or Dashboard) running at a time
 - [ ] Lock file doesn't exist: `ls ~/.elefante/data/kuzu_db/.lock`
-  - Returns "No such file or directory" ✓
+  - Returns "No such file or directory" 
 - [ ] Database is accessible: `python -c "import kuzu; kuzu.Database(...)"`
 - [ ] No stale processes: `ps aux | grep python` shows expected processes only
 - [ ] Dashboard uses snapshot, not direct Kuzu access

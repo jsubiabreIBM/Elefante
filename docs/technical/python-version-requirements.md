@@ -7,7 +7,7 @@
 
 ---
 
-## ⚠️ MANDATORY: Python 3.11 ONLY
+##  MANDATORY: Python 3.11 ONLY
 
 ### Why Python 3.11?
 
@@ -33,11 +33,11 @@
 
 | Python Version | Status | Notes |
 |---|---|---|
-| 3.9 | ❌ NOT SUPPORTED | Too old, missing features |
-| 3.10 | ⚠️ UNCERTAIN | May work, but not tested |
-| **3.11** | ✅ **RECOMMENDED** | **All features tested & working** |
-| 3.12 | ⚠️ UNCERTAIN | Type hint changes may cause issues |
-| 3.13 | ❌ NOT SUPPORTED | Too new, dependency gaps |
+| 3.9 |  NOT SUPPORTED | Too old, missing features |
+| 3.10 |  UNCERTAIN | May work, but not tested |
+| **3.11** |  **RECOMMENDED** | **All features tested & working** |
+| 3.12 |  UNCERTAIN | Type hint changes may cause issues |
+| 3.13 |  NOT SUPPORTED | Too new, dependency gaps |
 
 ---
 
@@ -166,18 +166,18 @@ print(f'Python: {sys.version}')
 
 # Test critical dependencies
 import kuzu
-print(f'✓ Kuzu: {kuzu.__version__}')
+print(f' Kuzu: {kuzu.__version__}')
 
 import chromadb
-print(f'✓ ChromaDB: {chromadb.__version__}')
+print(f' ChromaDB: {chromadb.__version__}')
 
 import sentence_transformers
-print(f'✓ Sentence Transformers: OK')
+print(f' Sentence Transformers: OK')
 
 import mcp
-print(f'✓ MCP: OK')
+print(f' MCP: OK')
 
-print('\n✓ All dependencies compatible with Python 3.11')
+print('\n All dependencies compatible with Python 3.11')
 "
 ```
 
@@ -187,7 +187,7 @@ print('\n✓ All dependencies compatible with Python 3.11')
 source .venv/bin/activate
 python scripts/health_check.py
 
-# Should output: ✓ All systems operational!
+# Should output:  All systems operational!
 ```
 
 ---
@@ -427,7 +427,7 @@ pyenv local 3.12.0
 ```bash
 # Activate venv and test
 source .venv/bin/activate
-python -c "import kuzu, chromadb, sentence_transformers, mcp; print('✓ All OK')"
+python -c "import kuzu, chromadb, sentence_transformers, mcp; print(' All OK')"
 ```
 
 ---

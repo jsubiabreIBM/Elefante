@@ -1,8 +1,28 @@
-# 🚨 PITFALL INDEX - Quick Search Reference
+# PITFALL INDEX - Quick Search Reference
 
 > **Purpose:** Searchable index of all documented pitfalls  
 > **Usage:** Search this file BEFORE completing any task  
-> **Format:** Each entry is a searchable trigger → action pair
+> **Format:** Each entry is a searchable trigger-action pair
+
+---
+
+## PRE-ACTION CHECKPOINT PROTOCOL
+
+Before completing ANY task, MUST:
+
+1. IDENTIFY task category (dashboard, install, memory, database)
+2. SEARCH this file for `pitfall: [category]`
+3. CHECK relevant Neural Register in `docs/debug/`
+4. APPLY any found warnings
+5. THEN complete the task
+
+| Category | Primary Pitfall | Quick Fix |
+|----------|-----------------|-----------|
+| Dashboard | Browser cache | `Ctrl+Shift+R` |
+| Installation | Kuzu pre-existing dir | Do not mkdir before Kuzu init |
+| MCP | Type signature | `list[types.Tool]` not `List[Tool]` |
+| Database | Reserved words | `props` not `properties` |
+| Memory | API vs raw access | `_collection.get()` for export |
 
 ---
 

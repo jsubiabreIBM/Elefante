@@ -10,10 +10,10 @@
 
 ```
 docs/debug/
-├── README.md                          ← You are here
-├── 5 Neural Registers                 ← LAWS (start here when debugging)
-├── 5 Domain Compendiums               ← SOURCE (scalable issue tracking)
-└── Unified Post-Mortem Format         ← STRUCTURE (consistent across all)
+├── README.md                          <- You are here
+├── 5 Neural Registers                 <- LAWS (start here when debugging)
+├── 5 Domain Compendiums               <- SOURCE (scalable issue tracking)
+└── Unified Post-Mortem Format         <- STRUCTURE (consistent across all)
 ```
 
 ---
@@ -31,7 +31,7 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory 
 | [`mcp-code-neural-register.md`](mcp-code-neural-register.md) | MCP protocol enforcement | Mode Restrictions, Layer 5 Verification |
 | [`memory-neural-register.md`](memory-neural-register.md) | Memory system reliability | Export Bypass, ChromaDB vs Kuzu |
 
-**Format**: Laws → Failure Patterns → Safeguards → Metrics → Source Documents
+**Format**: Laws -> Failure Patterns -> Safeguards -> Metrics -> Source Documents
 
 ---
 
@@ -40,18 +40,18 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory 
 Each compendium follows the **Unified Post-Mortem Structure**:
 - Critical Laws table
 - Issues #1, #2, #3... (scalable)
-- Each issue: Problem → Symptom → Root Cause → Solution → Lesson
+- Each issue: Problem -> Symptom -> Root Cause -> Solution -> Lesson
 - Methodology Failures section
 - Prevention Protocol
 - Appendix with issue template
 
 | Domain | Compendium | Issues | Status |
 |--------|-----------|--------|--------|
-| Dashboard | [`dashboard/dashboard-compendium.md`](dashboard/dashboard-compendium.md) | 5 issues | ✅ Active |
-| Database | [`database/database-compendium.md`](database/database-compendium.md) | 6 issues | ✅ Active |
-| Installation | [`installation/installation-compendium.md`](installation/installation-compendium.md) | 4 issues | ✅ Active |
-| Memory | [`memory/memory-compendium.md`](memory/memory-compendium.md) | 5 issues | ✅ Active |
-| AI Behavior | [`general/ai-behavior-compendium.md`](general/ai-behavior-compendium.md) | 5 issues | ✅ Active |
+| Dashboard | [`dashboard/dashboard-compendium.md`](dashboard/dashboard-compendium.md) | 5 issues |  Active |
+| Database | [`database/database-compendium.md`](database/database-compendium.md) | 6 issues |  Active |
+| Installation | [`installation/installation-compendium.md`](installation/installation-compendium.md) | 4 issues |  Active |
+| Memory | [`memory/memory-compendium.md`](memory/memory-compendium.md) | 5 issues |  Active |
+| AI Behavior | [`general/ai-behavior-compendium.md`](general/ai-behavior-compendium.md) | 5 issues |  Active |
 
 ---
 
@@ -69,7 +69,7 @@ All compendiums follow this scalable format:
 
 ---
 
-## 🚨 CRITICAL LAWS (Extracted from Pain)
+##  CRITICAL LAWS (Extracted from Pain)
 
 | # | Law | Violation Cost |
 |---|-----|----------------|
@@ -82,7 +82,7 @@ All compendiums follow this scalable format:
 **Date:** YYYY-MM-DD
 **Duration:** X hours/minutes
 **Severity:** LOW | MEDIUM | HIGH | CRITICAL
-**Status:** 🔴 OPEN | 🟡 IN PROGRESS | ✅ FIXED | ⚠️ DOCUMENTED
+**Status:**  OPEN |  IN PROGRESS |  FIXED |  DOCUMENTED
 
 ### Problem
 [One sentence]
@@ -110,14 +110,14 @@ All compendiums follow this scalable format:
 
 ---
 
-## 🔑 How to Use This System
+##  How to Use This System
 
 ### When Debugging a New Issue
 
-1. **Check Neural Register first** → Find relevant laws
-2. **Search compendium** → Has this been seen before?
-3. **If new issue** → Add to compendium using template
-4. **If pattern emerges** → Extract new law to Neural Register
+1. **Check Neural Register first** -> Find relevant laws
+2. **Search compendium** -> Has this been seen before?
+3. **If new issue** -> Add to compendium using template
+4. **If pattern emerges** -> Extract new law to Neural Register
 
 ### When Adding New Issues
 
@@ -136,7 +136,7 @@ All compendiums follow this scalable format:
 
 ---
 
-## 📊 Consolidation Summary
+##  Consolidation Summary
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
@@ -147,9 +147,9 @@ All compendiums follow this scalable format:
 
 ---
 
-## 🚫 Anti-Patterns to Avoid
+##  Anti-Patterns to Avoid
 
-| ❌ Don't | ✅ Do |
+|  Don't |  Do |
 |----------|-------|
 | Create new file per issue | Append to domain compendium |
 | Write narrative prose | Use structured Issue #N format |
@@ -159,26 +159,26 @@ All compendiums follow this scalable format:
 
 ---
 
-## 📁 Directory Structure
+##  Directory Structure
 
 ```
 docs/debug/
-├── README.md                              ← Index (you are here)
-├── INSTALLATION_NEURAL_REGISTER.md        ← Laws: Installation
-├── DATABASE_NEURAL_REGISTER.md            ← Laws: Database
-├── DASHBOARD_NEURAL_REGISTER.md           ← Laws: Dashboard
-├── MCP_CODE_NEURAL_REGISTER.md            ← Laws: MCP/Code
-├── MEMORY_NEURAL_REGISTER.md              ← Laws: Memory
+├── README.md                              <- Index (you are here)
+├── INSTALLATION_NEURAL_REGISTER.md        <- Laws: Installation
+├── DATABASE_NEURAL_REGISTER.md            <- Laws: Database
+├── DASHBOARD_NEURAL_REGISTER.md           <- Laws: Dashboard
+├── MCP_CODE_NEURAL_REGISTER.md            <- Laws: MCP/Code
+├── MEMORY_NEURAL_REGISTER.md              <- Laws: Memory
 ├── dashboard/
-│   └── dashboard-compendium.md            ← Source: Dashboard issues
+│   └── dashboard-compendium.md            <- Source: Dashboard issues
 ├── database/
-│   └── database-compendium.md             ← Source: Database issues
+│   └── database-compendium.md             <- Source: Database issues
 ├── installation/
-│   └── installation-compendium.md         ← Source: Installation issues
+│   └── installation-compendium.md         <- Source: Installation issues
 ├── memory/
-│   └── memory-compendium.md               ← Source: Memory issues
+│   └── memory-compendium.md               <- Source: Memory issues
 └── general/
-    └── ai-behavior-compendium.md          ← Source: AI behavior issues
+    └── ai-behavior-compendium.md          <- Source: AI behavior issues
 ```
 
 ---

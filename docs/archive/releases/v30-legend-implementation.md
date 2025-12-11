@@ -8,7 +8,7 @@
 
 ---
 
-## 🚀 Key Features
+##  Key Features
 
 ### 1. The "Authoritative Brain" Ingestion
 
@@ -31,7 +31,7 @@
 
 ---
 
-## 🛠️ Technical Manifest
+##  Technical Manifest
 
 ### Affected Components
 
@@ -48,7 +48,7 @@
 
 ---
 
-## 📜 Full Session Walkthrough
+##  Full Session Walkthrough
 
 (See original `walkthrough.md` in Artifacts for granular steps)
 
@@ -64,11 +64,11 @@
 2.  Flattened the `/api/stats` JSON response.
 3.  Restarted the server.
 
-**Status**: ✅ RESTORED.
+**Status**:  RESTORED.
 
 ---
 
-## 🏁 ZLCTP Handoff
+##  ZLCTP Handoff
 
 The project state is captured in `ZLCTP_Handoff_Package.md`. Next agent instructions:
 

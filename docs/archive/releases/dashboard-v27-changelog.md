@@ -57,7 +57,7 @@ The topology repair script (`scripts/utils/repair_graph_topology.py`) creates ed
 ## Visual Language
 
 ### Node Hierarchy
-- 🌟 **SUN** (Importance 10): Critical Laws, Core Identity
+-  **SUN** (Importance 10): Critical Laws, Core Identity
   - Size: 20px radius
   - Examples: "NEVER use 'properties' as column name", "User Persona"
   
@@ -65,16 +65,16 @@ The topology repair script (`scripts/utils/repair_graph_topology.py`) creates ed
   - Size: 12px radius
   - Examples: "Documentation Architecture", "Workflow Patterns"
   
-- 🛰️ **SATELLITE** (Importance <8): Facts, Logs
+-  **SATELLITE** (Importance <8): Facts, Logs
   - Size: 6px radius
   - Examples: "Python syntax", "File paths"
 
 ### Color Spectrum
-- 🔴 **Red**: Laws, Decisions (must follow)
-- 🟣 **Purple**: Insights, Wisdom (learned patterns)
-- 🟡 **Gold**: Preferences, User Style (personal choices)
-- 🟢 **Green**: Episodic, Personal (life events)
-- 🔵 **Blue**: Facts, Reference (neutral information)
+-  **Red**: Laws, Decisions (must follow)
+-  **Purple**: Insights, Wisdom (learned patterns)
+-  **Gold**: Preferences, User Style (personal choices)
+-  **Green**: Episodic, Personal (life events)
+-  **Blue**: Facts, Reference (neutral information)
 
 ---
 
@@ -126,7 +126,7 @@ scripts\upgrade_to_v27.bat
 ### Visual Indicators
 
 **1. Header Banner:**
-- Should show: `🚨 DEBUG: VERSION 27.0 - SEMANTIC TOPOLOGY (HIERARCHY ENFORCED) 🚨`
+- Should show: ` DEBUG: VERSION 27.0 - SEMANTIC TOPOLOGY (HIERARCHY ENFORCED) `
 - Color: Purple background (not red)
 
 **2. Debug Overlay (Top-Right):**
@@ -136,9 +136,9 @@ NODES: 91 / 91
 HUBS (Imp 10): X
 ENTITIES: 17
 HIERARCHY:
-  🌟 SUN (10): Critical Laws
+   SUN (10): Critical Laws
   🪐 PLANET (8-9): Insights
-  🛰️ SAT (<8): Facts
+   SAT (<8): Facts
 ```
 
 **3. Visual Graph:**
@@ -239,4 +239,4 @@ Instead, v27.0 uses:
 
 **Last Updated**: 2025-12-05  
 **Version**: 27.0  
-**Status**: ✅ Production Ready
+**Status**:  Production Ready

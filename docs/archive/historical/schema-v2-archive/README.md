@@ -9,7 +9,7 @@
 |------|-------------------|---------|
 | `memory-schema-v2.md` | `docs/technical/` | V2 memory schema specification |
 | `v2-schema-simple.md` | `docs/technical/` | Simplified v2 schema reference |
-| `zlctp-memory-schema-v3-handoff.md` | `docs/planning/` | Migration planning from v2→v3 |
+| `zlctp-memory-schema-v3-handoff.md` | `docs/planning/` | Migration planning from v2->v3 |
 
 ## Context
 

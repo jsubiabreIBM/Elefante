@@ -1,4 +1,4 @@
-# 🧠 INSTALLATION NEURAL REGISTER
+#  INSTALLATION NEURAL REGISTER
 
 ## System Immunity: Installation Failure Laws
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 📜 THE LAWS (Immutable Truths)
+##  THE LAWS (Immutable Truths)
 
 ### LAW #1: Kuzu Path Conflict Law
 
@@ -21,10 +21,10 @@
 **Prevention Protocol**:
 
 ```python
-# ❌ FORBIDDEN (causes conflict)
+#  FORBIDDEN (causes conflict)
 KUZU_DIR.mkdir(exist_ok=True)  # Pre-creates directory
 
-# ✅ REQUIRED (let Kuzu create it)
+#  REQUIRED (let Kuzu create it)
 # Do NOT pre-create database directory
 # Kuzu will create proper structure on initialization
 ```
@@ -65,7 +65,7 @@ KUZU_DIR.mkdir(exist_ok=True)  # Pre-creates directory
 
 **Anti-Pattern**: Anchoring bias - fixating on error location instead of root cause
 
-**Example**: Error in `graph_store.py` line 50 → Root cause in `config.py` line 30
+**Example**: Error in `graph_store.py` line 50 -> Root cause in `config.py` line 30
 
 ---
 
@@ -99,13 +99,13 @@ KUZU_DIR.mkdir(exist_ok=True)  # Pre-creates directory
 3. **Resolve**: Implement automatic remediation
 4. **Verify**: Test recovery on clean system
 
-**Success Metric**: 12-minute manual debug → 30-second automated fix
+**Success Metric**: 12-minute manual debug -> 30-second automated fix
 
 **Example**: Kuzu path conflict detection + automatic directory removal
 
 ---
 
-## 🔬 FAILURE PATTERNS (Documented Cases)
+##  FAILURE PATTERNS (Documented Cases)
 
 ### Pattern #1: Kuzu Directory Pre-Creation (2025-11-27)
 
@@ -125,7 +125,7 @@ KUZU_DIR.mkdir(exist_ok=True)  # Pre-creates directory
 
 ---
 
-## 🛡️ SAFEGUARDS (Active Protections)
+##  SAFEGUARDS (Active Protections)
 
 ### Safeguard #1: Kuzu Compatibility Check
 
@@ -151,7 +151,7 @@ KUZU_DIR.mkdir(exist_ok=True)  # Pre-creates directory
 
 ---
 
-## 📊 METRICS
+##  METRICS
 
 ### Installation Success Rate
 
@@ -170,14 +170,14 @@ KUZU_DIR.mkdir(exist_ok=True)  # Pre-creates directory
 
 ---
 
-## 🔗 RELATED REGISTERS
+##  RELATED REGISTERS
 
 - **DATABASE_NEURAL_REGISTER.md**: Kuzu reserved words, schema issues
 - **MCP_CODE_NEURAL_REGISTER.md**: Type signatures, protocol enforcement
 
 ---
 
-## 📚 SOURCE DOCUMENTS
+##  SOURCE DOCUMENTS
 
 - `docs/debug/installation/never-again-guide.md` (318 lines)
 - `docs/technical/installation-safeguards.md` (449 lines)
@@ -186,7 +186,7 @@ KUZU_DIR.mkdir(exist_ok=True)  # Pre-creates directory
 
 ---
 
-**Neural Register Status**: ✅ ACTIVE  
+**Neural Register Status**:  ACTIVE  
 **Enforcement**: Automated via `scripts/install.py`  
 **Last Validation**: 2025-12-06
 
@@ -203,10 +203,10 @@ KUZU_DIR.mkdir(exist_ok=True)  # Pre-creates directory
 **Prevention Protocol**:
 
 ```python
-# ❌ FORBIDDEN
+#  FORBIDDEN
 "command": "python"
 
-# ✅ REQUIRED
+#  REQUIRED
 import sys
 "command": sys.executable
 ```
@@ -245,10 +245,10 @@ In `GraphStore.__init__`:
 **Prevention Protocol**:
 
 ```python
-# ❌ INCORRECT (Ambiguous)
+#  INCORRECT (Ambiguous)
 "command": "python"
 
-# ✅ CORRECT (Deterministic)
+#  CORRECT (Deterministic)
 import sys
 "command": sys.executable
 ```
@@ -325,10 +325,10 @@ The Script MUST ingest:
 # When standard install fails due to broken venv:
 import subprocess
 
-# ❌ BROKEN (Uses corrupted workspace Python)
+#  BROKEN (Uses corrupted workspace Python)
 subprocess.run(["python", "scripts/install.py"])
 
-# ✅ ESCAPE (Uses system Python with absolute path)
+#  ESCAPE (Uses system Python with absolute path)
 subprocess.run([
     "/opt/homebrew/bin/python3.11",  # macOS Homebrew
     # or "C:\\Python311\\python.exe"  # Windows

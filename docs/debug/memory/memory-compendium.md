@@ -8,7 +8,7 @@
 
 ---
 
-## 🚨 CRITICAL LAWS (Extracted from Pain)
+##  CRITICAL LAWS (Extracted from Pain)
 
 | #   | Law                                                                        | Violation Cost    |
 | --- | -------------------------------------------------------------------------- | ----------------- |
@@ -33,9 +33,9 @@
 - [Issue #4: Temporal Decay Implementation Failure](#issue-4-temporal-decay-implementation-failure)
 - [Issue #5: Memory Schema Mismatch](#issue-5-memory-schema-mismatch)
 - [Issue #6: V3 Layer Metadata Not Persisting](#issue-6-v3-layer-metadata-not-persisting)
-- [Issue #7: searchMemories Response Bloat](#issue-7-searchmemories-response-bloat-token-waste) 🔴 OPEN
-- [Issue #8: Low Similarity Scores](#issue-8-low-similarity-scores-for-exact-matches) 🔴 OPEN
-- [Issue #9: No Actionable Integration](#issue-9-no-actionable-integration-in-search-results) 🔴 OPEN
+- [Issue #7: searchMemories Response Bloat](#issue-7-searchmemories-response-bloat-token-waste)  OPEN
+- [Issue #8: Low Similarity Scores](#issue-8-low-similarity-scores-for-exact-matches)  OPEN
+- [Issue #9: No Actionable Integration](#issue-9-no-actionable-integration-in-search-results)  OPEN
 - [Memory Export Guide](#memory-export-guide)
 - [Reinforcement Protocol](#reinforcement-protocol)
 - [Prevention Protocol](#prevention-protocol)
@@ -48,7 +48,7 @@
 **Date:** 2025-12-05  
 **Duration:** Recurring problem  
 **Severity:** HIGH  
-**Status:** ✅ DOCUMENTED
+**Status:**  DOCUMENTED
 
 ### Problem
 
@@ -73,14 +73,14 @@ result = searchMemories("all memories", limit=1000)
 ### Solution
 
 ```python
-# ✅ CORRECT: Use min_similarity=0 to disable filtering
+#  CORRECT: Use min_similarity=0 to disable filtering
 result = await mcp_client.call_tool("searchMemories", {
     "query": "*",
     "limit": 1000,
     "min_similarity": 0.0  # CRITICAL: Disable filtering!
 })
 
-# ✅ BEST: Direct ChromaDB access
+#  BEST: Direct ChromaDB access
 collection = vector_store._collection
 results = collection.get(include=["metadatas", "documents"])
 ```
@@ -102,7 +102,7 @@ results = collection.get(include=["metadatas", "documents"])
 **Date:** 2025-12-05  
 **Duration:** 2 hours  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -127,14 +127,14 @@ Confusion between data stores:
 Code was doing:
 
 ```python
-# ❌ WRONG
+#  WRONG
 query = "MATCH (e:Entity) RETURN e"  # Returns entities, NOT memories
 ```
 
 ### Solution
 
 ```python
-# ✅ CORRECT
+#  CORRECT
 collection = vector_store._collection
 results = collection.get(include=["metadatas", "documents"])
 ```
@@ -156,7 +156,7 @@ results = collection.get(include=["metadatas", "documents"])
 **Date:** 2025-12-03  
 **Duration:** Systemic issue  
 **Severity:** CRITICAL  
-**Status:** ⚠️ DOCUMENTED (Behavioral)
+**Status:**  DOCUMENTED (Behavioral)
 
 ### Problem
 
@@ -173,8 +173,8 @@ AI has Elefante access but treats it as storage, not decision support.
 **Wrong Mental Model:**
 
 ```
-Current: Task → Implement → Store lessons (POST-HOC)
-Correct: Task → Search Elefante → Implement with context → Update
+Current: Task -> Implement -> Store lessons (POST-HOC)
+Correct: Task -> Search Elefante -> Implement with context -> Update
 ```
 
 ### Solution
@@ -224,7 +224,7 @@ Phase 5: REINFORCEMENT
 **Date:** 2025-12-03  
 **Duration:** 4 hours  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -310,7 +310,7 @@ print(f'Found {len(results)} results')
 **Date:** 2025-12-04  
 **Duration:** Documentation time  
 **Severity:** MEDIUM  
-**Status:** ⚠️ DOCUMENTED
+**Status:**  DOCUMENTED
 
 ### Problem
 
@@ -348,10 +348,10 @@ ChromaDB stores everything in flat structure:
 Always use model helpers:
 
 ```python
-# ❌ WRONG: Direct access
+#  WRONG: Direct access
 importance = result["metadata"]["importance"]
 
-# ✅ CORRECT: Use model class
+#  CORRECT: Use model class
 memory = MemoryModel.from_chromadb_result(result)
 importance = memory.importance
 ```
@@ -381,7 +381,7 @@ importance = memory.importance
 **Date:** 2025-12-07  
 **Duration:** 8+ hours (shared with dashboard debugging)  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -391,11 +391,11 @@ V3 Schema fields (`layer`, `sublayer`) not persisting through memory lifecycle d
 
 ```python
 # Classifier correctly returns:
-classify_memory("I am a developer") → ("self", "identity")
+classify_memory("I am a developer") -> ("self", "identity")
 
 # But ChromaDB shows:
-metadata["layer"] → "world"  # Wrong!
-metadata["sublayer"] → "fact"  # Wrong!
+metadata["layer"] -> "world"  # Wrong!
+metadata["sublayer"] -> "fact"  # Wrong!
 ```
 
 ### Root Cause
@@ -405,14 +405,14 @@ metadata["sublayer"] → "fact"  # Wrong!
 1. **VectorStore.add_memory()** - metadata dict construction missed layer/sublayer:
 
 ```python
-# ❌ BEFORE: Fields not in dict
+#  BEFORE: Fields not in dict
 metadata = {
     "domain": memory.metadata.domain,
     "category": memory.metadata.category,
     # layer/sublayer MISSING!
 }
 
-# ✅ AFTER: Added explicitly
+#  AFTER: Added explicitly
 metadata = {
     "layer": memory.metadata.layer,
     "sublayer": memory.metadata.sublayer,
@@ -423,13 +423,13 @@ metadata = {
 2. **VectorStore.\_reconstruct_memory()** - reconstruction didn't read layer/sublayer:
 
 ```python
-# ❌ BEFORE: Not reading from metadata
+#  BEFORE: Not reading from metadata
 MemoryMetadata(
     domain=metadata.get("domain"),
     # layer/sublayer MISSING!
 )
 
-# ✅ AFTER: Reading back
+#  AFTER: Reading back
 MemoryMetadata(
     layer=metadata.get("layer", "world"),
     sublayer=metadata.get("sublayer", "fact"),
@@ -447,7 +447,7 @@ MemoryMetadata(
 
 - **Migration tool lied**: Reported "78 migrated, 0 errors" but data unchanged (used cached code)
 - **Assumption**: Assumed if field was in `Memory.metadata`, it would be saved automatically
-- **No roundtrip test**: Never verified `add_memory()` → `get_memory()` preserved fields
+- **No roundtrip test**: Never verified `add_memory()` -> `get_memory()` preserved fields
 
 ### Lesson
 
@@ -465,7 +465,7 @@ MemoryMetadata(
 
 ## Memory Export Guide
 
-### ✅ DO: Complete Memory Export
+###  DO: Complete Memory Export
 
 ```python
 # Method 1: Direct ChromaDB Access (RECOMMENDED)
@@ -495,16 +495,16 @@ result = await mcp_client.call_tool("searchMemories", {
 })
 ```
 
-### ❌ DON'T: Common Export Mistakes
+###  DON'T: Common Export Mistakes
 
 ```python
-# ❌ Using searchMemories with default min_similarity
+#  Using searchMemories with default min_similarity
 searchMemories("all memories")  # Returns ~3-10, not 71
 
-# ❌ Querying Kuzu instead of ChromaDB
+#  Querying Kuzu instead of ChromaDB
 "MATCH (e:Entity) RETURN e"  # Returns 17 entities, not 71 memories
 
-# ❌ Using dashboard snapshot
+#  Using dashboard snapshot
 json.load(open("data/dashboard_snapshot.json"))  # May be stale
 ```
 
@@ -590,7 +590,7 @@ assert count > 0, 'No memories found!'
 **Date:** 2025-12-10  
 **Duration:** Observed in production testing  
 **Severity:** CRITICAL  
-**Status:** 🔴 OPEN (Design Flaw)
+**Status:**  OPEN (Design Flaw)
 
 ### Problem
 
@@ -677,7 +677,7 @@ searchMemories(query="...", slim_response=True)
 **Date:** 2025-12-10  
 **Duration:** Observed in production testing  
 **Severity:** HIGH  
-**Status:** 🔴 OPEN (Embedding Quality Issue)
+**Status:**  OPEN (Embedding Quality Issue)
 
 ### Problem
 
@@ -688,9 +688,9 @@ Query for "Developer Etiquette Standards" returns memories ABOUT developer etiqu
 ```python
 # Query: "Developer Etiquette Standards Project Hydro Documentation"
 # Results:
-# Memory 1: "ELEFANTE_DEVELOPER_CORE_V4 Agent Etiquette..." → similarity: 0.392
-# Memory 2: "Collaboration Rules: Bus Factor..." → similarity: 0.377
-# Memory 3: "Technical Best Practices Checklist..." → similarity: 0.377
+# Memory 1: "ELEFANTE_DEVELOPER_CORE_V4 Agent Etiquette..." -> similarity: 0.392
+# Memory 2: "Collaboration Rules: Bus Factor..." -> similarity: 0.377
+# Memory 3: "Technical Best Practices Checklist..." -> similarity: 0.377
 
 # Expected: 0.7+ for topic-relevant memories
 # Actual: 0.37-0.39 (barely above default min_similarity of 0.3!)
@@ -746,7 +746,7 @@ embedding_model = "BAAI/bge-base-en-v1.5"  # Better for retrieval
 **Date:** 2025-12-10  
 **Duration:** Observed in production testing  
 **Severity:** HIGH  
-**Status:** 🔴 OPEN (Design Gap)
+**Status:**  OPEN (Design Gap)
 
 ### Problem
 
@@ -838,7 +838,7 @@ MCP tool designed as "data retrieval" not "decision support":
 **Date:** YYYY-MM-DD  
 **Duration:** X hours/minutes  
 **Severity:** LOW | MEDIUM | HIGH | CRITICAL  
-**Status:** 🔴 OPEN | 🟡 IN PROGRESS | ✅ FIXED | ⚠️ DOCUMENTED
+**Status:**  OPEN |  IN PROGRESS |  FIXED |  DOCUMENTED
 
 ### Problem
 

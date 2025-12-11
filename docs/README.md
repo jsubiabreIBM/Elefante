@@ -17,7 +17,7 @@
 
 ---
 
-## 📚 Documentation Structure
+##  Documentation Structure
 
 ### [`technical/`](technical/) - Production Documentation
 **"How Things Work Now"** - Complete technical reference for using Elefante
@@ -26,7 +26,7 @@
 - [`architecture.md`](technical/architecture.md) - System design & triple-layer architecture
 - [`cognitive-memory-model.md`](technical/cognitive-memory-model.md) - AI memory model
 - [`installation.md`](technical/installation.md) - Installation guide
-- [`usage.md`](technical/usage.md) - **Complete API reference (11 MCP tools)**
+- [`usage.md`](technical/usage.md) - **Complete API reference (14 MCP tools)**
 - [`dashboard.md`](technical/dashboard.md) - Visual knowledge graph guide
 
 **Advanced Documentation**:
@@ -85,7 +85,7 @@
 
 ---
 
-## 🔌 MCP Tools Reference
+##  MCP Tools Reference
 
 Elefante provides **14 MCP tools** for AI agents:
 
@@ -110,7 +110,7 @@ Elefante provides **14 MCP tools** for AI agents:
 
 ---
 
-## 📖 Documentation by Use Case
+##  Documentation by Use Case
 
 ### "I'm new to Elefante"
 1. Read [`../README.md`](../README.md) - High-level overview
@@ -148,7 +148,7 @@ Elefante provides **14 MCP tools** for AI agents:
 
 ---
 
-## 🧠 Neural Register Architecture
+##  Neural Register Architecture
 
 **What are Neural Registers?**  
 Immutable "Laws" extracted from debugging sessions - the system's immune memory.
@@ -160,7 +160,7 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory.
 4. **MCP Code** - Type signatures, action verification, error enrichment
 5. **Memory** - Export bypass, semantic filtering, temporal decay
 
-**Format**: Laws → Failure Patterns → Safeguards → Metrics → Source Documents
+**Format**: Laws -> Failure Patterns -> Safeguards -> Metrics -> Source Documents
 
 **Purpose**: Prevent recurring failures by encoding lessons as enforceable rules.
 
@@ -180,19 +180,19 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory.
 ## Search Tips
 
 **Looking for specific topics**:
-- Installation → `technical/installation.md` or `debug/installation-neural-register.md`
-- API/Tools → `technical/usage.md` (all 11 tools)
-- Architecture → `technical/architecture.md`
-- Dashboard → `technical/dashboard.md` or `debug/dashboard-neural-register.md`
-- Database → `technical/kuzu-best-practices.md` or `debug/database-neural-register.md`
-- Troubleshooting → `debug/` Neural Registers
-- Roadmap → `planning/roadmap.md`
+- Installation -> `technical/installation.md` or `debug/installation-neural-register.md`
+- API/Tools -> `technical/usage.md` (all 14 tools)
+- Architecture -> `technical/architecture.md`
+- Dashboard -> `technical/dashboard.md` or `debug/dashboard-neural-register.md`
+- Database -> `technical/kuzu-best-practices.md` or `debug/database-neural-register.md`
+- Troubleshooting -> `debug/` Neural Registers
+- Roadmap -> `planning/roadmap.md`
 
 **File naming convention**: All files use kebab-case (lowercase-with-hyphens)
 
 ---
 
-## 📋 Documentation Etiquette (LLM Instructions)
+##  Documentation Etiquette (LLM Instructions)
 
 > **Purpose:** Prevent LLM amnesia and déjà vu errors when maintaining documentation.
 
@@ -205,8 +205,8 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory.
    - Search for related content with grep
    
 2. NEVER DUPLICATE
-   - If topic exists → AUGMENT the existing file
-   - If file is outdated → UPDATE in place
+   - If topic exists -> AUGMENT the existing file
+   - If file is outdated -> UPDATE in place
    - Only create new files for genuinely NEW topics
 
 3. KNOW YOUR FOLDERS
@@ -225,7 +225,7 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory.
 | Doc is superseded by Neural Register | Move to `archive/`, update Register |
 | Doc has wrong info | UPDATE in place, don't create new |
 | Point-in-time status (e.g., "current-status-2025-11-27") | Archive after issue resolved |
-| Protocol evolved (v1 → v2 → v3 → FINAL) | Keep FINAL, archive versions |
+| Protocol evolved (v1 -> v2 -> v3 -> FINAL) | Keep FINAL, archive versions |
 
 ### Documentation Update Checklist
 
@@ -264,11 +264,11 @@ archive/protocol-enforcement-v2.md
 
 ### Anti-Patterns (DON'T DO THIS)
 
-❌ Creating `new-fix-v2.md` when `fix.md` exists  
-❌ Writing same info in multiple places  
-❌ Leaving point-in-time status docs in active folders  
-❌ Creating doc without checking Neural Register first  
-❌ Archiving without updating indexes  
+ Creating `new-fix-v2.md` when `fix.md` exists  
+ Writing same info in multiple places  
+ Leaving point-in-time status docs in active folders  
+ Creating doc without checking Neural Register first  
+ Archiving without updating indexes  
 
 ---
 
@@ -276,19 +276,19 @@ archive/protocol-enforcement-v2.md
 
 **Last Updated**: 2025-12-11  
 **Documentation Version**: v1.0.1  
-**Status**: ✅ Complete and up-to-date
+**Status**:  Complete and up-to-date
 
 **Changes in v1.0.1**:
-- ✅ Added ELEFANTE_MODE (3 new tools for multi-IDE safety)
-- ✅ Added Auto-Inject Pitfalls (protocol enforcement)
-- ✅ Updated tool count to 14
-- ✅ LAW 5 file hygiene audit completed
+-  Added ELEFANTE_MODE (3 new tools for multi-IDE safety)
+-  Added Auto-Inject Pitfalls (protocol enforcement)
+-  Updated tool count to 14
+-  LAW 5 file hygiene audit completed
 
 **Changes in v1.0.0**:
-- ✅ Reorganized into technical/debug/planning/archive taxonomy
-- ✅ Introduced Neural Register architecture
-- ✅ Standardized kebab-case naming
-- ✅ Moved historical logs to archive/
+-  Reorganized into technical/debug/planning/archive taxonomy
+-  Introduced Neural Register architecture
+-  Standardized kebab-case naming
+-  Moved historical logs to archive/
 
 **Maintainers**: Elefante Core Team
 

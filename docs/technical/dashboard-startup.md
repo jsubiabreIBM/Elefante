@@ -186,7 +186,7 @@ async def add_test():
         content='Test memory for dashboard',
         importance=5
     )
-    print('✓ Test memory added')
+    print(' Test memory added')
 
 asyncio.run(add_test())
 "
@@ -201,7 +201,7 @@ asyncio.run(add_test())
 python scripts/update_dashboard_data.py
 
 # Expected output:
-# ✓ Snapshot updated: data/dashboard_snapshot.json
+#  Snapshot updated: data/dashboard_snapshot.json
 
 # Refresh dashboard (F5)
 ```
@@ -293,7 +293,7 @@ curl -H "Content-Type: application/json" http://127.0.0.1:8000/api/stats
 python scripts/update_dashboard_data.py
 
 # Output should show:
-# ✓ Exported 8 memories to dashboard_snapshot.json
+#  Exported 8 memories to dashboard_snapshot.json
 
 # Refresh dashboard (F5)
 ```
@@ -432,10 +432,10 @@ For large graphs (500+ memories):
 
 ### Tested Browsers
 
-- ✓ Chrome/Chromium 120+
-- ✓ Firefox 121+
-- ✓ Safari 17+
-- ✓ Edge 120+
+-  Chrome/Chromium 120+
+-  Firefox 121+
+-  Safari 17+
+-  Edge 120+
 
 ### Known Issues
 

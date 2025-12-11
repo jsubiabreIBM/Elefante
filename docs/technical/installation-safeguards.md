@@ -1,9 +1,9 @@
-# 🛡️ INSTALLATION SAFEGUARDS
+#  INSTALLATION SAFEGUARDS
 ## Automated Protection Against Common Installation Failures
 
 ---
 
-## 🎯 PURPOSE
+##  PURPOSE
 
 This document explains the automated safeguards added to prevent the **12-minute Kuzu database debugging nightmare** that occurred on 2025-11-27.
 
@@ -11,7 +11,7 @@ This document explains the automated safeguards added to prevent the **12-minute
 
 ---
 
-## ⚠️ THE PROBLEM WE SOLVED
+##  THE PROBLEM WE SOLVED
 
 ### Original Issue (2025-11-27)
 **Error**: `Runtime exception: Database path cannot be a directory: C:\Users\...\kuzu_db`
@@ -26,7 +26,7 @@ This document explains the automated safeguards added to prevent the **12-minute
 
 ---
 
-## ✅ THE SOLUTION: AUTOMATED PRE-FLIGHT CHECKS
+##  THE SOLUTION: AUTOMATED PRE-FLIGHT CHECKS
 
 ### What We Added
 
@@ -77,7 +77,7 @@ This function runs BEFORE any installation steps and automatically:
 
 ---
 
-## 🔍 DETAILED SAFEGUARD BREAKDOWN
+##  DETAILED SAFEGUARD BREAKDOWN
 
 ### Safeguard #1: Kuzu Compatibility Check
 
@@ -97,8 +97,8 @@ This function runs BEFORE any installation steps and automatically:
 
 **User Experience**:
 ```
-🔍 Checking Kuzu compatibility...
-⚠️  Found existing Kuzu database at: C:\Users\...\kuzu_db
+ Checking Kuzu compatibility...
+  Found existing Kuzu database at: C:\Users\...\kuzu_db
    Kuzu 0.11+ requires clean installation for path compatibility.
 
    Options:
@@ -107,10 +107,10 @@ This function runs BEFORE any installation steps and automatically:
 
    Backup and remove existing database? (Y/n): Y
 
-📦 Creating backup at: C:\Users\...\kuzu_db.backup.20251127_220935
-✅ Backup created successfully
-🗑️  Removing original database...
-✅ Original database removed
+ Creating backup at: C:\Users\...\kuzu_db.backup.20251127_220935
+ Backup created successfully
+  Removing original database...
+ Original database removed
 ```
 
 **Why This Prevents The Issue**:
@@ -145,8 +145,8 @@ breaking_changes = {
 
 **User Experience**:
 ```
-🔍 Checking dependency versions for breaking changes...
-⚠️  kuzu 0.11+ detected
+ Checking dependency versions for breaking changes...
+  kuzu 0.11+ detected
    Known issue: Database path handling changed - cannot pre-create directories
    Mitigation: check_kuzu_compatibility()
 ```
@@ -170,14 +170,14 @@ breaking_changes = {
 
 **User Experience**:
 ```
-🔍 Checking disk space...
-✅ Sufficient disk space: 150.23 GB available
+ Checking disk space...
+ Sufficient disk space: 150.23 GB available
 ```
 
 **Or if insufficient**:
 ```
-🔍 Checking disk space...
-❌ Insufficient disk space!
+ Checking disk space...
+ Insufficient disk space!
    Available: 2.34 GB
    Required: 5.00 GB
 ```
@@ -189,7 +189,7 @@ breaking_changes = {
 
 ---
 
-## 📋 INSTALLATION FLOW COMPARISON
+##  INSTALLATION FLOW COMPARISON
 
 ### Before (Original - Prone to Failure)
 ```
@@ -197,7 +197,7 @@ breaking_changes = {
 2. Create virtual environment
 3. Install dependencies (6 minutes)
 4. Initialize databases
-   └─ ❌ FAIL: Kuzu path conflict
+   └─  FAIL: Kuzu path conflict
 5. User confused, starts debugging
 6. 12 minutes of manual investigation
 7. Code modifications required
@@ -214,14 +214,14 @@ Risk: High (data loss, confusion)
 ```
 0. Run install.bat
 1. PRE-FLIGHT CHECKS
-   ├─ Disk space: ✅ Pass
-   ├─ Dependencies: ⚠️  Kuzu 0.11+ detected
-   └─ Kuzu compat: ⚠️  Existing database found
-       └─ Prompt user → Backup → Remove → ✅ Pass
+   ├─ Disk space:  Pass
+   ├─ Dependencies:   Kuzu 0.11+ detected
+   └─ Kuzu compat:   Existing database found
+       └─ Prompt user -> Backup -> Remove ->  Pass
 2. Create virtual environment
 3. Install dependencies (6 minutes)
 4. Initialize databases
-   └─ ✅ SUCCESS (no conflicts)
+   └─  SUCCESS (no conflicts)
 5. Configure MCP
 6. Health check
 7. Done!
@@ -233,7 +233,7 @@ Risk: Zero (automated backup)
 
 ---
 
-## 🎯 BENEFITS FOR FUTURE USERS
+##  BENEFITS FOR FUTURE USERS
 
 ### 1. **Zero Manual Debugging**
 - Issues detected and resolved automatically
@@ -262,7 +262,7 @@ Risk: Zero (automated backup)
 
 ---
 
-## 🔧 FOR DEVELOPERS: ADDING NEW SAFEGUARDS
+##  FOR DEVELOPERS: ADDING NEW SAFEGUARDS
 
 ### How to Add a New Pre-Flight Check
 
@@ -272,15 +272,15 @@ def check_new_issue(root_dir):
     """
     Check for [describe issue]
     """
-    logger.log("\n🔍 Checking [issue name]...")
+    logger.log("\n Checking [issue name]...")
     
     # Your check logic here
     if issue_detected:
-        logger.log("❌ [Issue description]")
+        logger.log(" [Issue description]")
         # Provide solution or abort
         return False
     else:
-        logger.log("✅ No issues detected")
+        logger.log(" No issues detected")
         return True
 ```
 
@@ -291,7 +291,7 @@ def run_preflight_checks(root_dir):
         ("Disk Space", lambda: check_disk_space(root_dir)),
         ("Dependency Versions", lambda: check_dependency_versions(root_dir)),
         ("Kuzu Compatibility", lambda: check_kuzu_compatibility(root_dir)),
-        ("New Check", lambda: check_new_issue(root_dir)),  # ← Add here
+        ("New Check", lambda: check_new_issue(root_dir)),  # <- Add here
     ]
 ```
 
@@ -308,13 +308,13 @@ def run_preflight_checks(root_dir):
 
 ---
 
-## 📊 METRICS & VALIDATION
+##  METRICS & VALIDATION
 
 ### Success Criteria
-- ✅ Zero Kuzu path conflicts in fresh installations
-- ✅ Zero data loss incidents
-- ✅ Installation time reduced from 24min to 10min
-- ✅ User satisfaction improved (no debugging required)
+-  Zero Kuzu path conflicts in fresh installations
+-  Zero data loss incidents
+-  Installation time reduced from 24min to 10min
+-  User satisfaction improved (no debugging required)
 
 ### Testing Checklist
 - [ ] Fresh installation (no existing database)
@@ -326,7 +326,7 @@ def run_preflight_checks(root_dir):
 
 ---
 
-## 🎓 LESSONS LEARNED
+##  LESSONS LEARNED
 
 ### What We Learned From The Original Failure
 
@@ -352,7 +352,7 @@ def run_preflight_checks(root_dir):
 
 ---
 
-## 🚀 FUTURE IMPROVEMENTS
+##  FUTURE IMPROVEMENTS
 
 ### Planned Enhancements
 
@@ -377,7 +377,7 @@ def run_preflight_checks(root_dir):
 
 ---
 
-## 📞 SUPPORT
+##  SUPPORT
 
 ### If Installation Still Fails
 
@@ -401,16 +401,16 @@ def run_preflight_checks(root_dir):
 
 ---
 
-## ✅ CONCLUSION
+##  CONCLUSION
 
 **The safeguards added to `install.py` ensure that the 12-minute Kuzu debugging nightmare will NEVER happen to future users.**
 
 **Key Achievements**:
-- ✅ Automated detection of Kuzu path conflicts
-- ✅ Safe backup mechanism (zero data loss)
-- ✅ Clear user communication
-- ✅ Fast failure (seconds, not minutes)
-- ✅ Extensible system for future issues
+-  Automated detection of Kuzu path conflicts
+-  Safe backup mechanism (zero data loss)
+-  Clear user communication
+-  Fast failure (seconds, not minutes)
+-  Extensible system for future issues
 
 **Result**: Installation is now **failure-proof** for the Kuzu 0.11+ compatibility issue.
 
@@ -419,7 +419,7 @@ def run_preflight_checks(root_dir):
 **Document Version**: 1.0
 **Last Updated**: 2025-11-28
 **Author**: IBM Bob (Senior Technical Architect)
-**Status**: ✅ PRODUCTION READY
+**Status**:  PRODUCTION READY
 
 ---
 

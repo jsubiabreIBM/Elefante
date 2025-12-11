@@ -21,7 +21,7 @@
 **Fix**: Hide sessions by default, let memories float freely connected to entities/concepts
 
 ### Issue 3: Missing Semantic Edges
-**Current**: Only structural links (Session→Memory, Memory→Entity)
+**Current**: Only structural links (Session->Memory, Memory->Entity)
 **Impact**: No visualization of "coherence" - which ideas relate to each other
 **Fix**: Compute vector similarity, draw edges for cosine > 0.8
 
@@ -227,7 +227,7 @@ const [selectedNode, setSelectedNode] = useState<Node | null>(null);
                  transform transition-transform ${selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
   {selectedNode && (
     <div className="p-6">
-      <button onClick={() => setSelectedNode(null)} className="float-right">✕</button>
+      <button onClick={() => setSelectedNode(null)} className="float-right"></button>
       <h2 className="text-xl font-bold mb-4">{selectedNode.label}</h2>
       <div className="space-y-2 text-sm">
         <div><strong>Type:</strong> {selectedNode.type}</div>
@@ -295,7 +295,7 @@ const visibleNodes = nodes.filter(n => visibleTypes[n.type]);
 ## Implementation Order
 
 ### Phase 1: Backend (Python)
-1. ✅ Add `summary` field to `MemoryMetadata` (already exists)
+1.  Add `summary` field to `MemoryMetadata` (already exists)
 2. Add LLM title generation in `orchestrator.add_memory()`
 3. Implement `_compute_similarity_edges()` in `graph_service.py`
 4. Modify `get_graph_data()` to fetch embeddings and compute semantic edges

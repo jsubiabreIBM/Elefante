@@ -1,7 +1,7 @@
 # Archived Documentation
 
-**Status:** Reorganized 2025-12-06  
-**Policy:** Preserve historical records, session logs, version changelogs
+**Status:** Updated 2025-12-11  
+**Policy:** Preserve historical records, session logs, superseded documents
 
 ---
 
@@ -9,9 +9,8 @@
 
 ```
 archive/
-├── historical/     # Session logs, completed task lists
+├── historical/     # Session logs, completed task lists, superseded docs
 ├── releases/       # Version changelog notes
-└── raw_logs/       # Raw installation logs (forensic evidence)
 ```
 
 ---
@@ -23,17 +22,20 @@ archive/
 |------|---------|
 | `first-install-walkthrough.md` | Original M4 Silicon installation session (2025-11-27) |
 | `2025-11-27-implementation-log.md` | Technical implementation details from first setup |
+| `2025-12-06-implementation-log.md` | Implementation log from December 2025 |
 | `task-roadmap-completed.md` | Historical checkbox list of completed tasks |
+| `elefante-session-log.md` | Session log from early development |
+| `documentation-gaps-resolved-2025-12-10.md` | Documentation gap analysis (resolved) |
+| `pre-action-checkpoint-2025-12-05.md` | Pre-action protocol (consolidated into pitfall-index.md) |
+| `install-escape-2025-12-11/` | Installation script archive |
+| `schema-v2-archive/` | Memory schema v2 historical docs |
 
 ### releases/
 | File | Purpose |
 |------|---------|
 | `dashboard-v27-changelog.md` | Dashboard v27 semantic topology upgrade notes |
-
-### raw_logs/
-| File | Purpose |
-|------|---------|
-| `install.log` | Original pip installation output (forensic evidence) |
+| `v30-legend-implementation.md` | v30 legend implementation notes |
+| `RELEASES-consolidated-2025-12-11.md` | Original RELEASES.md (consolidated into CHANGELOG.md) |
 
 ---
 
@@ -52,4 +54,4 @@ archive/
 
 ---
 
-**Last Updated**: 2025-12-06
+**Last Updated**: 2025-12-11

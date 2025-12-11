@@ -8,7 +8,7 @@
 
 ---
 
-## 🚨 CRITICAL LAWS (Extracted from Pain)
+##  CRITICAL LAWS (Extracted from Pain)
 
 | #   | Law                                                                            | Violation Cost       |
 | --- | ------------------------------------------------------------------------------ | -------------------- |
@@ -41,7 +41,7 @@
 **Date:** 2025-11-28  
 **Duration:** 45 minutes  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -65,7 +65,7 @@ Old directory-based database incompatible with new Kuzu version. The `config.py`
 
 # graph_store.py - Added buffer parsing:
 def _parse_buffer_size(self):
-    """Handle '512MB' string → bytes conversion"""
+    """Handle '512MB' string -> bytes conversion"""
 ```
 
 ### Why This Took So Long
@@ -85,7 +85,7 @@ def _parse_buffer_size(self):
 **Date:** 2025-11-28  
 **Duration:** 30 minutes  
 **Severity:** HIGH  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -108,10 +108,10 @@ Frontend reading wrong API response fields:
 }
 
 // Frontend was reading:
-stats.total_memories; // ❌ undefined
+stats.total_memories; //  undefined
 
 // Should read:
-stats.vector_store.total_memories; // ✅
+stats.vector_store.total_memories; // 
 ```
 
 ### Solution
@@ -135,7 +135,7 @@ Updated `App.tsx` line 36 to read nested fields correctly.
 **Date:** 2025-11-28  
 **Duration:** 40 minutes  
 **Severity:** MEDIUM  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -175,7 +175,7 @@ Canvas only showed labels on hover, not by default. Technical implementation wor
 **Date:** 2025-12-05  
 **Duration:** 2 hours  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -227,7 +227,7 @@ results = collection.get(include=["metadatas", "documents"])
 **Date:** 2025-12-05  
 **Duration:** 45 minutes  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -281,7 +281,7 @@ async def get_graph():
 **Date:** 2025-12-07  
 **Duration:** 8+ hours across multiple sessions  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -290,7 +290,7 @@ Dashboard showed "FACT • General" and "5/10" importance for ALL nodes despite 
 ### Symptom
 
 ```
-User clicks on multiple nodes → All show:
+User clicks on multiple nodes -> All show:
 - Layer: WORLD (blue color only)
 - Sublayer: fact
 - Importance: 5/10
@@ -308,10 +308,10 @@ Despite ChromaDB containing:
 
 | #   | Location                            | Issue                                               | Hidden By                     |
 | --- | ----------------------------------- | --------------------------------------------------- | ----------------------------- |
-| 1   | `classifier.py`                     | Only 5 regex patterns → 90% defaulted to world/fact | "Migration succeeded" message |
+| 1   | `classifier.py`                     | Only 5 regex patterns -> 90% defaulted to world/fact | "Migration succeeded" message |
 | 2   | `VectorStore.add_memory()`          | Missing `layer`/`sublayer` in metadata dict         | Data never saved              |
 | 3   | `VectorStore._reconstruct_memory()` | Missing `layer`/`sublayer` in reconstruction        | Even if saved, not read back  |
-| 4   | MCP Server (12h running)            | Cached old code → migration used unfixed code       | Tool reported success         |
+| 4   | MCP Server (12h running)            | Cached old code -> migration used unfixed code       | Tool reported success         |
 | 5   | `GraphCanvas.tsx` colors            | Read `n.full_data.props` not `n.properties`         | Frontend path mismatch        |
 | 6   | `GraphCanvas.tsx` sidebar           | Same path mismatch in different code location       | Same bug, different place     |
 
@@ -358,7 +358,7 @@ const getProp = (key: string, fallback: any) => {
 
 ### Lesson
 
-> **Data flows through 8 layers: Classifier → add_memory → ChromaDB → reconstruct → Snapshot → API → Frontend → Sidebar. Verify at EACH layer, not just endpoints.**
+> **Data flows through 8 layers: Classifier -> add_memory -> ChromaDB -> reconstruct -> Snapshot -> API -> Frontend -> Sidebar. Verify at EACH layer, not just endpoints.**
 
 ### Prevention Checklist
 
@@ -384,7 +384,7 @@ grep -r "full_data.props" src/dashboard/ui/
 
 | What I Did                       | What I Should Do                             |
 | -------------------------------- | -------------------------------------------- |
-| Tested API endpoint in isolation | Test complete flow: API → Frontend → Browser |
+| Tested API endpoint in isolation | Test complete flow: API -> Frontend -> Browser |
 | Assumed API working = UI working | Verify actual user-facing behavior           |
 
 ### Pattern 2: Fixing Wrong Files
@@ -432,11 +432,11 @@ Write-Host "API nodes: $($response.nodes.Count)"
 
 ### After Any Dashboard Changes
 
-1. ✅ Run `python scripts/update_dashboard_data.py`
-2. ✅ Restart server: `python -m src.dashboard.server`
-3. ✅ Hard refresh browser: `Ctrl+Shift+R`
-4. ✅ Verify stats panel shows correct numbers
-5. ✅ Verify graph shows ALL nodes with labels
+1.  Run `python scripts/update_dashboard_data.py`
+2.  Restart server: `python -m src.dashboard.server`
+3.  Hard refresh browser: `Ctrl+Shift+R`
+4.  Verify stats panel shows correct numbers
+5.  Verify graph shows ALL nodes with labels
 
 ### Verification Checklist
 
@@ -460,7 +460,7 @@ Write-Host "API nodes: $($response.nodes.Count)"
 **Date:** YYYY-MM-DD  
 **Duration:** X hours/minutes  
 **Severity:** LOW | MEDIUM | HIGH | CRITICAL  
-**Status:** 🔴 OPEN | 🟡 IN PROGRESS | ✅ FIXED | ⚠️ DOCUMENTED
+**Status:**  OPEN |  IN PROGRESS |  FIXED |  DOCUMENTED
 
 ### Problem
 

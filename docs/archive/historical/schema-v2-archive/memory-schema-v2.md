@@ -10,7 +10,7 @@
 ## Executive Summary
 
 This document specifies the enhanced memory schema for Elefante, designed to support a comprehensive "second brain" system with:
-- **3-level taxonomy** (domain → category → type)
+- **3-level taxonomy** (domain -> category -> type)
 - **Automatic relationship detection** (LLM-powered)
 - **Confidence tracking** (verification & reliability)
 - **Temporal intelligence** (access patterns, decay, reinforcement)
@@ -43,8 +43,8 @@ created_by: str                   # "user" | "agent" | "system"
 ```
 
 **Storage**: 
-- `content` + `embedding` → ChromaDB (vector search)
-- `id` → Kuzu (graph node)
+- `content` + `embedding` -> ChromaDB (vector search)
+- `id` -> Kuzu (graph node)
 
 ---
 
@@ -464,7 +464,7 @@ If LLM unavailable:
 
 ---
 
-## Migration Strategy (V1 → V2)
+## Migration Strategy (V1 -> V2)
 
 ### Existing 43 Memories
 

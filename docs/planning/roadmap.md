@@ -5,7 +5,7 @@
 
 ---
 
-## 🚨 CRITICAL: Production Testing Findings (2025-12-10)
+##  CRITICAL: Production Testing Findings (2025-12-10)
 
 **Real-world testing revealed fundamental design flaws that MUST be addressed before v1.1.0:**
 
@@ -23,14 +23,14 @@
 
 ## Current State (v1.0.0)
 
-### ✅ Implemented Features
+###  Implemented Features
 - **Cognitive Memory Model** - LLM extracts emotional context, intent, entities, relationships
 - **Temporal Decay** - Memories decay over time, reinforced on access
 - **Dual Storage** - ChromaDB (vectors) + Kuzu (graph)
-- **MCP Server** - 11 tools for IDE integration
+- **MCP Server** - 14 tools for IDE integration
 - **Dashboard** - React/Vite visualization (functional but needs UX work)
 
-### 🟡 Partial Implementation
+###  Partial Implementation
 - **Memory Schema V2** - Schema defined, but 3-level taxonomy (domain/category) defaults only
   - `domain` always defaults to `REFERENCE`
   - `category` always defaults to `general`
@@ -55,7 +55,7 @@
 
 **Technical Approach**:
 - Enhance LLM prompts for deeper analysis
-- Add multi-pass extraction (entities → relationships → implications)
+- Add multi-pass extraction (entities -> relationships -> implications)
 - Implement confidence scoring for extracted information
 
 #### 2. Smart UPDATE (Merge Logic)
@@ -107,7 +107,7 @@
 ## Future Phases
 
 ### v1.2.0 - Smart Relationships
-- Automatic relationship inference (if A→B and B→C, suggest A→C)
+- Automatic relationship inference (if A->B and B->C, suggest A->C)
 - Knowledge clustering
 - Contradiction detection
 

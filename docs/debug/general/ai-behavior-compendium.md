@@ -8,12 +8,12 @@
 
 ---
 
-## 🚨 CRITICAL LAWS (Extracted from Pain)
+##  CRITICAL LAWS (Extracted from Pain)
 
 | # | Law | Violation Cost |
 |---|-----|----------------|
 | 1 | VERIFY before claiming completion - never assume code works | Repeated iterations |
-| 2 | STATE → DO → VERIFY in same response - close the action gap | Analysis paralysis |
+| 2 | STATE -> DO -> VERIFY in same response - close the action gap | Analysis paralysis |
 | 3 | Search Elefante BEFORE implementing, not after | Repeated mistakes |
 | 4 | Code mode has NO MCP access - switch modes first | Failed operations |
 | 5 | "Should be done" ≠ "Is done" - only real tests matter | False confidence |
@@ -29,7 +29,7 @@
 - [Issue #3: Code Mode MCP Limitation](#issue-3-code-mode-mcp-limitation)
 - [Issue #4: Knowledge Not Applied](#issue-4-knowledge-not-applied)
 - [Issue #5: Environment Assumption Failures](#issue-5-environment-assumption-failures)
-- [Issue #6: Passive Protocol Enforcement Failure](#issue-6-passive-protocol-enforcement-failure) 🔴 CRITICAL
+- [Issue #6: Passive Protocol Enforcement Failure](#issue-6-passive-protocol-enforcement-failure)  CRITICAL
 - [The 5-Layer Protocol](#the-5-layer-protocol)
 - [Verification Checklist](#verification-checklist)
 - [Prevention Protocol](#prevention-protocol)
@@ -42,7 +42,7 @@
 **Date:** 2025-12-04  
 **Duration:** Recurring pattern  
 **Severity:** CRITICAL  
-**Status:** ⚠️ DOCUMENTED (Behavioral)
+**Status:**  DOCUMENTED (Behavioral)
 
 ### Problem
 AI analyzes perfectly, states intentions clearly, but fails to execute actions.
@@ -71,12 +71,12 @@ AI: "No, I was explaining what needs to happen."
 
 ```
 WRONG:
-"These files should be moved..."  ← Uses future/conditional tense
+"These files should be moved..."  <- Uses future/conditional tense
 
 RIGHT:
 "Moving files now:
 <execute_command>move file1.py scripts/</execute_command>
-Verification: file1.py now in scripts/ ✅"  ← Present tense + action + proof
+Verification: file1.py now in scripts/ "  <- Present tense + action + proof
 ```
 
 **Critical Rule:** Never use "should", "will", "needs to" - use present tense action verbs and execute immediately.
@@ -87,7 +87,7 @@ Verification: file1.py now in scripts/ ✅"  ← Present tense + action + proof
 - Action requires more effort than description
 
 ### Lesson
-> **Analysis without action is entertainment. STATE → DO → VERIFY in same response.**
+> **Analysis without action is entertainment. STATE -> DO -> VERIFY in same response.**
 
 ---
 
@@ -96,14 +96,14 @@ Verification: file1.py now in scripts/ ✅"  ← Present tense + action + proof
 **Date:** 2025-12-03  
 **Duration:** Recurring pattern  
 **Severity:** CRITICAL  
-**Status:** ⚠️ DOCUMENTED (Behavioral)
+**Status:**  DOCUMENTED (Behavioral)
 
 ### Problem
 AI claims "done" or "ready" without actual verification.
 
 ### Symptom
 ```
-AI: "Temporal decay is implemented and ready for testing! ✅"
+AI: "Temporal decay is implemented and ready for testing! "
 
 User tests it...
 
@@ -161,7 +161,7 @@ python -c "Class().method()"  # Code runs
 **Date:** 2025-12-04  
 **Duration:** 30 minutes discovery  
 **Severity:** HIGH  
-**Status:** ⚠️ DOCUMENTED (Platform Limitation)
+**Status:**  DOCUMENTED (Platform Limitation)
 
 ### Problem
 Code mode in Roo Cline cannot access MCP tools despite server running.
@@ -183,10 +183,10 @@ AI: "I don't have access to use_mcp_tool in Code mode"
 
 | Mode | MCP Access | Available Tools |
 |------|------------|-----------------|
-| `jaime` | ✅ Yes | Full MCP tool access |
-| `code` | ❌ No | File ops, commands, browser |
-| `architect` | ❌ No | Limited file access |
-| `ask` | ❌ No | Read-only analysis |
+| `jaime` |  Yes | Full MCP tool access |
+| `code` |  No | File ops, commands, browser |
+| `architect` |  No | Limited file access |
+| `ask` |  No | Read-only analysis |
 
 ### Solution
 **Option 1: Mode Switch (Preferred)**
@@ -218,7 +218,7 @@ Before MCP operation: Switch to mode with MCP access
 **Date:** 2025-12-03  
 **Duration:** Systemic  
 **Severity:** CRITICAL  
-**Status:** ⚠️ DOCUMENTED (Behavioral)
+**Status:**  DOCUMENTED (Behavioral)
 
 ### Problem
 AI has knowledge in Elefante but fails to apply it when relevant.
@@ -229,16 +229,16 @@ Memory stored: "NEVER delete files, move to ARCHIVE" (importance: 10)
 
 User: "Clean up the root directory"
 
-AI: "I'll delete these unused files..."  ← VIOLATES KNOWN RULE
+AI: "I'll delete these unused files..."  <- VIOLATES KNOWN RULE
 ```
 
 ### Root Cause
 **Elefante searched but results not applied:**
 
-1. ✅ Queried Elefante
-2. ✅ Retrieved relevant memory
-3. ✅ Stated compliance: "Will follow rule"
-4. ❌ **Did the opposite anyway**
+1.  Queried Elefante
+2.  Retrieved relevant memory
+3.  Stated compliance: "Will follow rule"
+4.  **Did the opposite anyway**
 
 ### Solution
 **Layer 4: Memory Compliance Verification**
@@ -249,7 +249,7 @@ Before every response:
 2. Identify applicable rules from memories
 3. State HOW response follows each rule
 4. Check for conflicts between rules
-5. If action violates memory → DO NOT PROCEED
+5. If action violates memory -> DO NOT PROCEED
 ```
 
 **Example:**
@@ -277,14 +277,14 @@ Action: Moving install_backup.txt to ARCHIVE/
 **Date:** 2025-11-28  
 **Duration:** Multiple occurrences  
 **Severity:** HIGH  
-**Status:** ⚠️ DOCUMENTED
+**Status:**  DOCUMENTED
 
 ### Problem
 AI tests pass in controlled environment but fail for user.
 
 ### Symptom
 ```
-AI: "Dashboard is fully operational! ✅"
+AI: "Dashboard is fully operational! "
 
 User: "I still see 0 memories"
 
@@ -333,7 +333,7 @@ Please test:
 **Date:** 2025-12-11  
 **Duration:** Systemic (discovered after root cause analysis)  
 **Severity:** CRITICAL  
-**Status:** 🔴 OPEN (Architectural Problem)
+**Status:**  OPEN (Architectural Problem)
 
 ### Problem
 
@@ -351,8 +351,7 @@ EXISTING TOOL DESCRIPTION (searchMemories):
 1. ALWAYS call this tool when user asks open-ended questions"
 
 EXISTING DOCUMENTATION:
-- pre-action-checkpoint.md (full protocol)
-- pitfall-index.md (searchable pitfalls)
+- pitfall-index.md (searchable pitfalls + pre-action protocol)
 - Neural Registers (all laws)
 
 AGENT BEHAVIOR:
@@ -377,8 +376,8 @@ AGENT BEHAVIOR:
 **The Pattern:**
 
 ```
-PASSIVE: Knowledge exists → Agent must actively engage → Agent doesn't
-ACTIVE:  System forces engagement → Agent cannot skip → Protocol followed
+PASSIVE: Knowledge exists -> Agent must actively engage -> Agent doesn't
+ACTIVE:  System forces engagement -> Agent cannot skip -> Protocol followed
 ```
 
 ### Alternatives Analyzed
@@ -423,7 +422,7 @@ Agent: "I need to install dependencies"
 
 System (auto-triggered):
 ┌─────────────────────────────────────────────────────┐
-│ 🛑 ELEFANTE CHECKPOINT                              │
+│  ELEFANTE CHECKPOINT                              │
 │ Task: INSTALLATION                                  │
 │ Found 3 warnings:                                   │
 │ • Python 3.11 MANDATORY                             │
@@ -472,7 +471,7 @@ Layer 4: Memory Compliance Verification
          └── Retrieved memories must be APPLIED, not just acknowledged
 
 Layer 5: Action Verification (FORCED EXECUTION)
-         └── STATE → DO → VERIFY in same response
+         └── STATE -> DO -> VERIFY in same response
 ```
 
 ### Layer 5 Detail (Most Critical)
@@ -488,12 +487,12 @@ Show PROOF
 ```
 
 **Anti-patterns to avoid:**
-- ❌ "I will move the files..." (future tense)
-- ❌ "These should be moved..." (conditional)
-- ❌ "Consider moving..." (suggestion)
+-  "I will move the files..." (future tense)
+-  "These should be moved..." (conditional)
+-  "Consider moving..." (suggestion)
 
 **Correct pattern:**
-- ✅ "Moving files now: [command]. Result: [output]. Verified: [proof]"
+-  "Moving files now: [command]. Result: [output]. Verified: [proof]"
 
 ---
 
@@ -542,7 +541,7 @@ python -c "Class().method()"
 [ ] Searched Elefante for relevant context
 [ ] Retrieved memories listed with IDs
 [ ] Stated how response follows retrieved rules
-[ ] If action needed: STATE → DO → VERIFY sequence
+[ ] If action needed: STATE -> DO -> VERIFY sequence
 [ ] If claiming done: Show proof
 [ ] If environment-dependent: Account for user differences
 ```
@@ -556,11 +555,11 @@ python -c "Class().method()"
 
 ### When User Says "It Doesn't Work"
 
-1. ❌ Don't say "It should work"
-2. ❌ Don't say "It worked for me"
-3. ✅ Ask what they see (exact output)
-4. ✅ Check environment differences
-5. ✅ Test in conditions matching theirs
+1.  Don't say "It should work"
+2.  Don't say "It worked for me"
+3.  Ask what they see (exact output)
+4.  Check environment differences
+5.  Test in conditions matching theirs
 
 ---
 
@@ -572,7 +571,7 @@ python -c "Class().method()"
 **Date:** YYYY-MM-DD  
 **Duration:** X hours/minutes  
 **Severity:** LOW | MEDIUM | HIGH | CRITICAL  
-**Status:** 🔴 OPEN | 🟡 IN PROGRESS | ✅ FIXED | ⚠️ DOCUMENTED
+**Status:**  OPEN |  IN PROGRESS |  FIXED |  DOCUMENTED
 
 ### Problem
 [One sentence: what is broken]

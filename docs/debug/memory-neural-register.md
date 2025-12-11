@@ -1,4 +1,4 @@
-# 🧠 MEMORY NEURAL REGISTER
+#  MEMORY NEURAL REGISTER
 
 ## System Immunity: Memory System Failure Laws
 
@@ -8,19 +8,19 @@
 
 ---
 
-## 🚨 CRITICAL DESIGN FLAWS (Open Issues)
+##  CRITICAL DESIGN FLAWS (Open Issues)
 
 | # | Flaw | Impact | Status |
 |---|------|--------|--------|
-| 1 | **Response Bloat**: searchMemories returns 500+ tokens per memory (90% nulls) | Context window waste | 🔴 OPEN |
-| 2 | **Low Similarity**: Exact topic matches score 0.37-0.39 (should be 0.7+) | Poor retrieval | 🔴 OPEN |
-| 3 | **No Action Guidance**: Raw JSON dump, no summary or suggested actions | Integration fail | 🔴 OPEN |
+| 1 | **Response Bloat**: searchMemories returns 500+ tokens per memory (90% nulls) | Context window waste |  OPEN |
+| 2 | **Low Similarity**: Exact topic matches score 0.37-0.39 (should be 0.7+) | Poor retrieval |  OPEN |
+| 3 | **No Action Guidance**: Raw JSON dump, no summary or suggested actions | Integration fail |  OPEN |
 
 **See**: `docs/debug/memory/memory-compendium.md` Issues #7, #8, #9 for full analysis.
 
 ---
 
-## 📜 THE LAWS (Immutable Truths)
+##  THE LAWS (Immutable Truths)
 
 ### LAW #1: Export Blockade Bypass
 
@@ -31,7 +31,7 @@
 **Problem**:
 
 ```python
-# ❌ Wrong: API filters by similarity
+#  Wrong: API filters by similarity
 results = collection.query(
     query_texts=["export all"],
     n_results=1000
@@ -42,7 +42,7 @@ results = collection.query(
 **Solution**:
 
 ```python
-# ✅ Correct: Direct collection access
+#  Correct: Direct collection access
 all_data = collection._collection.get(
     include=["documents", "metadatas", "embeddings"]
 )
@@ -183,7 +183,7 @@ results = {
 
 ---
 
-## 🔬 FAILURE PATTERNS (Documented Cases)
+##  FAILURE PATTERNS (Documented Cases)
 
 ### Pattern #1: Incomplete Export (2025-12-04)
 
@@ -219,7 +219,7 @@ results = {
 **Root Cause**: `VectorStore.add_memory()` and `_reconstruct_memory()` both missing layer/sublayer fields  
 **Impact**: 8+ hours debugging (field must be mapped in BOTH write AND read)  
 **Resolution**: Added layer/sublayer to metadata dict construction AND reconstruction  
-**Prevention**: Test roundtrip: add memory → read back → verify all fields preserved
+**Prevention**: Test roundtrip: add memory -> read back -> verify all fields preserved
 
 ### Pattern #5: Semantic Redundancy (2025-12-07)
 
@@ -227,12 +227,12 @@ results = {
 **Symptom**: Dashboard shows 6+ nodes for identical concept (e.g., `Self-Pref-Absolute`)  
 **Root Cause**: Ingestion "Similarity Check" (0.85 threshold) allows near-duplicates; Visual inspection reveals them  
 **Impact**: Dashboard clutter, diluted importance  
-**Resolution**: Implemented View-Level Deduplication (Group by Semantic Title → Keep Best Rule)  
+**Resolution**: Implemented View-Level Deduplication (Group by Semantic Title -> Keep Best Rule)  
 **Prevention**: Harden Ingestion Pipeline with stricter Logic-Level Deduplication (planned)
 
 ---
 
-## 🛡️ SAFEGUARDS (Active Protections)
+##  SAFEGUARDS (Active Protections)
 
 ### Safeguard #1: Export Verification
 
@@ -254,7 +254,7 @@ results = {
 
 ---
 
-## 📊 METRICS
+##  METRICS
 
 ### Export Completeness
 
@@ -275,7 +275,7 @@ results = {
 
 ---
 
-## 🎯 COGNITIVE ARCHITECTURE PRINCIPLES
+##  COGNITIVE ARCHITECTURE PRINCIPLES
 
 ### Principle #1: Dual-Process Memory
 
@@ -308,14 +308,14 @@ results = {
 
 ---
 
-## 🔗 RELATED REGISTERS
+##  RELATED REGISTERS
 
 - **MCP_CODE_NEURAL_REGISTER.md**: Action verification (Layer 5), error handling
 - **DATABASE_NEURAL_REGISTER.md**: ChromaDB architecture, Kuzu integration
 
 ---
 
-## 📚 SOURCE DOCUMENTS
+##  SOURCE DOCUMENTS
 
 - `docs/debug/memory/memory_retrieval_investigation.md` (export blockade discovery)
 - `docs/technical/temporal-memory-decay.md` (decay algorithm design)
@@ -326,6 +326,6 @@ results = {
 
 ---
 
-**Neural Register Status**: ✅ ACTIVE  
+**Neural Register Status**:  ACTIVE  
 **Enforcement**: Export verification, deduplication analysis  
 **Last Validation**: 2025-12-05

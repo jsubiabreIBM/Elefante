@@ -7,7 +7,7 @@
 
 ## v1.0.0 - 2025-12-06 (Production Baseline)
 
-**Status:** ✅ FUNCTIONAL  
+**Status:**  FUNCTIONAL  
 **Tag:** `v1.0.0`
 
 ### What This Version Is

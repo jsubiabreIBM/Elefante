@@ -8,7 +8,7 @@
 
 ---
 
-## 🚨 CRITICAL LAWS (Extracted from Pain)
+##  CRITICAL LAWS (Extracted from Pain)
 
 | # | Law | Violation Cost |
 |---|-----|----------------|
@@ -37,7 +37,7 @@
 **Date:** 2025-11-27  
 **Duration:** 12 minutes (THE nightmare)  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 Fresh installation fails with cryptic path error.
@@ -57,7 +57,7 @@ RuntimeError: Database path cannot be a directory: C:\Users\...\kuzu_db
 
 The `config.py` was pre-creating the directory:
 ```python
-KUZU_DIR.mkdir(exist_ok=True)  # ❌ BREAKS Kuzu 0.11.x
+KUZU_DIR.mkdir(exist_ok=True)  #  BREAKS Kuzu 0.11.x
 ```
 
 ### Solution
@@ -84,7 +84,7 @@ def _ensure_database_path(self):
 def check_kuzu_compatibility():
     kuzu_dir = Path("data/kuzu_db")
     if kuzu_dir.exists() and kuzu_dir.is_dir():
-        print("⚠️  KUZU COMPATIBILITY ISSUE DETECTED")
+        print("  KUZU COMPATIBILITY ISSUE DETECTED")
         response = input("Remove existing directory? (y/N): ")
         if response.lower() == 'y':
             shutil.rmtree(kuzu_dir)
@@ -106,7 +106,7 @@ def check_kuzu_compatibility():
 **Date:** 2025-11-27  
 **Duration:** 5 minutes  
 **Severity:** MEDIUM  
-**Status:** ✅ DOCUMENTED
+**Status:**  DOCUMENTED
 
 ### Problem
 Fresh clone fails with import errors.
@@ -148,7 +148,7 @@ install.bat  # Windows
 **Date:** 2025-11-27  
 **Duration:** 10 minutes  
 **Severity:** MEDIUM  
-**Status:** ⚠️ DOCUMENTED
+**Status:**  DOCUMENTED
 
 ### Problem
 System Python too old for some dependencies.
@@ -202,7 +202,7 @@ source .venv/bin/activate  # Linux/Mac
 **Date:** 2025-11-27  
 **Duration:** Part of Issue #1  
 **Severity:** HIGH  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 Configuration module creates directories that break Kuzu initialization.
@@ -216,7 +216,7 @@ Kuzu fails on first run even with clean install.
 # These lines ran on IMPORT:
 DATA_DIR.mkdir(exist_ok=True)
 CHROMA_DIR.mkdir(exist_ok=True)
-KUZU_DIR.mkdir(exist_ok=True)  # ❌ This breaks Kuzu 0.11.x
+KUZU_DIR.mkdir(exist_ok=True)  #  This breaks Kuzu 0.11.x
 ```
 
 ### Solution
@@ -311,11 +311,11 @@ python scripts/init_databases.py
 
 ### When Upgrading Libraries
 
-1. ✅ Read changelog for breaking changes
-2. ✅ Test in isolated environment first
-3. ✅ Backup existing data directories
-4. ✅ Check version constraints in `requirements.txt`
-5. ✅ Update documentation if behavior changes
+1.  Read changelog for breaking changes
+2.  Test in isolated environment first
+3.  Backup existing data directories
+4.  Check version constraints in `requirements.txt`
+5.  Update documentation if behavior changes
 
 ---
 
@@ -343,7 +343,7 @@ python scripts/install.py
 
 ### Verification
 ```bash
-python -c "from src.core.orchestrator import MemoryOrchestrator; print('✅ Import successful')"
+python -c "from src.core.orchestrator import MemoryOrchestrator; print(' Import successful')"
 python scripts/health_check.py
 ```
 
@@ -354,7 +354,7 @@ python scripts/health_check.py
 **Date:** 2025-12-11  
 **Duration:** ~2 hours  
 **Severity:** HIGH  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 
@@ -428,7 +428,7 @@ See `docs/archive/historical/install-escape-2025-12-11/` for the 6 scripts that 
 **Date:** YYYY-MM-DD  
 **Duration:** X hours/minutes  
 **Severity:** LOW | MEDIUM | HIGH | CRITICAL  
-**Status:** 🔴 OPEN | 🟡 IN PROGRESS | ✅ FIXED | ⚠️ DOCUMENTED
+**Status:**  OPEN |  IN PROGRESS |  FIXED |  DOCUMENTED
 
 ### Problem
 [One sentence: what is broken]

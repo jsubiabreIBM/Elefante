@@ -22,11 +22,11 @@ metadata = {
 ```
 
 **Problems:**
-- ❌ Can't search by category (it's buried in `custom`)
-- ❌ Can't filter by domain (no domain field exists)
-- ❌ Can't track confidence (no confidence field)
-- ❌ Can't measure relevance over time (no decay tracking)
-- ❌ Mixed user preferences with technical metadata
+-  Can't search by category (it's buried in `custom`)
+-  Can't filter by domain (no domain field exists)
+-  Can't track confidence (no confidence field)
+-  Can't measure relevance over time (no decay tracking)
+-  Mixed user preferences with technical metadata
 
 ---
 
@@ -156,37 +156,37 @@ keywords: ["approval", "testing", "verification"]
 ## Why This Matters
 
 ### Searchability
-**V1:** "Find all workflow rules" → Can't do it (buried in `custom`)  
-**V2:** "Find all workflow rules" → `domain="workflow" AND category="quality_assurance"`
+**V1:** "Find all workflow rules" -> Can't do it (buried in `custom`)  
+**V2:** "Find all workflow rules" -> `domain="workflow" AND category="quality_assurance"`
 
 ### Filtering
-**V1:** "Show high-confidence decisions" → Can't do it (no confidence field)  
-**V2:** "Show high-confidence decisions" → `memory_type="decision" AND confidence > 0.9`
+**V1:** "Show high-confidence decisions" -> Can't do it (no confidence field)  
+**V2:** "Show high-confidence decisions" -> `memory_type="decision" AND confidence > 0.9`
 
 ### Temporal Intelligence
-**V1:** "What's still relevant?" → Can't tell (no decay tracking)  
-**V2:** "What's still relevant?" → Calculate: `importance * (1 - decay_rate * age)`
+**V1:** "What's still relevant?" -> Can't tell (no decay tracking)  
+**V2:** "What's still relevant?" -> Calculate: `importance * (1 - decay_rate * age)`
 
 ### User Preferences
-**V1:** "What are my communication preferences?" → Search all memories, hope for the best  
-**V2:** "What are my communication preferences?" → `domain="user_profile" AND category="preferences"`
+**V1:** "What are my communication preferences?" -> Search all memories, hope for the best  
+**V2:** "What are my communication preferences?" -> `domain="user_profile" AND category="preferences"`
 
 ---
 
 ## Current Status
 
-### ✅ Completed:
+###  Completed:
 1. V2 schema designed and documented
 2. [`memory.py`](Elefante/src/models/memory.py) updated with V2 models
 3. [`vector_store.py`](Elefante/src/core/vector_store.py) updated to store V2 metadata
 4. 21/21 validation tests passed
 
-### ⚠️ In Progress:
+###  In Progress:
 1. Update [`orchestrator.py`](Elefante/src/core/orchestrator.py) - remove `custom` dict usage (line 164)
 2. Update [`graph_store.py`](Elefante/src/core/graph_store.py) - add V2 node types
 3. Migrate 43 existing V1 memories to V2 format
 
-### 🎯 Goal:
+###  Goal:
 Store your operational rule with full V2 structure so it's:
 - Easily searchable
 - Never forgotten (decay_rate=0)

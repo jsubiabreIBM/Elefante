@@ -4,47 +4,47 @@
 
 ---
 
-## 🎯 The Golden Rule
+##  The Golden Rule
 
 **Kuzu uses SQL for schema, Cypher for operations. Property names must be valid in BOTH.**
 
 ---
 
-## ⚠️ Reserved Words to NEVER Use
+##  Reserved Words to NEVER Use
 
 These words are reserved in Cypher and will cause runtime errors:
 
 ### Critical (Confirmed to Break)
-- ❌ `properties` - **MOST DANGEROUS** - Valid in SQL schema, breaks in Cypher CREATE
-- ❌ `type` - Use `entity_type`, `node_type`, or `item_type`
-- ❌ `label` - Use `entity_label` or `tag`
-- ❌ `id` - Use `entity_id` or `identifier` (though `id` often works, be cautious)
+-  `properties` - **MOST DANGEROUS** - Valid in SQL schema, breaks in Cypher CREATE
+-  `type` - Use `entity_type`, `node_type`, or `item_type`
+-  `label` - Use `entity_label` or `tag`
+-  `id` - Use `entity_id` or `identifier` (though `id` often works, be cautious)
 
 ### High Risk (Avoid)
-- ❌ `node`
-- ❌ `relationship`
-- ❌ `path`
-- ❌ `match`
-- ❌ `create`
-- ❌ `merge`
-- ❌ `delete`
-- ❌ `set`
-- ❌ `remove`
-- ❌ `return`
-- ❌ `where`
-- ❌ `with`
-- ❌ `union`
-- ❌ `optional`
-- ❌ `limit`
-- ❌ `skip`
-- ❌ `order`
-- ❌ `distinct`
+-  `node`
+-  `relationship`
+-  `path`
+-  `match`
+-  `create`
+-  `merge`
+-  `delete`
+-  `set`
+-  `remove`
+-  `return`
+-  `where`
+-  `with`
+-  `union`
+-  `optional`
+-  `limit`
+-  `skip`
+-  `order`
+-  `distinct`
 
 ---
 
-## ✅ Safe Alternatives
+##  Safe Alternatives
 
-| ❌ Don't Use | ✅ Use Instead |
+|  Don't Use |  Use Instead |
 |-------------|---------------|
 | `properties` | `props`, `metadata`, `attributes`, `data` |
 | `type` | `entity_type`, `node_type`, `category` |
@@ -56,12 +56,12 @@ These words are reserved in Cypher and will cause runtime errors:
 
 ---
 
-## 📋 Schema Definition Checklist
+##  Schema Definition Checklist
 
 When adding new properties to Entity or other node tables:
 
 ```python
-# ✅ GOOD
+#  GOOD
 CREATE NODE TABLE Entity(
     id STRING,
     name STRING,
@@ -71,7 +71,7 @@ CREATE NODE TABLE Entity(
     PRIMARY KEY(id)
 )
 
-# ❌ BAD
+#  BAD
 CREATE NODE TABLE Entity(
     id STRING,
     name STRING,
@@ -84,7 +84,7 @@ CREATE NODE TABLE Entity(
 
 ---
 
-## 🔧 Testing New Properties
+##  Testing New Properties
 
 Before deploying schema changes:
 
@@ -116,7 +116,7 @@ conn.execute("""
 
 ---
 
-## 🎓 Understanding Kuzu's Hybrid Nature
+##  Understanding Kuzu's Hybrid Nature
 
 ### Schema Layer (SQL DDL)
 ```sql
@@ -142,7 +142,7 @@ DELETE e
 
 ---
 
-## 🚨 Common Errors and Solutions
+##  Common Errors and Solutions
 
 ### Error: "Cannot find property X for e"
 ```
@@ -166,16 +166,16 @@ Parser exception: Invalid input <INSERT>
 
 **Solution:** Use Cypher syntax:
 ```cypher
--- ❌ Don't use
+--  Don't use
 INSERT INTO Entity VALUES (...)
 
--- ✅ Use instead
+--  Use instead
 CREATE (e:Entity {...})
 ```
 
 ---
 
-## 📖 Quick Reference
+##  Quick Reference
 
 ### Valid Operations
 
@@ -202,7 +202,7 @@ query = f"CREATE (e:Entity {{name: '{escape_string(user_input)}'}})"
 
 ---
 
-## 🔗 Related Documentation
+##  Related Documentation
 
 - [kuzu-reserved-words-issue.md](../debug/kuzu-reserved-words-issue.md) - Full analysis of the `properties` bug
 - [Kuzu Official Docs](https://kuzudb.com/docs/) - Official documentation
@@ -210,7 +210,7 @@ query = f"CREATE (e:Entity {{name: '{escape_string(user_input)}'}})"
 
 ---
 
-## ✨ Best Practices Summary
+##  Best Practices Summary
 
 1. **Never use Cypher reserved words as property names**
 2. **Test schema changes with actual data insertion**

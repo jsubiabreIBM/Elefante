@@ -8,7 +8,7 @@
 
 ---
 
-## 🧠 THE VISION ARTICULATED
+##  THE VISION ARTICULATED
 
 During this session, Jaime revealed the deeper purpose of Elefante:
 
@@ -27,7 +27,7 @@ During this session, Jaime revealed the deeper purpose of Elefante:
 
 ---
 
-## 🎯 WHAT WE BUILT: Dashboard v28 "Cognitive Mirror"
+##  WHAT WE BUILT: Dashboard v28 "Cognitive Mirror"
 
 ### The Concept
 Transform the dashboard from a "pretty graph visualization" into a **working memory surface** - a cognitive mirror that reflects the AI's accumulated understanding.
@@ -36,13 +36,13 @@ Transform the dashboard from a "pretty graph visualization" into a **working mem
 
 #### 1. Memory Type Legend (App.tsx)
 Visual key showing all 7 memory types with color codes and counts:
-- 🔵 Conversation (primary interactions)
-- 🟢 Fact (verified information)  
-- 🟣 Insight (derived understanding)
-- 🟡 Code (technical snippets)
-- 🟠 Decision (choices made)
-- 🔴 Task (action items)
-- ⚪ Note (general observations)
+-  Conversation (primary interactions)
+-  Fact (verified information)  
+-  Insight (derived understanding)
+-  Code (technical snippets)
+-  Decision (choices made)
+-  Task (action items)
+-  Note (general observations)
 
 #### 2. Importance Pulse Animation (GraphCanvas.tsx)
 Critical memories (importance ≥ 8) now pulse with glowing animation:
@@ -71,7 +71,7 @@ Expanded sidebar when clicking nodes shows:
 
 ---
 
-## 💥 THE META-FAILURE: A Teaching Moment
+##  THE META-FAILURE: A Teaching Moment
 
 ### What Happened
 I completed Dashboard v28, told Jaime "done!" but forgot the critical step: **tell user to hard refresh (Ctrl+Shift+R) to bypass browser cache**.
@@ -91,7 +91,7 @@ I had the knowledge. I didn't use it. This is EXACTLY what Elefante is designed 
 
 ---
 
-## 🛡️ THE SOLUTION: Pre-Action Checkpoint Protocol
+##  THE SOLUTION: Pre-Action Checkpoint Protocol
 
 ### Created: `docs/PRE_ACTION_CHECKPOINT.md`
 
@@ -120,7 +120,7 @@ Searchable format for all documented failures:
 
 ---
 
-## 📊 SYSTEM STATE
+##  SYSTEM STATE
 
 ### Memory Statistics
 - **ChromaDB:** 91 memories stored
@@ -143,7 +143,7 @@ Dashboard:   src/dashboard/ui/ (React + Vite)
 
 ---
 
-## 📝 FILES MODIFIED THIS SESSION
+##  FILES MODIFIED THIS SESSION
 
 ### `src/dashboard/ui/src/App.tsx`
 - Added v28 "Cognitive Mirror" banner
@@ -166,7 +166,7 @@ Dashboard:   src/dashboard/ui/ (React + Vite)
 
 ---
 
-## 🔮 THE PHILOSOPHICAL INSIGHT
+##  THE PHILOSOPHICAL INSIGHT
 
 Jaime articulated something profound about AI and memory:
 
@@ -181,7 +181,7 @@ This is why Elefante isn't about "search" - it's about **proactive context retri
 
 ---
 
-## ✅ COMPLETED THIS SESSION
+##  COMPLETED THIS SESSION
 
 - [x] Dashboard v28 "Cognitive Mirror" built and compiled
 - [x] Memory Type Legend with color codes
@@ -193,7 +193,7 @@ This is why Elefante isn't about "search" - it's about **proactive context retri
 - [x] ZLCTP handoff package generated
 - [x] CSV export of all 91 memories
 
-## ⏳ STILL PENDING
+##  STILL PENDING
 
 - [ ] **User must hard refresh browser (Ctrl+Shift+R) to see v28**
 - [ ] Git cleanup: stage changes, semantic commits
@@ -202,7 +202,7 @@ This is why Elefante isn't about "search" - it's about **proactive context retri
 
 ---
 
-## 🎭 THE IRONY
+##  THE IRONY
 
 The entire session was about building a "second brain" for AI agents.
 
@@ -216,7 +216,7 @@ The protocol became part of Elefante.
 
 ---
 
-## 💡 KEY QUOTES FROM THIS SESSION
+##  KEY QUOTES FROM THIS SESSION
 
 > "You have to LOOK IN THE MIRROR, not just build one."
 
@@ -228,7 +228,7 @@ The protocol became part of Elefante.
 
 ---
 
-## 🚀 HOW TO CONTINUE
+##  HOW TO CONTINUE
 
 ### For the Next AI Agent Session:
 
@@ -254,7 +254,7 @@ git push origin main
 
 ---
 
-## 📖 APPENDIX: The ZLCTP Package
+##  APPENDIX: The ZLCTP Package
 
 The **Zero-Loss Context Transfer Protocol** package was also generated this session, containing:
 - Session overview with timestamps

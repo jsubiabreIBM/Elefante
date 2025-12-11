@@ -55,7 +55,7 @@ Titles are the Primary Key for deduplication. They must follow the **SAQ Pattern
 
 ### Examples
 
-| Raw Content                      | ❌ Bad Title          | ✅ SAQ Title            |
+| Raw Content                      |  Bad Title          |  SAQ Title            |
 | :------------------------------- | :-------------------- | :---------------------- |
 | "I really prefer dark mode IDEs" | User-Pref-Dark        | `Self-Pref-DarkMode`    |
 | "The server listens on 0.0.0.0"  | Server-Config-Listens | `Server-Config-Binding` |
@@ -74,12 +74,12 @@ existing = vector_store.find_by_title(title)
 
 if existing:
     # REINFORCEMENT PATH
-    print(f"♻️ Reinforcing existing memory: {existing.id}")
+    print(f" Reinforcing existing memory: {existing.id}")
     orchestrator.update_access(existing.id)
     return existing.id
 else:
     # CREATION PATH
-    print(f"✨ Creating new memory: {title}")
+    print(f" Creating new memory: {title}")
     return vector_store.add(content, title, ...)
 ```
 

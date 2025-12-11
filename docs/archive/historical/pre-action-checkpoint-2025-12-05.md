@@ -1,4 +1,4 @@
-# 🛑 PRE-ACTION CHECKPOINT PROTOCOL
+#  PRE-ACTION CHECKPOINT PROTOCOL
 
 > **Purpose:** Force AI agents to consult Elefante BEFORE completing tasks  
 > **Status:** MANDATORY - Built from repeated failures  
@@ -20,7 +20,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  🛑 PRE-ACTION CHECKPOINT                               │
+│   PRE-ACTION CHECKPOINT                               │
 │                                                         │
 │  BEFORE saying "Done" or "Complete":                    │
 │                                                         │
@@ -37,7 +37,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 ## TASK-SPECIFIC CHECKPOINTS
 
-### 🎨 DASHBOARD / FRONTEND TASKS
+###  DASHBOARD / FRONTEND TASKS
 
 **After ANY of these:**
 - `npm run build`
@@ -55,7 +55,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 ---
 
-### 📦 INSTALLATION TASKS
+###  INSTALLATION TASKS
 
 **After ANY of these:**
 - Modifying `config.py` or `config.yaml`
@@ -73,7 +73,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 ---
 
-### 🧠 MEMORY / MCP TASKS
+###  MEMORY / MCP TASKS
 
 **After ANY of these:**
 - Modifying `orchestrator.py` or `mcp/server.py`
@@ -91,7 +91,7 @@ AI agents (including Claude) have access to Elefante's memory but **don't use it
 
 ---
 
-### 🗄️ DATABASE TASKS
+###  DATABASE TASKS
 
 **After ANY of these:**
 - Modifying Kuzu schema
@@ -147,9 +147,9 @@ If AI says "Done" without mentioning relevant pitfalls, ask:
 ## META-LESSON
 
 This document exists because:
-1. We stored lessons learned ✅
-2. We didn't retrieve them when relevant ❌
-3. We repeated the same mistakes ❌
+1. We stored lessons learned 
+2. We didn't retrieve them when relevant 
+3. We repeated the same mistakes 
 
 **The fix is not more documentation. The fix is mandatory retrieval.**
 

@@ -64,7 +64,7 @@
 
 ### Untracked Files (New)
 ```
-src/utils/elefante_mode.py          ← CORE NEW FILE
+src/utils/elefante_mode.py          <- CORE NEW FILE
 scripts/test_mcp_live.py
 scripts/verify_injection.py
 scripts/verify_mcp_handshake.py
@@ -122,21 +122,21 @@ ERROR tests/test_user_profile.py::TestUserProfileLogic::* (4 tests)
 
 ### ElefanteModeManager Direct Test
 ```
-✅ Manager initializes with enabled=False
-✅ check_locks() detects existing lock files
-✅ enable() acquires all 3 locks successfully
-✅ disable() releases all locks
-✅ Status tracking accurate throughout
+ Manager initializes with enabled=False
+ check_locks() detects existing lock files
+ enable() acquires all 3 locks successfully
+ disable() releases all locks
+ Status tracking accurate throughout
 ```
 
 ### MCP Server Integration Test
 ```
-✅ Server starts with mode OFF by default
-✅ getElefanteStatus works when OFF
-✅ listMemories BLOCKED when OFF (returns graceful message)
-✅ enableElefante acquires locks
-✅ listMemories WORKS when ON
-✅ disableElefante releases locks
+ Server starts with mode OFF by default
+ getElefanteStatus works when OFF
+ listMemories BLOCKED when OFF (returns graceful message)
+ enableElefante acquires locks
+ listMemories WORKS when ON
+ disableElefante releases locks
 ```
 
 ---
@@ -178,11 +178,11 @@ class ElefanteModeConfig(BaseModel):
 
 | Check | Status | Evidence |
 |-------|--------|----------|
-| L10.1 Correctness | ⚠️ Partial | Ad-hoc tests pass, no formal acceptance criteria |
-| L10.2 Consistency | ✅ | Follows existing patterns |
-| L10.3 Necessity | ✅ | Minimal files created |
-| L10.4 No regressions | ⚠️ | Pre-existing failures (not caused by this) |
-| L10.5 Future readability | ⚠️ | CHANGELOG updated, no permanent test file |
+| L10.1 Correctness |  Partial | Ad-hoc tests pass, no formal acceptance criteria |
+| L10.2 Consistency |  | Follows existing patterns |
+| L10.3 Necessity |  | Minimal files created |
+| L10.4 No regressions |  | Pre-existing failures (not caused by this) |
+| L10.5 Future readability |  | CHANGELOG updated, no permanent test file |
 
 ### Missing Items
 1. No `tests/test_elefante_mode.py` (permanent test coverage)

@@ -8,7 +8,7 @@
 
 ---
 
-## 🚨 CRITICAL LAWS (Extracted from Pain)
+##  CRITICAL LAWS (Extracted from Pain)
 
 | # | Law | Violation Cost |
 |---|-----|----------------|
@@ -40,7 +40,7 @@
 **Date:** 2025-12-04  
 **Duration:** 1 hour  
 **Severity:** HIGH  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 Entity creation failed with cryptic binder exception.
@@ -60,7 +60,7 @@ Kuzu uses **hybrid SQL/Cypher syntax**:
 CREATE NODE TABLE Entity(id STRING, properties STRING, PRIMARY KEY(id))
 
 -- Data insertion: FAILS!
-CREATE (e:Entity {properties: '{}'})  -- ❌ properties is reserved in Cypher
+CREATE (e:Entity {properties: '{}'})  --  properties is reserved in Cypher
 ```
 
 ### Solution
@@ -87,7 +87,7 @@ Renamed column from `properties` to `props`:
 **Date:** 2025-12-03  
 **Duration:** Multiple occurrences (30 min each)  
 **Severity:** CRITICAL  
-**Status:** ✅ RESOLVED (Workaround documented)
+**Status:**  RESOLVED (Workaround documented)
 
 ### Problem
 Kuzu database locked and inaccessible after crash or concurrent access.
@@ -144,7 +144,7 @@ db = kuzu.Database(db_path, read_only=True)
 **Date:** 2025-11-27  
 **Duration:** 12 minutes (felt like eternity)  
 **Severity:** CRITICAL  
-**Status:** ✅ FIXED
+**Status:**  FIXED
 
 ### Problem
 Kuzu 0.11.x introduced breaking change in database path handling.
@@ -161,7 +161,7 @@ Kuzu 0.11.x changed from **directory-based** to expecting to create its own stru
 
 `config.py` was pre-creating the directory:
 ```python
-KUZU_DIR.mkdir(exist_ok=True)  # ❌ This breaks Kuzu 0.11.x
+KUZU_DIR.mkdir(exist_ok=True)  #  This breaks Kuzu 0.11.x
 ```
 
 ### Solution
@@ -191,7 +191,7 @@ def _ensure_database_path(self):
 **Date:** 2025-12-03  
 **Duration:** 20 minutes  
 **Severity:** CRITICAL  
-**Status:** ✅ RESOLVED (Reset required)
+**Status:**  RESOLVED (Reset required)
 
 ### Problem
 `kuzu_db` was a **single file** instead of directory structure.
@@ -239,7 +239,7 @@ python scripts/init_databases.py
 **Date:** 2025-12-03  
 **Duration:** Ongoing (design issue)  
 **Severity:** MEDIUM  
-**Status:** ⚠️ DOCUMENTED (Design limitation)
+**Status:**  DOCUMENTED (Design limitation)
 
 ### Problem
 Same logical entity appears multiple times with different IDs.
@@ -287,7 +287,7 @@ else:
 **Date:** 2025-12-04  
 **Duration:** Documentation time  
 **Severity:** LOW  
-**Status:** ⚠️ DOCUMENTED
+**Status:**  DOCUMENTED
 
 ### Problem
 Memory model has 40+ fields but ChromaDB flattens everything into metadata dict.
@@ -333,7 +333,7 @@ memory = MemoryModel.from_chromadb_result(result)
 ### Why This Matters
 - Direct metadata access is fragile
 - Field names may change between versions
-- Type coercion needed (strings → enums)
+- Type coercion needed (strings -> enums)
 
 ### Lesson
 > **Always use model helpers to translate between storage format and domain objects.**
@@ -345,7 +345,7 @@ memory = MemoryModel.from_chromadb_result(result)
 ### Pattern 1: Assuming Error Location = Root Cause
 | What I Did | What I Should Do |
 |------------|------------------|
-| Error in `graph_store.py` → debug `graph_store.py` | Trace error back to configuration source |
+| Error in `graph_store.py` -> debug `graph_store.py` | Trace error back to configuration source |
 | Fixed symptoms not causes | Ask "why does this value exist here?" |
 
 ### Pattern 2: Not Checking Breaking Changes
@@ -388,11 +388,11 @@ python scripts/init_databases.py
 
 ### When Upgrading Kuzu
 
-1. ✅ Read changelog for breaking changes
-2. ✅ Backup existing database
-3. ✅ Test in isolation before production
-4. ✅ Check path handling behavior
-5. ✅ Verify schema compatibility
+1.  Read changelog for breaking changes
+2.  Backup existing database
+3.  Test in isolation before production
+4.  Check path handling behavior
+5.  Verify schema compatibility
 
 ---
 
@@ -404,7 +404,7 @@ python scripts/init_databases.py
 **Date:** YYYY-MM-DD  
 **Duration:** X hours/minutes  
 **Severity:** LOW | MEDIUM | HIGH | CRITICAL  
-**Status:** 🔴 OPEN | 🟡 IN PROGRESS | ✅ FIXED | ⚠️ DOCUMENTED
+**Status:**  OPEN |  IN PROGRESS |  FIXED |  DOCUMENTED
 
 ### Problem
 [One sentence: what is broken]

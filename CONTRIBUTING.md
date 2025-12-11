@@ -2,18 +2,18 @@
 
 Thank you for your interest in contributing to Elefante! This document provides guidelines and best practices for contributing to this project.
 
-## 🧹 Code Quality Standards
+##  Code Quality Standards
 
 ### Clean Environment Philosophy
 
 **CRITICAL**: This project maintains an extremely clean and organized codebase. Please adhere to these principles:
 
-- ❌ **NO** leftover test files in the repository
-- ❌ **NO** temporary files or artifacts
-- ❌ **NO** unnecessary dependencies
-- ✅ **YES** to clean, organized code structure
-- ✅ **YES** to proper cleanup after testing
-- ✅ **YES** to minimal, purposeful files
+-  **NO** leftover test files in the repository
+-  **NO** temporary files or artifacts
+-  **NO** unnecessary dependencies
+-  **YES** to clean, organized code structure
+-  **YES** to proper cleanup after testing
+-  **YES** to minimal, purposeful files
 
 ### Before Committing
 
@@ -23,7 +23,7 @@ Thank you for your interest in contributing to Elefante! This document provides 
 4. **Update documentation**: Keep docs in sync with code changes
 5. **Test thoroughly**: Run all tests before committing
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 Elefante/
@@ -42,12 +42,11 @@ Elefante/
 │   └── archive/           # Historical docs
 ├── tests/                 # Test files
 ├── README.md              # Main documentation
-├── CHANGELOG.md           # Version history
-├── RELEASES.md            # Release notes
+├── CHANGELOG.md           # Version history & release notes
 └── requirements.txt       # Dependencies
 ```
 
-## 🔧 Development Workflow
+##  Development Workflow
 
 ### 1. Setup Development Environment
 
@@ -130,7 +129,7 @@ git status
 git push origin feature/your-feature-name
 ```
 
-## 📝 Code Style
+##  Code Style
 
 ### Python
 
@@ -167,7 +166,7 @@ def search_memories(
 - Include examples for complex features
 - Update CHANGELOG.md for significant changes
 
-## 🐛 Reporting Issues
+##  Reporting Issues
 
 When reporting issues, include:
 
@@ -178,7 +177,7 @@ When reporting issues, include:
 5. **Environment**: OS, Python version, dependencies
 6. **Logs**: Relevant error messages or logs
 
-## 🚀 Feature Requests
+##  Feature Requests
 
 For feature requests:
 
@@ -187,14 +186,14 @@ For feature requests:
 3. **Alternatives**: Other approaches you've considered
 4. **Impact**: Who would benefit from this feature
 
-## 📜 License
+##  License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
 
-## 🙏 Thank You!
+##  Thank You!
 
 Your contributions help make Elefante better for everyone. We appreciate your effort to maintain code quality and cleanliness!
 
 ---
 
-**Remember**: A clean codebase is a happy codebase! 🐘✨
+**Remember**: A clean codebase is a happy codebase! 

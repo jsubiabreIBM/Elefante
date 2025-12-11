@@ -50,8 +50,8 @@ The MCP server exposes 14 tools to your AI agent:
 - Include actual entity names from context
 
 **Bad Queries** (will fail):
-- "How do I install it?" → Missing: what is "it"?
-- "Fix that error" → Missing: which error?
+- "How do I install it?" -> Missing: what is "it"?
+- "Fix that error" -> Missing: which error?
 
 **Good Queries** (will succeed):
 - "How to install Elefante memory system on Windows"
@@ -285,7 +285,7 @@ RETURN p
 #### `disableElefante`
 **Purpose**: Release exclusive locks and return to OFF state
 
-**Use Case**: Before switching to another IDE (VS Code → Cursor → Claude Desktop)
+**Use Case**: Before switching to another IDE (VS Code -> Cursor -> Claude Desktop)
 
 **Behavior**:
 - Releases all database locks

@@ -1,4 +1,4 @@
-# 🔧 Technical Implementation Details
+#  Technical Implementation Details
 ## Complete Code Changes and System Architecture
 
 **Date**: 2025-11-27  
@@ -6,13 +6,13 @@
 
 ---
 
-## 📋 OVERVIEW
+##  OVERVIEW
 
 This document provides complete technical details of all code changes, architectural decisions, and implementation specifics for the Elefante installation enhancement project.
 
 ---
 
-## 🏗️ SYSTEM ARCHITECTURE
+##  SYSTEM ARCHITECTURE
 
 ### Before Enhancement
 ```mermaid
@@ -52,7 +52,7 @@ flowchart TD
 
 ---
 
-## 📝 COMPLETE CODE CHANGES
+##  COMPLETE CODE CHANGES
 
 ### 1. Enhanced Installation Script (`scripts/install.py`)
 
@@ -68,7 +68,7 @@ import json
 
 def run_preflight_checks():
     """Run comprehensive pre-flight checks before installation"""
-    print("🔍 Running pre-flight checks...")
+    print(" Running pre-flight checks...")
     
     checks = [
         ("Python Version", check_python_version),
@@ -84,19 +84,19 @@ def run_preflight_checks():
         print(f"   Checking {check_name}...", end=" ")
         try:
             if check_func():
-                print("✅")
+                print("")
             else:
-                print("❌")
+                print("")
                 failed_checks.append(check_name)
         except Exception as e:
-            print(f"⚠️  ({str(e)})")
+            print(f"  ({str(e)})")
             failed_checks.append(check_name)
     
     if failed_checks:
-        print(f"\n❌ Pre-flight checks failed: {', '.join(failed_checks)}")
+        print(f"\n Pre-flight checks failed: {', '.join(failed_checks)}")
         return False
     
-    print("✅ All pre-flight checks passed!")
+    print(" All pre-flight checks passed!")
     return True
 
 def check_kuzu_compatibility():
@@ -110,7 +110,7 @@ def check_kuzu_compatibility():
     kuzu_dir = Path("data/kuzu_db")
     
     if kuzu_dir.exists() and kuzu_dir.is_dir():
-        print("\n⚠️  KUZU COMPATIBILITY ISSUE DETECTED")
+        print("\n  KUZU COMPATIBILITY ISSUE DETECTED")
         print("   Kuzu 0.11.x cannot use pre-existing directories")
         print("   This was the cause of the 'Database path cannot be a directory' error")
         
@@ -124,10 +124,10 @@ def check_kuzu_compatibility():
         response = input("   Remove existing directory? (y/N): ")
         if response.lower() == 'y':
             shutil.rmtree(kuzu_dir)
-            print("   ✅ Directory removed - installation can proceed")
+            print("    Directory removed - installation can proceed")
             return True
         else:
-            print("   ❌ Installation cannot proceed with existing directory")
+            print("    Installation cannot proceed with existing directory")
             return False
     
     return True
@@ -146,7 +146,7 @@ def check_dependency_versions():
         for package, bad_versions in problematic_versions.items():
             for version in bad_versions:
                 if f"{package}=={version}" in requirements:
-                    print(f"\n⚠️  Problematic version detected: {package}=={version}")
+                    print(f"\n  Problematic version detected: {package}=={version}")
                     return False
         
         return True
@@ -231,7 +231,7 @@ def enhanced_error_handler(func):
                 }
             }
             
-            print(f"\n❌ Error in {func.__name__}:")
+            print(f"\n Error in {func.__name__}:")
             print(f"   Type: {type(e).__name__}")
             print(f"   Message: {str(e)}")
             print(f"   Context: {json.dumps(error_context, indent=2)}")
@@ -249,12 +249,12 @@ def enhanced_error_handler(func):
 @enhanced_error_handler
 def main():
     """Enhanced main installation function"""
-    print("🚀 Starting Elefante Installation with Enhanced Safeguards")
+    print(" Starting Elefante Installation with Enhanced Safeguards")
     print("=" * 60)
     
     # Run pre-flight checks
     if not run_preflight_checks():
-        print("\n❌ Pre-flight checks failed. Installation aborted.")
+        print("\n Pre-flight checks failed. Installation aborted.")
         print("   Please resolve the issues above and try again.")
         sys.exit(1)
     
@@ -363,19 +363,19 @@ class GraphStore:
 
 ---
 
-## 🔍 DEBUGGING METHODOLOGY IMPROVEMENTS
+##  DEBUGGING METHODOLOGY IMPROVEMENTS
 
 ### Before: Intuitive Debugging (Failed)
 ```python
 # The wrong approach that led to 12 minutes of debugging
 def debug_database_error():
-    # ❌ MISTAKE 1: Assumed error location = root cause
+    #  MISTAKE 1: Assumed error location = root cause
     analyze_file("src/core/graph_store.py")  # Wrong file!
     
-    # ❌ MISTAKE 2: Focused on symptoms, not cause
+    #  MISTAKE 2: Focused on symptoms, not cause
     check_database_permissions()  # Wrong focus!
     
-    # ❌ MISTAKE 3: Applied previous patterns incorrectly
+    #  MISTAKE 3: Applied previous patterns incorrectly
     look_for_old_database_files()  # Wrong assumption!
 ```
 
@@ -383,23 +383,23 @@ def debug_database_error():
 ```python
 # The correct approach that should be used
 def systematic_debug_approach():
-    # ✅ STEP 1: Read error message literally
+    #  STEP 1: Read error message literally
     error = "Database path cannot be a directory"
     # This means: path exists AND is directory AND that's not allowed
     
-    # ✅ STEP 2: Check configuration, not implementation
+    #  STEP 2: Check configuration, not implementation
     check_file("src/utils/config.py")  # Configuration creates paths
     
-    # ✅ STEP 3: Verify version compatibility
+    #  STEP 3: Verify version compatibility
     check_kuzu_version_changes()  # Breaking changes in 0.11.x
     
-    # ✅ STEP 4: Test hypothesis systematically
+    #  STEP 4: Test hypothesis systematically
     test_path_creation_removal()  # Confirm the fix works
 ```
 
 ---
 
-## 📊 PERFORMANCE METRICS
+##  PERFORMANCE METRICS
 
 ### Installation Time Comparison
 
@@ -422,7 +422,7 @@ def systematic_debug_approach():
 
 ---
 
-## 🧪 TESTING FRAMEWORK
+##  TESTING FRAMEWORK
 
 ### Automated Test Suite
 
@@ -509,7 +509,7 @@ def simulate_installation_scenarios():
 
 ---
 
-## 🔧 MAINTENANCE PROCEDURES
+##  MAINTENANCE PROCEDURES
 
 ### Monthly Checks
 
@@ -554,7 +554,7 @@ def update_kuzu_version():
 
 ---
 
-## 📈 MONITORING AND ALERTING
+##  MONITORING AND ALERTING
 
 ### Installation Success Monitoring
 
@@ -599,7 +599,7 @@ ALERT_CONDITIONS = {
 
 ---
 
-## 🎯 CONCLUSION
+##  CONCLUSION
 
 This technical implementation represents a complete transformation of the Elefante installation process from a fragile, error-prone system to a robust, self-healing installation with comprehensive safeguards.
 

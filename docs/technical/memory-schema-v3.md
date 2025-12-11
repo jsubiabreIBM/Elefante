@@ -14,9 +14,9 @@ The memory system is divided into three distinct layers representing the **Sourc
 
 | Layer      | Color          | Meaning                            | Direction                  |
 | :--------- | :------------- | :--------------------------------- | :------------------------- |
-| **SELF**   | 🔴 Red/Orange  | The Agent's Identity & Preferences | **Internal** (Who I am)    |
-| **WORLD**  | 🔵 Blue/Purple | objective Facts & Knowledge        | **External** (What exists) |
-| **INTENT** | ⚪ White/Green | Rules, Goals, & Plans              | **Action** (How to act)    |
+| **SELF**   |  Red/Orange  | The Agent's Identity & Preferences | **Internal** (Who I am)    |
+| **WORLD**  |  Blue/Purple | objective Facts & Knowledge        | **External** (What exists) |
+| **INTENT** |  White/Green | Rules, Goals, & Plans              | **Action** (How to act)    |
 
 ---
 
@@ -24,7 +24,7 @@ The memory system is divided into three distinct layers representing the **Sourc
 
 Each layer is divided into specific sublayers for precise retrieval.
 
-### 🔴 SELF Layer (Identity)
+###  SELF Layer (Identity)
 
 Memories defining the Agent's persona and constraints.
 
@@ -37,7 +37,7 @@ Memories defining the Agent's persona and constraints.
 - **`constraint`** (Yellow `#EAB308`): Hard limits on behavior.
   - _Example_: "Never delete user data without confirmation."
 
-### 🔵 WORLD Layer (Knowledge)
+###  WORLD Layer (Knowledge)
 
 Objective data about the environment and tools.
 
@@ -51,7 +51,7 @@ Objective data about the environment and tools.
   - _Example_: "The 5-step ingestion pipeline."
   - _Example_: "Standard sorting algorithm for stats."
 
-### ⚪ INTENT Layer (Action)
+###  INTENT Layer (Action)
 
 Directives regarding future state and execution.
 

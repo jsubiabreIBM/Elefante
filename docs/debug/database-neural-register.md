@@ -1,4 +1,4 @@
-# 🧠 DATABASE NEURAL REGISTER
+#  DATABASE NEURAL REGISTER
 ## System Immunity: Database Failure Laws
 
 **Purpose**: Permanent record of database failure patterns and prevention protocols  
@@ -7,7 +7,7 @@
 
 ---
 
-## 📜 THE LAWS (Immutable Truths)
+##  THE LAWS (Immutable Truths)
 
 ### LAW #1: Reserved Word Prohibition
 **Statement**: NEVER use Cypher reserved words as property names in Kuzu schemas.
@@ -15,13 +15,13 @@
 **The Kuzu Anomaly**: Kuzu uses SQL for schema (DDL) but Cypher for operations (DML). Property names must be valid in BOTH.
 
 **Critical Reserved Words**:
-- ❌ `properties` - **MOST DANGEROUS** - Valid in SQL schema, breaks in Cypher CREATE
-- ❌ `type` - Use `entity_type`, `node_type`, `category`
-- ❌ `label` - Use `entity_label`, `tag`, `name`
-- ❌ `id` - Use `entity_id`, `identifier` (though often works, be cautious)
+-  `properties` - **MOST DANGEROUS** - Valid in SQL schema, breaks in Cypher CREATE
+-  `type` - Use `entity_type`, `node_type`, `category`
+-  `label` - Use `entity_label`, `tag`, `name`
+-  `id` - Use `entity_id`, `identifier` (though often works, be cautious)
 
 **Safe Alternatives**:
-| ❌ Forbidden | ✅ Use Instead |
+|  Forbidden |  Use Instead |
 |-------------|---------------|
 | `properties` | `props`, `metadata`, `attributes`, `data` |
 | `type` | `entity_type`, `node_type`, `category` |
@@ -29,7 +29,7 @@
 
 **Origin**: 2025-12-04 - Entity creation failure  
 **Symptom**: `RuntimeError: Binder exception: Cannot find property properties for e.`  
-**Fix**: Renamed `properties` → `props` in Entity schema (line 178, `graph_store.py`)
+**Fix**: Renamed `properties` -> `props` in Entity schema (line 178, `graph_store.py`)
 
 ---
 
@@ -128,10 +128,10 @@ kuzu_db                     (single file - CORRUPTED!)
 **Statement**: GraphStore MUST implement proper connection cleanup.
 
 **Missing Implementation** (as of v1.0.0):
-- ❌ No `close()` method for explicit cleanup
-- ❌ No `__enter__`/`__exit__` for context manager support
-- ❌ No `__del__` for destructor cleanup
-- ❌ No stale lock detection and recovery
+-  No `close()` method for explicit cleanup
+-  No `__enter__`/`__exit__` for context manager support
+-  No `__del__` for destructor cleanup
+-  No stale lock detection and recovery
 
 **Required Implementation**:
 ```python
@@ -160,7 +160,7 @@ class GraphStore:
 
 ---
 
-## 🔬 FAILURE PATTERNS (Documented Cases)
+##  FAILURE PATTERNS (Documented Cases)
 
 ### Pattern #1: Reserved Word Schema Trap (2025-12-04)
 **Trigger**: Using `properties` as column name in Entity schema  
@@ -188,7 +188,7 @@ class GraphStore:
 
 ---
 
-## 🛡️ SAFEGUARDS (Active Protections)
+##  SAFEGUARDS (Active Protections)
 
 ### Safeguard #1: Reserved Word Validation
 **Location**: `docs/technical/kuzu-best-practices.md`  
@@ -207,7 +207,7 @@ class GraphStore:
 
 ---
 
-## 📊 METRICS
+##  METRICS
 
 ### Entity Creation Success Rate
 - **Before Fix**: 0% (all operations failed)
@@ -224,14 +224,14 @@ class GraphStore:
 
 ---
 
-## 🔗 RELATED REGISTERS
+##  RELATED REGISTERS
 
 - **INSTALLATION_NEURAL_REGISTER.md**: Kuzu path conflicts, pre-flight checks
 - **MCP_CODE_NEURAL_REGISTER.md**: Type signatures, protocol enforcement
 
 ---
 
-## 📚 SOURCE DOCUMENTS
+##  SOURCE DOCUMENTS
 
 - `docs/debug/general/kuzu-reserved-words-issue.md` (329 lines)
 - `docs/technical/kuzu-best-practices.md` (254 lines)
@@ -242,6 +242,6 @@ class GraphStore:
 
 ---
 
-**Neural Register Status**: ✅ ACTIVE  
+**Neural Register Status**:  ACTIVE  
 **Enforcement**: Code review, testing protocols  
 **Last Validation**: 2025-12-05

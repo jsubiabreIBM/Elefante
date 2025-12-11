@@ -32,7 +32,7 @@ Press `Ctrl+C` in the terminal running the server.
 - **Total Memories**: Current count in the system
 - **Total Episodes**: Number of conversation sessions
 
-## 4. **Visual Physics Engine (V30 Only)** 🧠
+## 4. **Visual Physics Engine (V30 Only)** 
 
 - **Power Law Sizing**: Node size = `8 + (Importance² * 0.4)`.
   - Landmark Memories (Imp 10) are massive (48px) anchors.
@@ -88,7 +88,7 @@ curl -X POST http://localhost:8000/api/memories \
 
 ---
 
-## Auto-Refresh Feature ✅
+## Auto-Refresh Feature 
 
 **IMPORTANT**: The dashboard automatically reflects new memories without requiring server restart!
 
@@ -100,17 +100,17 @@ curl -X POST http://localhost:8000/api/memories \
 
 ### What Gets Updated:
 
-- ✅ Memory count in statistics panel
-- ✅ New nodes in the graph visualization
-- ✅ Relationships between memories
-- ✅ All filters and search results
+-  Memory count in statistics panel
+-  New nodes in the graph visualization
+-  Relationships between memories
+-  All filters and search results
 
 ### No Need To:
 
-- ❌ Restart the dashboard server
-- ❌ Rebuild the frontend
-- ❌ Reinitialize the database
-- ❌ Clear browser cache (unless you updated the code)
+-  Restart the dashboard server
+-  Rebuild the frontend
+-  Reinitialize the database
+-  Clear browser cache (unless you updated the code)
 
 ---
 
@@ -118,9 +118,9 @@ curl -X POST http://localhost:8000/api/memories \
 
 | Layer      | Sublayer                    | Color          | Meaning                    |
 | :--------- | :-------------------------- | :------------- | :------------------------- |
-| **SELF**   | `identity`, `preference`    | 🔴 Red/Orange  | User Persona & Constraints |
-| **WORLD**  | `fact`, `failure`, `method` | 🔵 Blue/Purple | Objective Knowledge        |
-| **INTENT** | `rule`, `goal`              | ⚪ White/Green | Directives & Plans         |
+| **SELF**   | `identity`, `preference`    |  Red/Orange  | User Persona & Constraints |
+| **WORLD**  | `fact`, `failure`, `method` |  Blue/Purple | Objective Knowledge        |
+| **INTENT** | `rule`, `goal`              |  White/Green | Directives & Plans         |
 
 ---
 

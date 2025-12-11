@@ -90,9 +90,9 @@ Perfect Result
 ```
 
 **Key Innovation**: Adaptive weighting adjusts retrieval strategy based on query type:
-- Questions → Semantic search
-- IDs/Names → Graph lookup
-- Pronouns → Session context
+- Questions -> Semantic search
+- IDs/Names -> Graph lookup
+- Pronouns -> Session context
 
 See [`docs/technical/architecture.md`](docs/technical/architecture.md) for details.
 
@@ -155,18 +155,18 @@ See [`docs/technical/dashboard.md`](docs/technical/dashboard.md) for complete gu
 **Current Version**: v1.0.1 (Production)
 
 ### Implemented
-- ✅ Triple-layer architecture (ChromaDB + Kuzu + Context)
-- ✅ MCP server with 14 tools
-- ✅ ELEFANTE_MODE (Multi-IDE safety with exclusive locking)
-- ✅ Auto-Inject Pitfalls (Protocol enforcement in responses)
-- ✅ Cognitive memory model (LLM extracts emotions, intent, entities, relationships)
-- ✅ Temporal decay (memories fade, reinforced on access)
-- ✅ Visual dashboard
-- ✅ Automated installation safeguards
+-  Triple-layer architecture (ChromaDB + Kuzu + Context)
+-  MCP server with 14 tools
+-  ELEFANTE_MODE (Multi-IDE safety with exclusive locking)
+-  Auto-Inject Pitfalls (Protocol enforcement in responses)
+-  Cognitive memory model (LLM extracts emotions, intent, entities, relationships)
+-  Temporal decay (memories fade, reinforced on access)
+-  Visual dashboard
+-  Automated installation safeguards
 
 ### Partial
-- 🟡 Memory Schema V2 - Schema defined, but domain/category auto-classification not implemented
-- 🟡 Dashboard UX - Functional but needs visual improvements
+-  Memory Schema V2 - Schema defined, but domain/category auto-classification not implemented
+-  Dashboard UX - Functional but needs visual improvements
 
 ### Planned (v1.1.0)
 - [ ] Auto-classification of domain/category via LLM
@@ -199,7 +199,7 @@ See [`LICENSE`](LICENSE)
 - **Repository**: https://github.com/jsubiabreIBM/Elefante
 - **Technical Docs**: [`docs/technical/README.md`](docs/technical/README.md)
 - **Roadmap**: [`docs/planning/roadmap.md`](docs/planning/roadmap.md)
-- **Releases**: [`RELEASES.md`](RELEASES.md)
+- **Changelog**: [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
 

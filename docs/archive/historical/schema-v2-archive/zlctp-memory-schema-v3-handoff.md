@@ -4,13 +4,13 @@
 
 ---
 
-## 1. 🌍 Project One-Liner
+## 1.  Project One-Liner
 
 Designing a universal, measurable, three-layer memory classification system (SELF/WORLD/INTENT) for Elefante's "second brain" dashboard that enables clean graph visualization and context-aware agent responses for any user.
 
 ---
 
-## 2. ⏳ Current Status Snapshot
+## 2.  Current Status Snapshot
 
 **Timestamp**: 2025-12-06 ~20:00 UTC
 
@@ -20,41 +20,41 @@ Designing a universal, measurable, three-layer memory classification system (SEL
 
 ---
 
-## 3. 🧠 Core Understanding & Mental Model
+## 3.  Core Understanding & Mental Model
 
 ### The Fundamental Insight
 Elefante is NOT a database - it's a **second brain** that helps AI agents understand users. The classification problem is NOT "how to organize files" - it's **"what makes a memory useful to inject into agent context?"**
 
 ### The Three Questions Every Agent Must Answer
-1. **Who am I talking to?** → SELF layer
-2. **What do they know?** → WORLD layer
-3. **What should I do?** → INTENT layer
+1. **Who am I talking to?** -> SELF layer
+2. **What do they know?** -> WORLD layer
+3. **What should I do?** -> INTENT layer
 
 ### The Visual Problem We're Solving
 Current dashboard shows 107 nodes in chaotic "soup" - tangled, unreadable. User demands "tight, neat, clean" with "electric effect" when connections illuminate. This requires hierarchical structure, not flat graph.
 
 ### The Connection Philosophy
-All memories belong to ONE user (Jaime) → everything is connected by default. The agent must INFER connections it doesn't see yet. Classification exists to:
+All memories belong to ONE user (Jaime) -> everything is connected by default. The agent must INFER connections it doesn't see yet. Classification exists to:
 - Create visual clusters in dashboard
 - Enable layer-aware retrieval (get SELF+WORLD+INTENT for every query)
 - Measure connection strength between memories
 
 ### Critical Design Principles
 - **Agnostic**: Must work for ANY user, ANY situation, ANY intent
-- **Measurable**: "Can I code this?" = yes → proceed
+- **Measurable**: "Can I code this?" = yes -> proceed
 - **No overfitting**: No hardcoded categories like "jaime-preferences" or "elefante-project"
 - **Entity-centric**: Memories connect through shared entities (from Kuzu graph)
 - **Agent-as-brain**: The LLM agent classifies memories, not redundant LLM API call
 
 ### What We Rejected
-- ❌ Domain/category/subcategory (89 of 91 memories had domain="reference" - useless)
-- ❌ "Illuminates" as freeform text (too vague, can't code it)
-- ❌ Hardcoded user-specific categories (overfitting)
-- ❌ `memory_type` with 8 values (redundant with `layer`)
+-  Domain/category/subcategory (89 of 91 memories had domain="reference" - useless)
+-  "Illuminates" as freeform text (too vague, can't code it)
+-  Hardcoded user-specific categories (overfitting)
+-  `memory_type` with 8 values (redundant with `layer`)
 
 ---
 
-## 4. 📜 Full Decision & Learning Log
+## 4.  Full Decision & Learning Log
 
 ### Turn 1-3: Initial Overfitting Problem
 **User**: "This is primitive! I need agnostic architecture. You're overfitting with hardcoded rules."
@@ -109,7 +109,7 @@ All memories belong to ONE user (Jaime) → everything is connected by default. 
 
 **User**: "I deeply care about visual and details. Tight, neat, clean. Electric effect is essential UI feature."
 
-**Requirement**: Clean clusters that PULSE when related memories illuminate together. Hierarchical structure (big anchor nodes → small memory nodes orbiting).
+**Requirement**: Clean clusters that PULSE when related memories illuminate together. Hierarchical structure (big anchor nodes -> small memory nodes orbiting).
 
 ### Turn 25-27: The Universal Architecture
 **I proposed**: Three layers with sublayers, visual color coding, hierarchical graph
@@ -133,7 +133,7 @@ All memories belong to ONE user (Jaime) → everything is connected by default. 
 
 **Combined score**: `max()` not `sum()` (don't double-count same connection)
 
-**Cross-layer rules**: SELF→INTENT=strong, WORLD→INTENT=strong, others=weak/medium
+**Cross-layer rules**: SELF->INTENT=strong, WORLD->INTENT=strong, others=weak/medium
 
 **Question raised**: How to measure causal connections programmatically?
 
@@ -141,7 +141,7 @@ All memories belong to ONE user (Jaime) → everything is connected by default. 
 
 ---
 
-## 5. ⚠️ Hard Requirements & Non-Negotiables
+## 5.  Hard Requirements & Non-Negotiables
 
 1. **"CAN I CODE THIS?" test** - If answer is no, reject the approach
 2. **Agnostic architecture** - Must work for any user, any situation, any intent
@@ -156,7 +156,7 @@ All memories belong to ONE user (Jaime) → everything is connected by default. 
 
 ---
 
-## 6. 🎯 Soft Preferences & Observed Style
+## 6.  Soft Preferences & Observed Style
 
 ### User (Jaime) Communication Style
 - **Direct, brutal honesty**: "That's soulless", "Get real", "ARE YOU NUTS?"
@@ -167,7 +167,7 @@ All memories belong to ONE user (Jaime) → everything is connected by default. 
 - **Values visual detail**: Cares deeply about how things LOOK in UI
 
 ### Interaction Pattern
-- Jaime asks one sharp question → I answer → Jaime validates or rejects → Repeat
+- Jaime asks one sharp question -> I answer -> Jaime validates or rejects -> Repeat
 - When Jaime says "good work, carry on" = proceed with confidence
 - When Jaime says "stop, let's refine" = we're off track, back to basics
 - Uses ALL CAPS for emphasis on critical points
@@ -180,7 +180,7 @@ All memories belong to ONE user (Jaime) → everything is connected by default. 
 
 ---
 
-## 7. 📎 All External Materials
+## 7.  All External Materials
 
 ### File: `memories_complete_export_91.csv`
 **Location**: `c:\Users\JaimeSubiabreCistern\Documents\Agentic\Elefante\data\memories_complete_export_91.csv`
@@ -215,7 +215,7 @@ All memories belong to ONE user (Jaime) → everything is connected by default. 
 
 ---
 
-## 8. ✅ Work Already Delivered or Built
+## 8.  Work Already Delivered or Built
 
 ### Final Schema Design
 ```python
@@ -271,9 +271,9 @@ class Memory:
 **Combined Score**: `connection_strength = max(structural, entity, temporal, causal)`
 
 **Cross-Layer Connection Boosts:**
-- SELF → INTENT: +0.3 (identity shapes rules)
-- SELF → WORLD: +0.2 (identity shapes knowledge)
-- WORLD → INTENT: +0.3 (knowledge informs action)
+- SELF -> INTENT: +0.3 (identity shapes rules)
+- SELF -> WORLD: +0.2 (identity shapes knowledge)
+- WORLD -> INTENT: +0.3 (knowledge informs action)
 - Others: +0.0
 
 ### Visual Design Specification
@@ -292,17 +292,17 @@ Red-Yellow Blue-Purple Black-Green
 
 **Color Coding:**
 - SELF: Red-Orange-Yellow gradient
-  - identity = 🔴 Red
-  - preference = 🟠 Orange  
-  - constraint = 🟡 Yellow
+  - identity =  Red
+  - preference =  Orange  
+  - constraint =  Yellow
 - WORLD: Blue-Purple-Green gradient
-  - fact = 🔵 Blue
-  - failure = 🟣 Purple
-  - method = 🟢 Green
+  - fact =  Blue
+  - failure =  Purple
+  - method =  Green
 - INTENT: Black-Green-Blue gradient
-  - rule = ⚫ Black
-  - goal = 🟢 Green
-  - anti-pattern = 🔵 Blue
+  - rule =  Black
+  - goal =  Green
+  - anti-pattern =  Blue
 
 **Connection Visualization:**
 - Thick line (0.8-1.0) = Strong connection
@@ -310,11 +310,11 @@ Red-Yellow Blue-Purple Black-Green
 - Dashed line (0.2-0.4) = Weak connection
 - No line (0.0) = No connection
 
-**Electric Effect**: Click node → all connected nodes pulse with glow animation
+**Electric Effect**: Click node -> all connected nodes pulse with glow animation
 
 ---
 
-## 9. ⏭️ Exact Next Steps
+## 9. ⏭ Exact Next Steps
 
 ### Step 1: Update Memory Model Schema
 **File**: `src/models/memory.py`
@@ -378,32 +378,32 @@ def classify_memory(content: str) -> Tuple[str, str]:
 
 ---
 
-## 10. 🏁 Definition of Done
+## 10.  Definition of Done
 
 ### Visual Success Criteria
-✅ Dashboard shows clean 3-cluster layout (not soup)
-✅ Colors clearly distinguish layers/sublayers
-✅ Clicking any node triggers electric pulse effect on connected nodes
-✅ Connection lines vary thickness by strength
-✅ All 91 memories properly classified (no "reference" domain)
+ Dashboard shows clean 3-cluster layout (not soup)
+ Colors clearly distinguish layers/sublayers
+ Clicking any node triggers electric pulse effect on connected nodes
+ Connection lines vary thickness by strength
+ All 91 memories properly classified (no "reference" domain)
 
 ### Functional Success Criteria
-✅ Agent can store new memory with auto-classification
-✅ searchMemories returns balanced SELF+WORLD+INTENT results
-✅ Connection scores calculated correctly (structural + entity + temporal + causal)
-✅ Dashboard loads without errors
-✅ User (Jaime) says "this is beautiful" or equivalent approval
+ Agent can store new memory with auto-classification
+ searchMemories returns balanced SELF+WORLD+INTENT results
+ Connection scores calculated correctly (structural + entity + temporal + causal)
+ Dashboard loads without errors
+ User (Jaime) says "this is beautiful" or equivalent approval
 
 ### Technical Success Criteria
-✅ All regex/keyword rules codified and tested
-✅ Migration script runs successfully on 91 memories
-✅ Schema changes backward compatible (old memories still readable)
-✅ Performance: Dashboard renders <2sec for 100 memories
-✅ MCP tools work without breaking changes
+ All regex/keyword rules codified and tested
+ Migration script runs successfully on 91 memories
+ Schema changes backward compatible (old memories still readable)
+ Performance: Dashboard renders <2sec for 100 memories
+ MCP tools work without breaking changes
 
 ---
 
-## 11. ⚡ Known Traps & Pitfalls
+## 11.  Known Traps & Pitfalls
 
 ### Classification Edge Cases
 - **Problem**: Some memories fit multiple layers (e.g., "I must verify" - SELF.constraint or INTENT.rule?)
@@ -429,7 +429,7 @@ def classify_memory(content: str) -> Tuple[str, str]:
 
 ---
 
-## 12. ❓ Remaining Open Questions for the User
+## 12.  Remaining Open Questions for the User
 
 ### Classification Questions
 1. **Causal connection measurement**: Should we use (a) agent inference at storage time, (b) keyword matching, or (c) user explicitly tags relationships? User asked this at end but we parked it.
@@ -451,7 +451,7 @@ def classify_memory(content: str) -> Tuple[str, str]:
 
 ---
 
-## 13. 🔧 Technical Metadata
+## 13.  Technical Metadata
 
 ### Output Format
 - Schema changes: Python (Pydantic models)

@@ -16,7 +16,7 @@ Critical update addressing protocol enforcement and multi-IDE safety.
 ### Changes
 
 #### Auto-Inject Pitfalls (Protocol Enforcement)
-- MCP Server now injects mandatory protocols (`🛑_MANDATORY_PROTOCOLS_READ_THIS_FIRST`) directly into every tool response
+- MCP Server now injects mandatory protocols (`_MANDATORY_PROTOCOLS_READ_THIS_FIRST`) directly into every tool response
 - Context-Aware Warnings for `addMemory` (integrity), `searchMemories` (bias), and graph tools (consistency)
 - Updated `ai-behavior-compendium.md` with Issue #6 (Passive Protocol Enforcement Failure)
 
@@ -31,7 +31,7 @@ Critical update addressing protocol enforcement and multi-IDE safety.
 
 ##### New Files
 - `src/utils/elefante_mode.py` - Lock management singleton
-- `config.yaml` → `elefante_mode:` section added
+- `config.yaml` -> `elefante_mode:` section added
 
 ##### Behavior
 - When **OFF**: Memory tools return graceful "disabled" response with instructions
@@ -42,10 +42,10 @@ Critical update addressing protocol enforcement and multi-IDE safety.
 ##### Usage
 ```
 User: "Enable Elefante"
-Agent calls: enableElefante → Acquires locks → Memory tools now work
+Agent calls: enableElefante -> Acquires locks -> Memory tools now work
 
 User: "Disable Elefante" (before switching IDEs)
-Agent calls: disableElefante → Releases locks → Safe for other IDE
+Agent calls: disableElefante -> Releases locks -> Safe for other IDE
 ```
 
 ---
@@ -61,7 +61,7 @@ First stable production release with comprehensive documentation cleanup.
   - Kuzu for knowledge graph relationships
   - Session context for conversation continuity
 
-- **MCP Server with 11 Tools**
+- **MCP Server with 14 Tools**
   - `addMemory` - Store with intelligent ingestion (NEW/REDUNDANT/RELATED/CONTRADICTORY)
   - `searchMemories` - Hybrid search (semantic + structured + context)
   - `queryGraph` - Execute Cypher queries on knowledge graph
@@ -131,7 +131,7 @@ These have been consolidated into this baseline release.
 |------|----------------|---------------|
 | 2025-11-27 | "v1.1.0" | Initial repository setup |
 | 2025-12-02 | "v1.2.0" | User profile integration |
-| 2025-12-04 | "v1.2.0" | Kuzu reserved word fix (`properties` → `props`) |
+| 2025-12-04 | "v1.2.0" | Kuzu reserved word fix (`properties` -> `props`) |
 | 2025-12-05 | "v1.3.0" | Documentation cleanup |
 | 2025-12-06 | **v1.0.0** | Official baseline release |
 
@@ -141,7 +141,7 @@ These have been consolidated into this baseline release.
 
 ### From Pre-1.0 Development
 If upgrading from internal development versions:
-1. Database schema changed (`properties` → `props`)
+1. Database schema changed (`properties` -> `props`)
 2. Run `python scripts/init_databases.py` to reinitialize
 3. Documentation restructured into `technical/`, `debug/`, `planning/`, `archive/`
 
