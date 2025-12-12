@@ -7,6 +7,16 @@ Project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Added
+- Local LLM support via OpenAI-compatible endpoints (e.g., Ollama) with best-effort auto-detect when `OPENAI_API_KEY` is not set.
+- LLM env overrides: `ELEFANTE_LLM_PROVIDER`, `ELEFANTE_LLM_BASE_URL`, `ELEFANTE_LLM_MODEL`, `ELEFANTE_LLM_API_KEY`.
+
+### Changed
+- MCP tool names standardized with an `elefante*` prefix (see MCP tool list in `src/mcp/server.py`).
+- Protocol injection key standardized to `MANDATORY_PROTOCOLS_READ_THIS_FIRST`.
+
 ## [1.0.1] - 2025-12-11
 
 ### Summary
@@ -16,18 +26,18 @@ Critical update addressing protocol enforcement and multi-IDE safety.
 ### Changes
 
 #### Auto-Inject Pitfalls (Protocol Enforcement)
-- MCP Server now injects mandatory protocols (`_MANDATORY_PROTOCOLS_READ_THIS_FIRST`) directly into every tool response
+- MCP Server now injects mandatory protocols (`MANDATORY_PROTOCOLS_READ_THIS_FIRST`) directly into every tool response
 - Context-Aware Warnings for `addMemory` (integrity), `searchMemories` (bias), and graph tools (consistency)
 - Updated `ai-behavior-compendium.md` with Issue #6 (Passive Protocol Enforcement Failure)
 
-#### ELEFANTE_MODE (Multi-IDE Safety) 🆕
+#### ELEFANTE_MODE (Multi-IDE Safety)
 - **Problem**: Multiple IDEs accessing same databases caused crashes/lock conflicts
 - **Solution**: Server starts OFF by default, user must explicitly enable
 
 ##### New MCP Tools
-- `enableElefante` - Acquires exclusive locks, enables memory operations
-- `disableElefante` - Releases locks, cleans up, returns to OFF state
-- `getElefanteStatus` - Shows current mode, lock status, holder info
+- `elefanteSystemEnable` - Acquires exclusive locks, enables memory operations
+- `elefanteSystemDisable` - Releases locks, cleans up, returns to OFF state
+- `elefanteSystemStatusGet` - Shows current mode, lock status, holder info (and stats when enabled)
 
 ##### New Files
 - `src/utils/elefante_mode.py` - Lock management singleton
@@ -37,15 +47,15 @@ Critical update addressing protocol enforcement and multi-IDE safety.
 - When **OFF**: Memory tools return graceful "disabled" response with instructions
 - When **ON**: Full functionality with exclusive database access
 - Lock files stored in `~/.elefante/locks/` with PID/timestamp tracking
-- Safe tools (`enableElefante`, `disableElefante`, `getElefanteStatus`) always available
+- Safe tools (`elefanteSystemEnable`, `elefanteSystemDisable`, `elefanteSystemStatusGet`, `elefanteDashboardOpen`) always available
 
 ##### Usage
 ```
 User: "Enable Elefante"
-Agent calls: enableElefante -> Acquires locks -> Memory tools now work
+Agent calls: elefanteSystemEnable -> Acquires locks -> Memory tools now work
 
 User: "Disable Elefante" (before switching IDEs)
-Agent calls: disableElefante -> Releases locks -> Safe for other IDE
+Agent calls: elefanteSystemDisable -> Releases locks -> Safe for other IDE
 ```
 
 ---
@@ -61,7 +71,7 @@ First stable production release with comprehensive documentation cleanup.
   - Kuzu for knowledge graph relationships
   - Session context for conversation continuity
 
-- **MCP Server with 16 Tools**
+- **MCP Server with 15 Tools**
   - `addMemory` - Store with intelligent ingestion (NEW/REDUNDANT/RELATED/CONTRADICTORY)
   - `searchMemories` - Hybrid search (semantic + structured + context)
   - `queryGraph` - Execute Cypher queries on knowledge graph
@@ -69,10 +79,12 @@ First stable production release with comprehensive documentation cleanup.
   - `createEntity` - Create nodes in knowledge graph
   - `createRelationship` - Link entities with relationships
   - `getEpisodes` - Browse past sessions with summaries
-  - `getStats` - System health & usage statistics
+  - `getSystemStatus` - Mode + lock info + (when enabled) system stats
   - `consolidateMemories` - Merge duplicates & resolve contradictions
   - `listAllMemories` - Export/inspect all memories
-  - `openDashboard` - Launch visual Knowledge Garden UI
+  - `getElefanteDashboard` - Launch visual Knowledge Garden UI (optionally refresh)
+  - `setElefanteConnection` - Upsert entities + create relationships in one call
+  - `migrateMemoriesV3` - Admin schema migration to V3
 
 - **Cognitive Memory Model**
   - LLM-powered extraction of emotions, intent, entities, relationships

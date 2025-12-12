@@ -22,8 +22,8 @@
 ### Behavior
 
 - **Default:** OFF (enabled: false)
-- **Tools always available:** `enableElefante`, `disableElefante`, `getElefanteStatus`, `getStats`
-- **Tools blocked when OFF:** All memory operations (addMemory, searchMemories, etc.)
+- **Tools always available:** `elefanteSystemEnable`, `elefanteSystemDisable`, `elefanteSystemStatusGet`, `elefanteDashboardOpen`
+- **Tools blocked when OFF:** All memory operations (`elefanteMemoryAdd`, `elefanteMemorySearch`, etc.)
 - **Lock files:** `~/.elefante/locks/{elefante,chroma,kuzu}.lock`
 
 ---
@@ -132,11 +132,11 @@ ERROR tests/test_user_profile.py::TestUserProfileLogic::* (4 tests)
 ### MCP Server Integration Test
 ```
  Server starts with mode OFF by default
- getElefanteStatus works when OFF
- listMemories BLOCKED when OFF (returns graceful message)
- enableElefante acquires locks
- listMemories WORKS when ON
- disableElefante releases locks
+ elefanteSystemStatusGet works when OFF
+ elefanteMemoryListAll BLOCKED when OFF (returns graceful message)
+ elefanteSystemEnable acquires locks
+ elefanteMemoryListAll WORKS when ON
+ elefanteSystemDisable releases locks
 ```
 
 ---
@@ -221,7 +221,7 @@ When ELEFANTE_MODE=Y (ON):
 ### src/mcp/server.py (Mode Checking)
 ```python
 # Tools that do NOT require Elefante Mode to be enabled
-SAFE_TOOLS = {"enableElefante", "disableElefante", "getElefanteStatus", "getStats"}
+SAFE_TOOLS = {"elefanteSystemEnable", "elefanteSystemDisable", "elefanteSystemStatusGet", "elefanteDashboardOpen"}
 
 # In call_tool handler:
 if tool_name not in SAFE_TOOLS and not self.mode_manager.is_enabled:

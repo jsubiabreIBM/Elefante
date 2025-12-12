@@ -58,7 +58,7 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Dual Storage (ChromaDB + Kuzu) |  | Production |
-| MCP Server (16 tools) |  | Production |
+| MCP Server (15 tools) |  | Production |
 | ELEFANTE_MODE (Multi-IDE Safety) |  | v1.0.1 |
 | Auto-Inject Pitfalls |  | v1.0.1 |
 | Cognitive Analysis (emotions, intent) |  | Requires OpenAI API key |

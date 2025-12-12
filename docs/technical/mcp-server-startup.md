@@ -39,6 +39,7 @@ Press `Ctrl+C` in the terminal.
 ### What MCP Server Does
 
 The MCP Server:
+
 1. Starts and waits for connections on **stdin/stdout** (stdio protocol)
 2. Receives JSON-RPC requests from the IDE (VS Code, Cursor, Bob)
 3. Exposes 11 MCP tools for memory operations
@@ -46,16 +47,16 @@ The MCP Server:
 
 ### What It Does NOT Do
 
--  Does NOT output "Server listening on port 8000"
--  Does NOT create a web interface
--  Does NOT print regular status messages
--  Does NOT require manual connection - IDE connects automatically
+- Does NOT output "Server listening on port 8000"
+- Does NOT create a web interface
+- Does NOT print regular status messages
+- Does NOT require manual connection - IDE connects automatically
 
 ### Stdio Protocol (Not HTTP)
 
 **Important**: MCP uses **stdio** (standard input/output), NOT HTTP.
 
-```
+```text
 IDE (VS Code, Cursor, Bob)
   ↓
   ├─ stdin: {"jsonrpc": "2.0", "method": "initialize", ...}
@@ -91,10 +92,11 @@ python scripts/verify_mcp_handshake.py
 ```
 
 **What This Tests**:
--  Server process starts
--  Server listens to stdin
--  Server responds to JSON-RPC
--  Protocol is working
+ 
+- Server process starts
+- Server listens to stdin
+- Server responds to JSON-RPC
+- Protocol is working
 
 ### Method 2: Check Health
 
@@ -105,7 +107,7 @@ python scripts/health_check.py
 
 **Expected Output** (includes MCP check):
 
-```
+```text
  MCP Server: Running
  All systems operational!
 ```
@@ -130,19 +132,23 @@ asyncio.run(list_tools())
 
 **Expected Output**:
 
-```
-Available MCP Tools: 11
-  - addMemory
-  - searchMemories
-  - queryGraph
-  - getContext
-  - createEntity
-  - createRelationship
-  - getEpisodes
-  - getStats
-  - consolidateMemories
-  - listAllMemories
-  - openDashboard
+```text
+Available MCP Tools: 15
+  - elefanteMemoryAdd
+  - elefanteMemorySearch
+  - elefanteGraphQuery
+  - elefanteContextGet
+  - elefanteGraphEntityCreate
+  - elefanteGraphRelationshipCreate
+  - elefanteSessionsList
+  - elefanteSystemStatusGet
+  - elefanteDashboardOpen
+  - elefanteGraphConnect
+  - elefanteMemoryConsolidate
+  - elefanteMemoryListAll
+  - elefanteMemoryMigrateToV3
+  - elefanteSystemEnable
+  - elefanteSystemDisable
 ```
 
 ---
@@ -153,7 +159,7 @@ Available MCP Tools: 11
 
 **Symptom**:
 
-```
+```text
 Traceback (most recent call last):
   File "src/mcp/server.py", line 15, in <module>
     from mcp.server import Server
@@ -161,6 +167,7 @@ ModuleNotFoundError: No module named 'mcp'
 ```
 
 **Root Causes**:
+
 1. Virtual environment not activated
 2. MCP not installed in venv
 3. Wrong Python being used
@@ -191,18 +198,54 @@ python -m src.mcp.server
 ### Issue #2: Server Starts But IDE Can't Connect
 
 **Symptom**:
+
 - Server starts fine (no errors)
 - IDE says "MCP connection failed"
 - IDE still can't use memory tools
 
 **Root Causes**:
+
 1. MCP config points to wrong Python path
 2. PYTHONPATH not set in IDE config
 3. Server is using global Python instead of venv
 
 **Fix**:
 
-**For VS Code** (edit `.vscode/settings.json`):
+**For VS Code (Built-in MCP)** (edit `mcp.json`):
+
+You can open the correct file from the Command Palette:
+
+- `MCP: Open User Configuration`
+- `MCP: Open Workspace Folder Configuration`
+
+Common user configuration locations:
+
+- macOS (stable): `~/Library/Application Support/Code/User/mcp.json`
+- macOS (Insiders): `~/Library/Application Support/Code - Insiders/User/mcp.json`
+- Windows (stable): `%APPDATA%\\Code\\User\\mcp.json`
+- Windows (Insiders): `%APPDATA%\\Code - Insiders\\User\\mcp.json`
+- Linux (stable): `~/.config/Code/User/mcp.json`
+- Linux (Insiders): `~/.config/Code - Insiders/User/mcp.json`
+
+Example `mcp.json` configuration:
+
+```json
+{
+  "servers": {
+    "elefante": {
+      "type": "stdio",
+      "command": "/absolute/path/to/Elefante/.venv/bin/python",
+      "args": ["-m", "src.mcp.server"],
+      "env": {
+        "PYTHONPATH": "/absolute/path/to/Elefante",
+        "ELEFANTE_CONFIG_PATH": "/absolute/path/to/Elefante/config.yaml"
+      }
+    }
+  }
+}
+```
+
+**For VS Code (Roo-Cline Extension)** (edit `.vscode/settings.json`):
 
 ```json
 {
@@ -236,11 +279,29 @@ python -m src.mcp.server
 }
 ```
 
+**For Antigravity (Google)** (edit `~/.gemini/antigravity/mcp_config.json`):
+
+On Windows, this file is typically:
+
+- `%USERPROFILE%\\.gemini\\antigravity\\mcp_config.json`
+
+Antigravity uses an MCP config file similar to Cursor/Bob. You can generate/update it with:
+
+```bash
+python scripts/configure_antigravity.py
+```
+
+**For Bob-IDE (IBM Bob)**:
+
+Some Bob-IDE distributions store MCP servers in `mcp_settings.json` (a separate file from `settings.json`).
+The auto-config script updates it when present.
+
 **Key Points**:
--  Use ABSOLUTE path to `.venv/bin/python` (not relative path)
--  Include `.venv/bin/python` in command (not just `python`)
--  Set `PYTHONPATH` to project directory
--  Set `cwd` to project directory
+
+- Use ABSOLUTE path to `.venv/bin/python` (not relative path)
+- Include `.venv/bin/python` in command (not just `python`)
+- Set `PYTHONPATH` to project directory
+- Set `cwd` to project directory
 
 ---
 
@@ -248,7 +309,7 @@ python -m src.mcp.server
 
 **Symptom**:
 
-```
+```text
 Traceback (most recent call last):
   ...
   Server closed connection unexpectedly.
@@ -265,8 +326,8 @@ source .venv/bin/activate
 python -m src.mcp.server
 ```
 
-2. Look for import errors or exceptions in output
-3. Fix the error (usually missing module or config issue)
+1. Look for import errors or exceptions in output
+1. Fix the error (usually missing module or config issue)
 
 ---
 
@@ -274,7 +335,7 @@ python -m src.mcp.server
 
 **Symptom**:
 
-```
+```text
 RuntimeError: Kuzu database lock in use
 Cannot acquire lock at ~/.elefante/data/kuzu_db/.lock
 ```
@@ -389,7 +450,7 @@ Once configured properly, your IDE will:
 
 Once server is running, test tools:
 
-### Test addMemory
+### Test elefanteMemoryAdd
 
 ```python
 import subprocess
@@ -403,13 +464,13 @@ proc = subprocess.Popen(
     text=True
 )
 
-# Send addMemory request
+# Send elefanteMemoryAdd request
 request = {
     "jsonrpc": "2.0",
     "id": 1,
     "method": "tools/call",
     "params": {
-        "name": "addMemory",
+        "name": "elefanteMemoryAdd",
         "arguments": {
             "content": "Test memory",
             "importance": 5
@@ -473,7 +534,7 @@ Before claiming "MCP Server is working":
 - [ ] Health check passes: `python scripts/health_check.py`
 - [ ] IDE config points to venv Python (absolute path)
 - [ ] IDE shows "MCP Connected" status
-- [ ] Can use memory tools in IDE (addMemory, searchMemories, etc.)
+- [ ] Can use memory tools in IDE (elefanteMemoryAdd, elefanteMemorySearch, etc.)
 - [ ] No Kuzu lock conflicts (if dashboard running separately)
 
 ---

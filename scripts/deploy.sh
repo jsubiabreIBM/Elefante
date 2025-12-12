@@ -17,19 +17,19 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
+    echo -e "${GREEN}[OK] $1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}✗ $1${NC}"
+    echo -e "${RED}[ERROR] $1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠ $1${NC}"
+    echo -e "${YELLOW}[WARN] $1${NC}"
 }
 
 print_info() {
-    echo "ℹ $1"
+    echo "[INFO] $1"
 }
 
 # Check if Python is installed

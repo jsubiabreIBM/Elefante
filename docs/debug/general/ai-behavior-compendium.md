@@ -346,7 +346,7 @@ EXISTING PROTOCOL (Inception Memory, importance=10):
 "PRIME DIRECTIVE: MEMORY FIRST
 1. Check Context: Before answering, ALWAYS search memory"
 
-EXISTING TOOL DESCRIPTION (searchMemories):
+EXISTING TOOL DESCRIPTION (elefanteMemorySearch):
 "AUTOMATIC USAGE RULES:
 1. ALWAYS call this tool when user asks open-ended questions"
 
@@ -410,7 +410,7 @@ async def clearForAction(task_type: str) -> dict:
 
 # Other tools check clearance
 @server.tool()  
-async def addMemory(content: str, clearance_token: str = None):
+async def elefanteMemoryAdd(content: str, clearance_token: str = None):
     if not valid_clearance(clearance_token):
         return {"error": "Must call clearForAction first"}
 ```

@@ -168,20 +168,20 @@ ENFORCEMENT: These preferences stored in Elefante must be APPLIED (Layer 4) and 
         )
         
         if result:
-            print(f"✅ Insight {i}/4 stored: {result.id}")
+            print(f"Insight {i}/4 stored: {result.id}")
             print(f"   Tags: {', '.join(insight['tags'])}")
             print(f"   Space: {insight['space']}")
             print()
         else:
-            print(f"⚠️  Insight {i}/4 was ignored by Intelligence Pipeline")
+            print(f"Insight {i}/4 was ignored by Intelligence Pipeline")
             print()
     
-    print("✅ All core insights stored successfully!")
+    print("All core insights stored successfully!")
     print("\nThese insights can now be retrieved with:")
-    print("  - searchMemories('three gaps')")
-    print("  - searchMemories('protocol enforcement')")
-    print("  - searchMemories('memory quality')")
-    print("  - searchMemories('jaime preferences')")
+    print("  - elefanteMemorySearch('three gaps')")
+    print("  - elefanteMemorySearch('protocol enforcement')")
+    print("  - elefanteMemorySearch('memory quality')")
+    print("  - elefanteMemorySearch('jaime preferences')")
 
 
 if __name__ == "__main__":

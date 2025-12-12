@@ -50,6 +50,34 @@ Simply talk to your AI agent:
 
 Elefante handles the rest—storing, indexing, and retrieving with perfect accuracy.
 
+### Local LLM (No Paid API Keys)
+
+Elefante uses an LLM internally as an “agent brain” for titles, summaries, and categorization. You can run that locally.
+
+#### Ollama (recommended)
+
+1) Start Ollama
+
+```bash
+ollama serve
+```
+
+1) Pull a model
+
+```bash
+ollama pull llama3.1:8b
+```
+
+1) Point Elefante at Ollama’s OpenAI-compatible endpoint
+
+```bash
+export ELEFANTE_LLM_PROVIDER=local
+export ELEFANTE_LLM_BASE_URL=http://localhost:11434/v1
+export ELEFANTE_LLM_MODEL=llama3.1:8b
+```
+
+If `OPENAI_API_KEY` is not set, Elefante will also auto-detect a local Ollama server at `http://localhost:11434/v1` (best-effort) and use it.
+
 ---
 
 ## Documentation
@@ -90,6 +118,7 @@ Perfect Result
 ```
 
 **Key Innovation**: Adaptive weighting adjusts retrieval strategy based on query type:
+
 - Questions -> Semantic search
 - IDs/Names -> Graph lookup
 - Pronouns -> Session context
@@ -98,33 +127,36 @@ See [`docs/technical/architecture.md`](docs/technical/architecture.md) for detai
 
 ---
 
-## MCP Tools (16 Total)
+## MCP Tools (15 Total)
 
 Once installed, your AI agent gets these tools:
 
 | Tool | Purpose | Example |
 |------|---------|---------|
-| `addMemory` | Store information with intelligent ingestion | "Remember I'm working on Project Omega" |
-| `searchMemories` | Retrieve memories (semantic/structured/hybrid) | "What do you know about Omega?" |
-| `queryGraph` | Execute Cypher queries on knowledge graph | "Show all AI-related projects" |
-| `getContext` | Get comprehensive session context | (Auto-called by agent) |
-| `createEntity` | Create nodes in knowledge graph | "Create entity for 'Bob'" |
-| `createRelationship` | Link entities with relationships | "Link Bob to Elefante as Maintainer" |
-| `getEpisodes` | Browse past sessions with summaries | "Show recent work sessions" |
-| `getStats` | Get system health & usage statistics | "Show memory system stats" |
-| `consolidateMemories` | Merge duplicates & resolve contradictions | (Auto-triggered or manual) |
-| `listAllMemories` | Export/inspect all memories (no filtering) | "List all memories for backup" |
-| `openDashboard` | Launch visual Knowledge Garden UI | "Open the dashboard" |
-| `enableElefante` | Acquire exclusive locks, enable memory ops | "Enable Elefante" |
-| `disableElefante` | Release locks, safe for IDE switch | "Disable Elefante" |
-| `getElefanteStatus` | Check mode status and lock info | "Is Elefante enabled?" |
+| `elefanteMemoryAdd` | Store information with intelligent ingestion | "Remember I'm working on Project Omega" |
+| `elefanteMemorySearch` | Retrieve memories (semantic/structured/hybrid) | "What do you know about Omega?" |
+| `elefanteGraphQuery` | Execute Cypher queries on knowledge graph | "Show all AI-related projects" |
+| `elefanteContextGet` | Get comprehensive session context | (Auto-called by agent) |
+| `elefanteGraphEntityCreate` | Create nodes in knowledge graph | "Create entity for 'Bob'" |
+| `elefanteGraphRelationshipCreate` | Link entities with relationships | "Link Bob to Elefante as Maintainer" |
+| `elefanteSessionsList` | Browse past sessions with summaries | "Show recent work sessions" |
+| `elefanteSystemStatusGet` | Mode + lock info + (when enabled) system stats | "Show Elefante system status" |
+| `elefanteMemoryConsolidate` | Merge duplicates & resolve contradictions | (Auto-triggered or manual) |
+| `elefanteMemoryListAll` | Export/inspect all memories (no filtering) | "List all memories for backup" |
+| `elefanteDashboardOpen` | Open dashboard (optionally refresh snapshot) | "Open the dashboard" |
+| `elefanteGraphConnect` | Upsert entities + create relationships in one call | "Connect these concepts" |
+| `elefanteMemoryMigrateToV3` | Admin schema migration to V3 | "Migrate memories to V3" |
+| `elefanteSystemEnable` | Acquire exclusive locks, enable memory ops | "Enable Elefante" |
+| `elefanteSystemDisable` | Release locks, safe for IDE switch | "Disable Elefante" |
+
 
 **Key Features**:
-- **Intelligent Ingestion**: `addMemory` auto-detects NEW/REDUNDANT/RELATED/CONTRADICTORY
-- **Query Rewriting**: `searchMemories` requires explicit, standalone queries (no pronouns)
+
+- **Intelligent Ingestion**: `elefanteMemoryAdd` auto-detects NEW/REDUNDANT/RELATED/CONTRADICTORY
+- **Query Rewriting**: `elefanteMemorySearch` requires explicit, standalone queries (no pronouns)
 - **Hybrid Search**: Combines semantic (ChromaDB) + structured (Kuzu) + context
-- **Graph Analytics**: Direct Cypher query support via `queryGraph`
-- **Visual Exploration**: Interactive dashboard via `openDashboard`
+- **Graph Analytics**: Direct Cypher query support via `elefanteGraphQuery`
+- **Visual Exploration**: Interactive dashboard via `elefanteDashboardOpen`
 - **Multi-IDE Safety**: ELEFANTE_MODE prevents lock conflicts between IDEs
 
 See [`docs/technical/usage.md`](docs/technical/usage.md) for complete API reference.
@@ -156,7 +188,7 @@ See [`docs/technical/dashboard.md`](docs/technical/dashboard.md) for complete gu
 
 ### Implemented
 -  Triple-layer architecture (ChromaDB + Kuzu + Context)
--  MCP server with 16 tools
+-  MCP server with 15 tools
 -  ELEFANTE_MODE (Multi-IDE safety with exclusive locking)
 -  Auto-Inject Pitfalls (Protocol enforcement in responses)
 -  Cognitive memory model (LLM extracts emotions, intent, entities, relationships)

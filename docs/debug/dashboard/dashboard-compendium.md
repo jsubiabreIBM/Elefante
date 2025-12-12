@@ -336,7 +336,7 @@ layer=metadata.get("layer", "world"),
 sublayer=metadata.get("sublayer", "fact"),
 
 # Fix 4: Created standalone migration script
-# scripts/migrate_v3_direct.py (bypasses MCP cache)
+# scripts/migrate_memories_v3_direct.py (bypasses MCP cache)
 
 # Fix 5: Fixed GraphCanvas.tsx colors
 const layer = n.properties?.layer ?? props.layer ?? 'world';

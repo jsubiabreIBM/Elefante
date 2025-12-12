@@ -49,7 +49,7 @@ Press `Ctrl+C` in the terminal running the server.
 When using Roo-Cline, memories are automatically added during conversations. You can also explicitly use:
 
 ```
-Use the addMemory MCP tool to store this information
+Use the elefanteMemoryAdd MCP tool to store this information
 ```
 
 ### Method 2: Via Python Script

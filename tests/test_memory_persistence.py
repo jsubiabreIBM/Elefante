@@ -11,8 +11,8 @@ from uuid import uuid4
 from pathlib import Path
 
 from src.core.orchestrator import MemoryOrchestrator
-from src.core.vector_store import get_vector_store
-from src.core.graph_store import get_graph_store
+from src.core.vector_store import VectorStore
+from src.core.graph_store import GraphStore
 from src.models.query import QueryMode
 
 
@@ -20,9 +20,22 @@ class TestMemoryPersistence:
     """Test that memories persist correctly in both databases"""
     
     @pytest.fixture
-    def orchestrator(self):
-        """Create orchestrator instance"""
-        return MemoryOrchestrator()
+    def orchestrator(self, tmp_path):
+        """Create an orchestrator isolated to a temp DB (no shared locks)"""
+        chroma_dir = tmp_path / "chroma"
+        kuzu_dir = tmp_path / "kuzu_db"
+
+        vector_store = VectorStore(
+            collection_name=f"test_memory_persistence_{uuid4().hex}",
+            persist_directory=str(chroma_dir),
+        )
+        graph_store = GraphStore(database_path=str(kuzu_dir))
+
+        orch = MemoryOrchestrator(vector_store=vector_store, graph_store=graph_store)
+        orch._test_chroma_dir = chroma_dir
+        orch._test_collection_name = vector_store.collection_name
+        orch._test_kuzu_dir = kuzu_dir
+        return orch
     
     @pytest.mark.asyncio
     async def test_add_memory_persists_to_vector_store(self, orchestrator):
@@ -73,7 +86,7 @@ class TestMemoryPersistence:
         assert memory is not None
         
         # Query graph to verify node exists
-        graph_store = get_graph_store()
+        graph_store = orchestrator.graph_store
         # Query for Entity nodes with custom type (memories are stored as entities)
         query = "MATCH (e:Entity) RETURN e LIMIT 10"
         results = await graph_store.execute_query(query)
@@ -127,7 +140,12 @@ class TestMemoryPersistence:
         memory_id = memory.id
         
         # Create a NEW orchestrator instance (simulates restart)
-        new_orchestrator = MemoryOrchestrator()
+        new_vector_store = VectorStore(
+            collection_name=orchestrator._test_collection_name,
+            persist_directory=str(orchestrator._test_chroma_dir),
+        )
+        new_graph_store = GraphStore(database_path=str(orchestrator._test_kuzu_dir))
+        new_orchestrator = MemoryOrchestrator(vector_store=new_vector_store, graph_store=new_graph_store)
         
         # Search for the memory with the new instance
         results = await new_orchestrator.search_memories(
@@ -157,7 +175,7 @@ class TestMemoryPersistence:
         )
         
         # Query graph for the entity
-        graph_store = get_graph_store()
+        graph_store = orchestrator.graph_store
         query = f"MATCH (e) WHERE e.name = '{entity_name}' RETURN e"
         results = await graph_store.execute_query(query)
         

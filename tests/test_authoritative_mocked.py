@@ -4,6 +4,14 @@ from unittest.mock import MagicMock, AsyncMock
 from uuid import uuid4
 from datetime import datetime
 
+if "pytest" in sys.modules:
+    import pytest
+
+    pytest.skip(
+        "Manual mocked script (mutates sys.modules); not collected by pytest.",
+        allow_module_level=True,
+    )
+
 # =============================================================================
 # MOCK DEPENDENCIES BEFORE IMPORT
 # =============================================================================
@@ -43,7 +51,7 @@ from src.models.memory import Memory, MemoryMetadata, MemoryType, MemoryStatus
 from src.core.orchestrator import MemoryOrchestrator
 
 async def test_authoritative_pipeline():
-    print("🧪 TESTING AUTHORITATIVE 5-STEP PIPELINE (MOCKED)")
+    print("TESTING AUTHORITATIVE 5-STEP PIPELINE (MOCKED)")
     
     # 1. Setup Mocks
     vector_store = AsyncMock()
@@ -78,7 +86,7 @@ async def test_authoritative_pipeline():
         "tags": ["python", "coding"]
     }
     
-    print(f"\n📝 INPUT: {content} | {payload_metadata}")
+    print(f"\nINPUT: {content} | {payload_metadata}")
     
     # 3. Execute add_memory
     memory = await orchestrator.add_memory(
@@ -87,28 +95,28 @@ async def test_authoritative_pipeline():
     )
     
     # 4. Verify OUTPUT correctness
-    print("\n🧐 VERIFICATION:")
+    print("\nVERIFICATION:")
     
     # Check Layer/Sublayer
-    print(f"   - Layer: {memory.metadata.layer} (Expected: self) -> {'✅' if memory.metadata.layer == 'self' else '❌'}")
-    print(f"   - Sublayer: {memory.metadata.sublayer} (Expected: preference) -> {'✅' if memory.metadata.sublayer == 'preference' else '❌'}")
+    print(f"   - Layer: {memory.metadata.layer} (Expected: self) -> {'OK' if memory.metadata.layer == 'self' else 'FAIL'}")
+    print(f"   - Sublayer: {memory.metadata.sublayer} (Expected: preference) -> {'OK' if memory.metadata.sublayer == 'preference' else 'FAIL'}")
     
     # Check Reinforcement
-    print(f"   - Access Count: {memory.metadata.access_count} (Expected: 1) -> {'✅' if memory.metadata.access_count == 1 else '❌'}")
+    print(f"   - Access Count: {memory.metadata.access_count} (Expected: 1) -> {'OK' if memory.metadata.access_count == 1 else 'FAIL'}")
     
     # Check Persistence Calls
-    print(f"   - Vector Store Called: {'✅' if vector_store.add_memory.called else '❌'}")
-    print(f"   - Graph Store Called: {'✅' if graph_store.create_entity.called else '❌'}")
+    print(f"   - Vector Store Called: {'OK' if vector_store.add_memory.called else 'FAIL'}")
+    print(f"   - Graph Store Called: {'OK' if graph_store.create_entity.called else 'FAIL'}")
     
     # Check Graph Entity Properties
     if graph_store.create_entity.called:
         entity_arg = graph_store.create_entity.call_args[0][0]
-        print(f"   - Graph Entity Layer: {entity_arg.properties.get('layer')} -> {'✅' if entity_arg.properties.get('layer') == 'self' else '❌'}")
+        print(f"   - Graph Entity Layer: {entity_arg.properties.get('layer')} -> {'OK' if entity_arg.properties.get('layer') == 'self' else 'FAIL'}")
 
     return memory
 
 async def test_retrieval_plasticity():
-    print("\n🧪 TESTING READ-SIDE PLASTICITY (MOCKED)")
+    print("\nTESTING READ-SIDE PLASTICITY (MOCKED)")
     
     # Setup Mocks
     vector_store = AsyncMock()

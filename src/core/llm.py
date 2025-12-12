@@ -5,6 +5,7 @@ Handles interactions with Language Models (OpenAI, etc.) for memory consolidatio
 
 import json
 import os
+import urllib.request
 from typing import List, Dict, Any, Optional
 try:
     from openai import AsyncOpenAI
@@ -26,6 +27,8 @@ class LLMService:
         self.config = get_config()
         self.client = None
         self.model = self.config.elefante.llm.model
+        self.provider = (self.config.elefante.llm.provider or "openai").lower()
+        self.base_url = self.config.elefante.llm.base_url
         self._initialize_client()
         
     def _initialize_client(self):
@@ -34,13 +37,125 @@ class LLMService:
              logger.warning("OpenAI module not installed. LLM features disabled.")
              return
 
-        api_key = self.config.elefante.llm.api_key or os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            logger.warning("No LLM API key found. LLM features will be disabled.")
+        # Explicit base_url in config/env wins and enables local/openai-compatible providers.
+        # Examples: Ollama (http://localhost:11434/v1), LM Studio, vLLM.
+        base_url = self.base_url or os.getenv("ELEFANTE_LLM_BASE_URL")
+
+        # API key resolution:
+        # - For OpenAI: OPENAI_API_KEY or config llm.api_key.
+        # - For local providers: can be dummy (Ollama ignores it).
+        api_key = self.config.elefante.llm.api_key
+
+        if self.provider == "openai":
+            api_key = api_key or os.getenv("OPENAI_API_KEY")
+
+        # Auto-detect Ollama if no API key and no explicit base_url.
+        # This keeps the "LLM = dedicated agent" behavior without requiring paid keys.
+        # IMPORTANT: skip auto-detect under pytest to keep tests deterministic.
+        auto_detect = os.getenv("ELEFANTE_LLM_AUTO_DETECT_LOCAL", "1").strip().lower() not in {"0", "false", "no"}
+        if not base_url and not api_key and auto_detect and not self._is_pytest():
+            if self._ollama_is_available():
+                base_url = "http://localhost:11434/v1"
+                api_key = "ollama"
+                self.provider = "local"
+                detected = self._detect_openai_compatible_model(base_url)
+                if detected:
+                    self.model = detected
+                logger.info("No API key set; using local Ollama endpoint at http://localhost:11434/v1")
+            else:
+                logger.warning("No LLM configuration found (no API key and no local endpoint). LLM features will use fallbacks.")
+                return
+
+        # If a base_url is provided, treat it as an OpenAI-compatible endpoint.
+        if base_url:
+            if not api_key:
+                api_key = "local"
+
+            # If the config model is an OpenAI-only model name, but we're pointing to a local endpoint,
+            # try to auto-select an available local model.
+            if isinstance(self.model, str) and self.model.lower().startswith("gpt-"):
+                detected = self._detect_openai_compatible_model(base_url)
+                if detected:
+                    self.model = detected
+
+            self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+            logger.info(f"LLM Service initialized (provider={self.provider}, base_url={base_url}, model={self.model})")
             return
-            
+
+        # OpenAI default path (API key required)
+        if not api_key:
+            logger.warning("No LLM API key found. LLM features will use fallbacks.")
+            return
+
         self.client = AsyncOpenAI(api_key=api_key)
-        logger.info(f"LLM Service initialized with model: {self.model}")
+        logger.info(f"LLM Service initialized (provider={self.provider}, model={self.model})")
+
+    def _ollama_is_available(self, timeout_seconds: float = 0.25) -> bool:
+        """Best-effort probe for a local Ollama OpenAI-compatible endpoint."""
+        try:
+            req = urllib.request.Request(
+                "http://localhost:11434/v1/models",
+                method="GET",
+                headers={"Accept": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+                return 200 <= resp.status < 300
+        except Exception:
+            return False
+
+    def _is_pytest(self) -> bool:
+        # PYTEST_CURRENT_TEST is set by pytest for each test.
+        return bool(os.getenv("PYTEST_CURRENT_TEST"))
+
+    def _detect_openai_compatible_model(self, base_url: str, timeout_seconds: float = 0.5) -> Optional[str]:
+        """Pick a reasonable model id from an OpenAI-compatible /v1/models response."""
+        try:
+            url = base_url.rstrip("/") + "/models"
+            req = urllib.request.Request(url, method="GET", headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+            data = payload.get("data") if isinstance(payload, dict) else None
+            if not isinstance(data, list) or not data:
+                return None
+            # Prefer llama-ish models if present, otherwise first model.
+            ids = [m.get("id") for m in data if isinstance(m, dict) and isinstance(m.get("id"), str)]
+            if not ids:
+                return None
+            for mid in ids:
+                if "llama" in mid.lower():
+                    return mid
+            return ids[0]
+        except Exception:
+            return None
+
+    def _supports_response_format(self) -> bool:
+        """Local/openai-compatible servers often don't support response_format=json_object."""
+        return self.provider == "openai" and (self.base_url is None)
+
+    def _extract_json_object(self, text: str) -> Any:
+        """Tolerant JSON extraction for models that return extra prose."""
+        text = (text or "").strip()
+        if not text:
+            raise ValueError("Empty response")
+
+        # Fast path
+        try:
+            return json.loads(text)
+        except Exception:
+            pass
+
+        # Find first JSON object/array span
+        start_candidates = [i for i in [text.find("{"), text.find("[")] if i != -1]
+        if not start_candidates:
+            raise ValueError("No JSON object/array found")
+        start = min(start_candidates)
+        end_obj = text.rfind("}")
+        end_arr = text.rfind("]")
+        end = max(end_obj, end_arr)
+        if end == -1 or end <= start:
+            raise ValueError("Malformed JSON span")
+        snippet = text[start : end + 1]
+        return json.loads(snippet)
 
     async def generate_response(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a text response from the LLM"""
@@ -78,17 +193,20 @@ class LLMService:
         """
 
         try:
+            kwargs: Dict[str, Any] = {"temperature": 0.0}
+            if self._supports_response_format():
+                kwargs["response_format"] = {"type": "json_object"}
+
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": content}
                 ],
-                response_format={"type": "json_object"},
-                temperature=0.0
+                **kwargs
             )
-            
-            result = json.loads(response.choices[0].message.content)
+
+            result = self._extract_json_object(response.choices[0].message.content)
             # Handle both {"entities": [...]} and [...] formats
             if "entities" in result:
                 return result["entities"]
@@ -175,17 +293,20 @@ class LLMService:
         """
 
         try:
+            kwargs: Dict[str, Any] = {"temperature": 0.0}
+            if self._supports_response_format():
+                kwargs["response_format"] = {"type": "json_object"}
+
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": content}
                 ],
-                response_format={"type": "json_object"},
-                temperature=0.0
+                **kwargs
             )
-            
-            result = json.loads(response.choices[0].message.content)
+
+            result = self._extract_json_object(response.choices[0].message.content)
             return result
             
         except Exception as e:
@@ -238,17 +359,20 @@ class LLMService:
         """
 
         try:
+            kwargs: Dict[str, Any] = {"temperature": 0.0}
+            if self._supports_response_format():
+                kwargs["response_format"] = {"type": "json_object"}
+
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Content: {content}\nTags: {tags or []}"}
                 ],
-                response_format={"type": "json_object"},
-                temperature=0.0
+                **kwargs
             )
-            
-            result = json.loads(response.choices[0].message.content)
+
+            result = self._extract_json_object(response.choices[0].message.content)
             return {
                 "domain": result.get("domain", "reference"),
                 "category": result.get("category", "general")

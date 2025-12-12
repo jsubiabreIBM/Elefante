@@ -3,6 +3,7 @@ import asyncio
 import json
 import subprocess
 import time
+import os
 from pathlib import Path
 
 # Add project root to path
@@ -22,9 +23,8 @@ async def verify_handshake():
     4. Sends 'notifications/initialized'.
     5. Validates server is truly responsive (not just a running process).
     """
-    logger.info("🔌 Testing MCP Server Handshake...")
+    logger.info("Testing MCP Server Handshake...")
     
-    server_script = project_root / "src" / "mcp" / "server.py"
     cmd = [sys.executable, "-m", "src.mcp.server"]
     
     try:
@@ -35,7 +35,7 @@ async def verify_handshake():
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=str(project_root),
-            env={"PYTHONPATH": str(project_root)}  # Essential for imports
+            env={**os.environ, "PYTHONPATH": str(project_root)}  # Preserve environment
         )
         
         # 1. Send Initialize Request
@@ -50,7 +50,7 @@ async def verify_handshake():
             }
         }
         
-        logger.info("📤 Sending 'initialize'...")
+        logger.info("Sending 'initialize'...")
         process.stdin.write(json.dumps(init_request).encode() + b"\n")
         await process.stdin.drain()
         
@@ -58,31 +58,31 @@ async def verify_handshake():
         try:
             line = await asyncio.wait_for(process.stdout.readline(), timeout=10.0)
         except asyncio.TimeoutError:
-            logger.error("❌ Timeout waiting for 'initialize' response")
+            logger.error("Timeout waiting for 'initialize' response")
             process.kill()
             return False
             
         if not line:
             stderr = await process.stderr.read()
-            logger.error(f"❌ Server closed connection unexpectedly.\nStderr: {stderr.decode()}")
+            logger.error(f"Server closed connection unexpectedly.\nStderr: {stderr.decode()}")
             return False
             
         response = json.loads(line.decode())
         
         # 3. Validate Response
         if response.get("id") != 1:
-            logger.error(f"❌ ID mismatch. Expected 1, got {response.get('id')}")
+            logger.error(f"ID mismatch. Expected 1, got {response.get('id')}")
             return False
             
         if "result" not in response:
-            logger.error(f"❌ Invalid response format: {response}")
+            logger.error(f"Invalid response format: {response}")
             return False
             
         capabilities = response["result"].get("capabilities", {})
-        logger.info(f"✅ Handshake OK! Server Capabilities: {list(capabilities.keys())}")
+        logger.info(f"Handshake OK. Server capabilities: {list(capabilities.keys())}")
         
         # 4. Send Initialized Notification
-        logger.info("📤 Sending 'notifications/initialized'...")
+        logger.info("Sending 'notifications/initialized'...")
         notify_msg = {
             "jsonrpc": "2.0",
             "method": "notifications/initialized",
@@ -98,11 +98,11 @@ async def verify_handshake():
         except asyncio.TimeoutError:
             process.kill()
             
-        logger.info("✅ Verification Complete: MCP Server is speaking protocol.")
+        logger.info("Verification complete: MCP Server is speaking protocol.")
         return True
         
     except Exception as e:
-        logger.error(f"❌ Verification Failed: {e}")
+        logger.error(f"Verification failed: {e}")
         return False
 
 if __name__ == "__main__":

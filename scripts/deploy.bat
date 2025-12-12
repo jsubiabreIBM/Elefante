@@ -137,7 +137,7 @@ echo   - README.md - Quick start guide
 echo   - ARCHITECTURE.md - System design
 echo   - DEPLOYMENT_GUIDE.md - Detailed deployment steps
 echo.
-echo [OK] Happy memory building! 🐘
+echo [OK] Happy memory building!
 echo.
 
 pause

@@ -93,6 +93,7 @@ class LLMConfig(BaseModel):
     temperature: float = 0.0
     max_tokens: int = 1000
     api_key: Optional[str] = None
+    base_url: Optional[str] = None
 
 
 class LoggingConfig(BaseModel):
@@ -299,6 +300,27 @@ class Config:
             if 'llm' not in config_dict:
                 config_dict['llm'] = {}
             config_dict['llm']['api_key'] = openai_key
+
+        # LLM overrides (OpenAI or OpenAI-compatible endpoints like Ollama/LM Studio/vLLM)
+        if llm_provider := os.getenv('ELEFANTE_LLM_PROVIDER'):
+            if 'llm' not in config_dict:
+                config_dict['llm'] = {}
+            config_dict['llm']['provider'] = llm_provider
+
+        if llm_base_url := os.getenv('ELEFANTE_LLM_BASE_URL'):
+            if 'llm' not in config_dict:
+                config_dict['llm'] = {}
+            config_dict['llm']['base_url'] = llm_base_url
+
+        if llm_model := os.getenv('ELEFANTE_LLM_MODEL'):
+            if 'llm' not in config_dict:
+                config_dict['llm'] = {}
+            config_dict['llm']['model'] = llm_model
+
+        if llm_api_key := os.getenv('ELEFANTE_LLM_API_KEY'):
+            if 'llm' not in config_dict:
+                config_dict['llm'] = {}
+            config_dict['llm']['api_key'] = llm_api_key
         
         return config_dict
     

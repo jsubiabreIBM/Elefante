@@ -26,7 +26,7 @@
 - [`architecture.md`](technical/architecture.md) - System design & triple-layer architecture
 - [`cognitive-memory-model.md`](technical/cognitive-memory-model.md) - AI memory model
 - [`installation.md`](technical/installation.md) - Installation guide
-- [`usage.md`](technical/usage.md) - **Complete API reference (14 MCP tools)**
+- [`usage.md`](technical/usage.md) - **Complete API reference (15 MCP tools)**
 - [`dashboard.md`](technical/dashboard.md) - Visual knowledge graph guide
 
 **Advanced Documentation**:
@@ -87,24 +87,25 @@
 
 ##  MCP Tools Reference
 
-Elefante provides **14 MCP tools** for AI agents:
+Elefante provides **15 MCP tools** for AI agents:
 
 | Tool | Purpose |
 |------|---------|
-| `addMemory` | Store with intelligent ingestion (NEW/REDUNDANT/RELATED/CONTRADICTORY) |
-| `searchMemories` | Hybrid search (semantic + structured + context) |
-| `queryGraph` | Execute Cypher queries on knowledge graph |
-| `getContext` | Get comprehensive session context |
-| `createEntity` | Create nodes in knowledge graph |
-| `createRelationship` | Link entities with relationships |
-| `getEpisodes` | Browse past sessions with summaries |
-| `getStats` | System health & usage statistics |
-| `consolidateMemories` | Merge duplicates & resolve contradictions |
-| `listAllMemories` | Export/inspect all memories (no filtering) |
-| `openDashboard` | Launch visual Knowledge Garden UI |
-| `enableElefante` | Acquire exclusive locks, enable memory operations |
-| `disableElefante` | Release locks, safe for IDE switching |
-| `getElefanteStatus` | Check mode status and lock information |
+| `elefanteMemoryAdd` | Store with intelligent ingestion (NEW/REDUNDANT/RELATED/CONTRADICTORY) |
+| `elefanteMemorySearch` | Hybrid search (semantic + structured + context) |
+| `elefanteGraphQuery` | Execute Cypher queries on knowledge graph |
+| `elefanteContextGet` | Get comprehensive session context |
+| `elefanteGraphEntityCreate` | Create nodes in knowledge graph |
+| `elefanteGraphRelationshipCreate` | Link entities with relationships |
+| `elefanteSessionsList` | Browse past sessions with summaries |
+| `elefanteSystemStatusGet` | Mode + lock info + (when enabled) system stats |
+| `elefanteMemoryConsolidate` | Merge duplicates & resolve contradictions |
+| `elefanteMemoryListAll` | Export/inspect all memories (no filtering) |
+| `elefanteDashboardOpen` | Open dashboard (optionally refresh snapshot) |
+| `elefanteGraphConnect` | Upsert entities + create relationships in one call |
+| `elefanteMemoryMigrateToV3` | Admin schema migration to V3 |
+| `elefanteSystemEnable` | Acquire exclusive locks, enable memory operations |
+| `elefanteSystemDisable` | Release locks, safe for IDE switching |
 
 **Complete API reference**: [`technical/usage.md`](technical/usage.md)
 
@@ -173,7 +174,7 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory.
 - **Debug Source Docs**: 5 compendium folders
 - **Planning Docs**: 3 roadmap documents
 - **Archive**: Historical/releases folders
-- **MCP Tools**: 14 fully documented
+- **MCP Tools**: 15 fully documented
 
 ---
 
@@ -181,7 +182,7 @@ Immutable "Laws" extracted from debugging sessions - the system's immune memory.
 
 **Looking for specific topics**:
 - Installation -> `technical/installation.md` or `debug/installation-neural-register.md`
-- API/Tools -> `technical/usage.md` (all 16 tools)
+- API/Tools -> `technical/usage.md` (all 15 tools)
 - Architecture -> `technical/architecture.md`
 - Dashboard -> `technical/dashboard.md` or `debug/dashboard-neural-register.md`
 - Database -> `technical/kuzu-best-practices.md` or `debug/database-neural-register.md`

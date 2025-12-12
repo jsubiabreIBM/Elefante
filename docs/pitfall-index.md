@@ -127,8 +127,8 @@ Before completing ANY task, MUST:
 ### pitfall: memory search vs list all
 
 **Trigger:** User says "show all memories about X"  
-**Action:** Use `listAllMemories` + filter, not `searchMemories`  
-**Why:** searchMemories returns top-N by relevance  
+**Action:** Use `elefanteMemoryListAll` + filter, not `elefanteMemorySearch`  
+**Why:** `elefanteMemorySearch` returns top-N by relevance  
 **Source:** debug/memory-neural-register.md Law #2
 
 ---

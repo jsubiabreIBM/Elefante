@@ -38,7 +38,12 @@ logger = get_logger(__name__)
 
 # Tools that do NOT require Elefante Mode to be enabled
 # These are safe to call even when databases are locked by another IDE
-SAFE_TOOLS = {"enableElefante", "disableElefante", "getElefanteStatus", "getStats"}
+SAFE_TOOLS = {
+    "elefanteSystemEnable",
+    "elefanteSystemDisable",
+    "elefanteSystemStatusGet",
+    "elefanteDashboardOpen",
+}
 
 
 class ElefanteMCPServer:
@@ -46,13 +51,13 @@ class ElefanteMCPServer:
     MCP Server for Elefante Memory System
     
     Exposes memory operations as MCP tools:
-    - addMemory: Store new memories
-    - searchMemories: Search with semantic/structured/hybrid modes
-    - queryGraph: Execute Cypher queries on knowledge graph
-    - getContext: Retrieve session context
-    - createEntity: Create entities in knowledge graph
-    - createRelationship: Link entities with relationships
-    - getStats: Get system statistics
+    - elefanteMemoryAdd: Store new memories
+    - elefanteMemorySearch: Search with semantic/structured/hybrid modes
+    - elefanteGraphQuery: Execute Cypher queries on knowledge graph
+    - elefanteContextGet: Retrieve session context
+    - elefanteGraphEntityCreate: Create entities in knowledge graph
+    - elefanteGraphRelationshipCreate: Link entities with relationships
+    - elefanteSystemStatusGet: Get system status and statistics
     """
     
     def __init__(self):
@@ -80,15 +85,25 @@ class ElefanteMCPServer:
         ]
         
         # Context-specific injections
-        if tool_name == "addMemory":
+        if tool_name == "elefanteMemoryAdd":
             pitfalls.append("WARNING - MEMORY INTEGRITY: Ensure 'layer' and 'sublayer' are correctly classified. Do not default to 'world/fact' if unsure.")
         
-        if tool_name == "searchMemories":
+        if tool_name == "elefanteMemorySearch":
              pitfalls.append("WARNING - SEARCH BIAS: If results are empty, try broader terms. Do not assume non-existence without a semantic search.")
              pitfalls.append("WARNING - CONTRADICTIONS: If you find contradictory memories, prioritize the most recent one but note the conflict.")
 
-        if tool_name in ["queryGraph", "createEntity", "createRelationship"]:
+        if tool_name in [
+            "elefanteGraphQuery",
+            "elefanteGraphEntityCreate",
+            "elefanteGraphRelationshipCreate",
+        ]:
             pitfalls.append("WARNING - GRAPH CONSISTENCY: Ensure entity types match the allowed enum values. Do not invent new types without updating the schema.")
+
+        if tool_name == "elefanteGraphConnect":
+            pitfalls.append("WARNING - WORKFLOW: Prefer stable entity names/types and reuse existing entities. Avoid creating near-duplicates that only differ by punctuation or casing.")
+
+        if tool_name == "elefanteDashboardOpen":
+            pitfalls.append("WARNING - DASHBOARD: If refresh=true, this reads from databases and requires Elefante Mode to be enabled.")
 
         # Add to result with a key that demands attention
         result["MANDATORY_PROTOCOLS_READ_THIS_FIRST"] = pitfalls
@@ -111,7 +126,7 @@ class ElefanteMCPServer:
             self.logger.info("=== list_tools() handler called by MCP client ===")
             tools = [
                 types.Tool(
-                    name="addMemory",
+                    name="elefanteMemoryAdd",
                     description="""Store a new memory in Elefante's dual-database system.
 
 **YOU ARE ELEFANTE'S BRAIN** - You must classify the memory as you store it:
@@ -183,13 +198,18 @@ INTELLIGENT INGESTION: The system automatically detects duplicates (REDUNDANT), 
                             "metadata": {
                                 "type": "object",
                                 "description": "Additional metadata"
+                            },
+                            "force_new": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "If true, always create a new memory record (bypass title-based deduplication and do not mark as REDUNDANT)."
                             }
                         },
                         "required": ["content"]
                     }
                 ),
                 types.Tool(
-                    name="searchMemories",
+                    name="elefanteMemorySearch",
                     description="""**CRITICAL: USE THIS TOOL FOR ALL MEMORY QUERIES** - Search Elefante's memory system when user asks about their preferences, past conversations, or anything they want you to remember. DO NOT search workspace files for memory queries.
 
 **QUERY REWRITING REQUIREMENT:** Before calling this tool, you MUST rewrite the user's query to be standalone and specific. Replace ALL pronouns (it, that, this, he, she, they) and vague references with the actual entities from conversation context.
@@ -271,7 +291,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="queryGraph",
+                    name="elefanteGraphQuery",
                     description="Execute Cypher queries directly on Elefante's Kuzu knowledge graph for advanced structured data retrieval. Use this for complex relationship traversals, pattern matching, and graph analytics. Ideal for queries like 'Find all entities connected to X', 'Show the path between A and B', or 'List all relationships of type Y'.",
                     inputSchema={
                         "type": "object",
@@ -289,7 +309,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="getContext",
+                    name="elefanteContextGet",
                     description="**CONTEXTUAL GROUNDING**: Retrieve comprehensive context from Elefante's memory system for a specific session or task. Returns related memories from ChromaDB, connected entities and relationships from Kuzu graph, with configurable traversal depth. Use this to gather full context before making decisions or generating responses.",
                     inputSchema={
                         "type": "object",
@@ -316,7 +336,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="createEntity",
+                    name="elefanteGraphEntityCreate",
                     description="Create a new entity node in Elefante's Kuzu knowledge graph. Entities represent people, projects, files, concepts, technologies, tasks, organizations, locations, or events. These nodes can be linked via relationships to build a rich semantic network of knowledge.",
                     inputSchema={
                         "type": "object",
@@ -339,7 +359,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="createRelationship",
+                    name="elefanteGraphRelationshipCreate",
                     description="Create a directed relationship edge in Elefante's Kuzu knowledge graph connecting two existing entities. Relationships define how entities relate (e.g., 'depends_on', 'part_of', 'created_by') and enable graph traversal queries to discover connections and patterns.",
                     inputSchema={
                         "type": "object",
@@ -366,7 +386,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="getEpisodes",
+                    name="elefanteSessionsList",
                     description="Retrieve a list of recent sessions (episodes) with summaries. Use this to browse past interactions and understand the timeline of work. Each episode represents a distinct session of activity.",
                     inputSchema={
                         "type": "object",
@@ -385,15 +405,15 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="getStats",
-                    description="Get comprehensive statistics about Elefante's memory system health and usage. Returns metrics for ChromaDB (vector store size, embedding dimensions) and Kuzu (graph node/edge counts, relationship types), plus system performance indicators. Use for monitoring, debugging, or understanding memory system state.",
+                    name="elefanteSystemStatusGet",
+                    description="Get combined system status and statistics for Elefante. Includes Elefante Mode state (enabled/disabled), lock status, and when enabled, database health/usage statistics from the orchestrator.",
                     inputSchema={
                         "type": "object",
                         "properties": {}
                     }
                 ),
                 types.Tool(
-                    name="consolidateMemories",
+                    name="elefanteMemoryConsolidate",
                     description="**MEMORY MAINTENANCE**: Trigger a background process to analyze recent memories, merge duplicates, and resolve contradictions. Use this when you notice the user is getting inconsistent information or when the memory search returns too many near-identical results. This process uses an LLM to synthesize facts and update the knowledge graph.",
                     inputSchema={
                         "type": "object",
@@ -407,8 +427,8 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="listAllMemories",
-                    description="Retrieve ALL memories from the database without semantic filtering. This tool bypasses semantic search and returns memories directly from ChromaDB, making it ideal for: database inspection, debugging, exporting all memories, browsing complete memory collection, or when you need a comprehensive view. For relevance-based search, use searchMemories instead. Supports pagination and optional filtering by memory_type, importance, etc.",
+                    name="elefanteMemoryListAll",
+                    description="Retrieve ALL memories from the database without semantic filtering. This tool bypasses semantic search and returns memories directly from ChromaDB, making it ideal for: database inspection, debugging, exporting all memories, browsing complete memory collection, or when you need a comprehensive view. For relevance-based search, use elefanteMemorySearch instead. Supports pagination and optional filtering by memory_type, importance, etc.",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -450,15 +470,7 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="openDashboard",
-                    description="**VISUAL INTERFACE**: Launch and open the Elefante Knowledge Garden Dashboard in the user's browser. This visual interface allows the user to explore their memory graph, view connections between concepts, and filter by 'Spaces'. Use this when the user wants to 'see' their memory or explore the knowledge graph visually.",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {}
-                    }
-                ),
-                types.Tool(
-                    name="migrateMemoriesV3",
+                    name="elefanteMemoryMigrateToV3",
                     description="[ADMIN] Migrate all memories to V3 Schema (Layer/Sublayer). Runs in-process to avoid database locks. Iterates through all memories, re-classifies them, and updates both Vector and Graph stores.",
                     inputSchema={
                          "type": "object",
@@ -468,18 +480,72 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                     }
                 ),
                 types.Tool(
-                    name="refreshDashboardData",
-                    description="Regenerate the 'dashboard_snapshot.json' data file used by the visualization. Consolidates data from ChromaDB (memories) and Kuzu (graph relationships). Call this after adding new memories or when the dashboard looks out of sync.",
+                    name="elefanteDashboardOpen",
+                    description="Launch and open the Elefante Knowledge Garden Dashboard in the user's browser. Optionally refresh the dashboard snapshot data first.",
                     inputSchema={
                         "type": "object",
-                        "properties": {}
+                        "properties": {
+                            "refresh": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "If true, regenerate dashboard snapshot data before opening. Requires Elefante Mode to be enabled."
+                            }
+                        }
                     }
                 ),
                 types.Tool(
-                    name="enableElefante",
+                    name="elefanteGraphConnect",
+                    description="Create a small, idempotent graph workflow in one call: upsert entities (by name+type) and create relationships between them. Designed to reduce tool-chaining and keep graph operations consistent.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "entities": {
+                                "type": "array",
+                                "description": "Entities to upsert. Provide either id or (name+type). Use a stable ref to connect relationships.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ref": {"type": "string", "description": "Client reference key (e.g., 'project', 'repo', 'person1')"},
+                                        "id": {"type": "string", "description": "Existing entity UUID (optional)"},
+                                        "name": {"type": "string", "description": "Entity name (required if id not provided)"},
+                                        "type": {"type": "string", "description": "Entity type (required if id not provided)"},
+                                        "properties": {"type": "object", "description": "Optional properties"}
+                                    },
+                                    "required": ["ref"],
+                                    "additionalProperties": False
+                                }
+                            },
+                            "relationships": {
+                                "type": "array",
+                                "description": "Relationships to create. Provide either from_ref/to_ref or from_entity_id/to_entity_id.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "from_ref": {"type": "string"},
+                                        "to_ref": {"type": "string"},
+                                        "from_entity_id": {"type": "string"},
+                                        "to_entity_id": {"type": "string"},
+                                        "relationship_type": {"type": "string", "description": "Relationship type (accepts enum value, case-insensitive)"},
+                                        "properties": {"type": "object"}
+                                    },
+                                    "required": ["relationship_type"],
+                                    "additionalProperties": False
+                                }
+                            },
+                            "include_system_status": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "If true, include elefanteSystemStatusGet output in the response."
+                            }
+                        },
+                        "additionalProperties": False
+                    }
+                ),
+                types.Tool(
+                    name="elefanteSystemEnable",
                     description="""**REQUIRED FIRST STEP**: Enable Elefante Mode to activate the memory system.
 
-Elefante starts in DISABLED mode by default for multi-IDE safety. You MUST call this tool before using any memory operations (addMemory, searchMemories, etc.).
+Elefante starts in DISABLED mode by default for multi-IDE safety. You MUST call this tool before using any memory operations (elefanteMemoryAdd, elefanteMemorySearch, etc.).
 
 This tool:
 1. Acquires exclusive locks on ChromaDB and Kuzu databases
@@ -499,7 +565,7 @@ If another IDE is using Elefante, this will fail gracefully with lock informatio
                     }
                 ),
                 types.Tool(
-                    name="disableElefante",
+                    name="elefanteSystemDisable",
                     description="""Disable Elefante Mode and release all database locks.
 
 Use this when:
@@ -508,14 +574,6 @@ Use this when:
 - Troubleshooting lock-related issues
 
 This will gracefully close connections and clear all locks.""",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {}
-                    }
-                ),
-                types.Tool(
-                    name="getElefanteStatus",
-                    description="Check the current status of Elefante Mode. Returns whether the mode is enabled, which locks are held, and system health information. Use this to diagnose issues or verify the system state.",
                     inputSchema={
                         "type": "object",
                         "properties": {}
@@ -533,15 +591,18 @@ This will gracefully close connections and clear all locks.""",
             self.logger.info(f"Tool called: {name}", arguments=arguments)
             
             try:
-                # Handle mode management tools FIRST (always available)
-                if name == "enableElefante":
+                # Handle mode management + safe tools FIRST (always available)
+                if name == "elefanteSystemEnable":
                     result = await self._handle_enable_elefante(arguments)
                     return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
-                elif name == "disableElefante":
+                elif name == "elefanteSystemDisable":
                     result = await self._handle_disable_elefante(arguments)
                     return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
-                elif name == "getElefanteStatus":
-                    result = await self._handle_get_elefante_status(arguments)
+                elif name == "elefanteSystemStatusGet":
+                    result = await self._handle_get_system_status(arguments)
+                    return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
+                elif name == "elefanteDashboardOpen":
+                    result = await self._handle_get_elefante_dashboard(arguments)
                     return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
                 
                 # Check if Elefante Mode is enabled for other tools
@@ -549,32 +610,28 @@ This will gracefully close connections and clear all locks.""",
                     result = self.mode_manager.get_disabled_response(name)
                     return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
                 
-                if name == "addMemory":
+                if name == "elefanteMemoryAdd":
                     result = await self._handle_add_memory(arguments)
-                elif name == "searchMemories":
+                elif name == "elefanteMemorySearch":
                     result = await self._handle_search_memories(arguments)
-                elif name == "queryGraph":
+                elif name == "elefanteGraphQuery":
                     result = await self._handle_query_graph(arguments)
-                elif name == "getContext":
+                elif name == "elefanteContextGet":
                     result = await self._handle_get_context(arguments)
-                elif name == "createEntity":
+                elif name == "elefanteGraphEntityCreate":
                     result = await self._handle_create_entity(arguments)
-                elif name == "createRelationship":
+                elif name == "elefanteGraphRelationshipCreate":
                     result = await self._handle_create_relationship(arguments)
-                elif name == "getEpisodes":
+                elif name == "elefanteSessionsList":
                     result = await self._handle_get_episodes(arguments)
-                elif name == "listAllMemories":
+                elif name == "elefanteMemoryListAll":
                     result = await self._handle_list_all_memories(arguments)
-                elif name == "getStats":
-                    result = await self._handle_get_stats(arguments)
-                elif name == "consolidateMemories":
+                elif name == "elefanteMemoryConsolidate":
                     result = await self._handle_consolidate_memories(arguments)
-                elif name == "openDashboard":
-                    result = await self._handle_open_dashboard(arguments)
-                elif name == "migrateMemoriesV3":
+                elif name == "elefanteMemoryMigrateToV3":
                     result = await self._handle_migrate_memories_v3(arguments)
-                elif name == "refreshDashboardData":
-                    result = await self._handle_refresh_dashboard_data(arguments)
+                elif name == "elefanteGraphConnect":
+                    result = await self._handle_set_elefante_connection(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
                 
@@ -600,7 +657,7 @@ This will gracefully close connections and clear all locks.""",
                 )]
     
     async def _handle_enable_elefante(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle enableElefante tool call - Activate Elefante Mode"""
+        """Handle elefanteSystemEnable tool call - Activate Elefante Mode"""
         force = args.get("force", False)
         result = self.mode_manager.enable(force=force)
         
@@ -615,7 +672,7 @@ This will gracefully close connections and clear all locks.""",
         return result
     
     async def _handle_disable_elefante(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle disableElefante tool call - Deactivate Elefante Mode"""
+        """Handle elefanteSystemDisable tool call - Deactivate Elefante Mode"""
         result = self.mode_manager.disable()
         
         # Clear orchestrator reference
@@ -623,19 +680,29 @@ This will gracefully close connections and clear all locks.""",
             self.orchestrator = None
         
         return result
-    
-    async def _handle_get_elefante_status(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle getElefanteStatus tool call - Check system status"""
-        return {
+
+    async def _handle_get_system_status(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle elefanteSystemStatusGet tool call - Combined mode + stats"""
+        status: Dict[str, Any] = {
             "success": True,
             "mode": "enabled" if self.mode_manager.is_enabled else "disabled",
             "status": self.mode_manager.status,
             "lock_status": self.mode_manager.check_locks(),
-            "message": "Elefante Mode is ENABLED - all tools available" if self.mode_manager.is_enabled else "Elefante Mode is DISABLED - call enableElefante to activate"
         }
 
+        if not self.mode_manager.is_enabled:
+            status["stats"] = None
+            status["message"] = "Elefante Mode is DISABLED - call elefanteSystemEnable to activate"
+            return status
+
+        orchestrator = await self._get_orchestrator()
+        stats = await orchestrator.get_stats()
+        status["stats"] = stats
+        status["message"] = "Elefante Mode is ENABLED"
+        return status
+
     async def _handle_add_memory(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle addMemory tool call - Authoritative Pipeline"""
+        """Handle elefanteMemoryAdd tool call - Authoritative Pipeline"""
         orchestrator = await self._get_orchestrator()
         
         # Build metadata with domain/category if provided
@@ -660,7 +727,8 @@ This will gracefully close connections and clear all locks.""",
             importance=args.get("importance", 5),
             tags=args.get("tags"),
             entities=args.get("entities"),
-            metadata=metadata if metadata else None
+            metadata=metadata if metadata else None,
+            force_new=bool(args.get("force_new", False))
         )
         
         # Handle case where memory was IGNORED by cognitive pipeline
@@ -696,7 +764,7 @@ This will gracefully close connections and clear all locks.""",
         }
     
     async def _handle_search_memories(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle searchMemories tool call"""
+        """Handle elefanteMemorySearch tool call"""
         # Parse mode
         mode_str = args.get("mode", "hybrid")
         mode = QueryMode(mode_str)
@@ -741,7 +809,7 @@ This will gracefully close connections and clear all locks.""",
         }
     
     async def _handle_query_graph(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle queryGraph tool call"""
+        """Handle elefanteGraphQuery tool call"""
         from src.core.graph_store import get_graph_store
         
         graph_store = get_graph_store()
@@ -755,7 +823,7 @@ This will gracefully close connections and clear all locks.""",
         }
     
     async def _handle_get_context(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle getContext tool call"""
+        """Handle elefanteContextGet tool call"""
         session_id = None
         if "session_id" in args:
             session_id = UUID(args["session_id"])
@@ -773,7 +841,7 @@ This will gracefully close connections and clear all locks.""",
         }
     
     async def _handle_create_entity(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle createEntity tool call"""
+        """Handle elefanteGraphEntityCreate tool call"""
         orchestrator = await self._get_orchestrator()
         entity = await orchestrator.create_entity(
             name=args["name"],
@@ -789,7 +857,7 @@ This will gracefully close connections and clear all locks.""",
         }
     
     async def _handle_create_relationship(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle createRelationship tool call"""
+        """Handle elefanteGraphRelationshipCreate tool call"""
         orchestrator = await self._get_orchestrator()
         relationship = await orchestrator.create_relationship(
             from_entity_id=UUID(args["from_entity_id"]),
@@ -809,18 +877,19 @@ This will gracefully close connections and clear all locks.""",
             }
         }
     
-    async def _handle_get_stats(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle getStats tool call"""
-        orchestrator = await self._get_orchestrator()
-        stats = await orchestrator.get_stats()
-        
-        return {
-            "success": True,
-            "stats": stats
-        }
+    def _normalize_relationship_type(self, relationship_type: str) -> str:
+        if not isinstance(relationship_type, str) or not relationship_type.strip():
+            raise ValueError("relationship_type must be a non-empty string")
+
+        candidate = relationship_type.strip()
+        # Support both canonical enum values and legacy-ish lowercase values.
+        # RelationshipType values are uppercase like RELATES_TO.
+        candidate_upper = candidate.upper()
+        candidate_upper = candidate_upper.replace("-", "_")
+        return candidate_upper
     
     async def _handle_list_all_memories(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle listAllMemories tool call"""
+        """Handle elefanteMemoryListAll tool call"""
         orchestrator = await self._get_orchestrator()
         
         # Parse filters if provided
@@ -850,7 +919,7 @@ This will gracefully close connections and clear all locks.""",
         }
     
     async def _handle_consolidate_memories(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle consolidateMemories tool call"""
+        """Handle elefanteMemoryConsolidate tool call"""
         orchestrator = await self._get_orchestrator()
         result = await orchestrator.consolidate_memories(
             force=args.get("force", False)
@@ -858,7 +927,7 @@ This will gracefully close connections and clear all locks.""",
         return result
     
     async def _handle_get_episodes(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle getEpisodes tool call"""
+        """Handle elefanteSessionsList tool call"""
         limit = args.get("limit", 10)
         offset = args.get("offset", 0)
         
@@ -893,13 +962,12 @@ This will gracefully close connections and clear all locks.""",
             "episodes": episodes
         }
     
-    async def _handle_open_dashboard(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle openDashboard tool call"""
+    async def _start_dashboard_and_open(self) -> Dict[str, Any]:
         global DASHBOARD_STARTED
-        
+
         port = 8000
         url = f"http://localhost:{port}"
-        
+
         if not DASHBOARD_STARTED:
             try:
                 serve_dashboard_in_thread(port=port)
@@ -908,23 +976,250 @@ This will gracefully close connections and clear all locks.""",
             except Exception as e:
                 # It might already be running (e.g. from another instance or previous run)
                 self.logger.warning(f"Failed to start dashboard server (might be running): {e}")
-                DASHBOARD_STARTED = True # Assume it's running
-        
-        # Open browser
+                DASHBOARD_STARTED = True  # Assume it's running
+
         try:
             webbrowser.open(url)
             message = f"Dashboard opened at {url}"
         except Exception as e:
             message = f"Dashboard server running at {url}, but failed to open browser: {e}"
-            
+
         return {
             "success": True,
             "message": message,
             "url": url
         }
 
+    async def _refresh_dashboard_snapshot(self) -> Dict[str, Any]:
+        import os
+        from src.utils.config import DATA_DIR
+
+        orchestrator = await self._get_orchestrator()
+
+        memories = await orchestrator.vector_store.get_all(limit=1000)
+
+        nodes = []
+        edges = []
+        seen_ids = set()
+
+        for mem in memories:
+            if mem.metadata.custom_metadata.get("title"):
+                name = mem.metadata.custom_metadata.get("title")
+            else:
+                words = mem.content.split()[:5]
+                name = " ".join(words) if words else "Untitled Memory"
+
+            node = {
+                "id": str(mem.id),
+                "name": name,
+                "type": "memory",
+                "description": mem.content,
+                "created_at": mem.metadata.created_at.isoformat(),
+                "properties": {
+                    "content": mem.content,
+                    "memory_type": mem.metadata.memory_type.value if hasattr(mem.metadata.memory_type, "value") else str(mem.metadata.memory_type),
+                    "importance": mem.metadata.importance,
+                    "layer": getattr(mem.metadata, "layer", "world"),
+                    "sublayer": getattr(mem.metadata, "sublayer", "fact"),
+                    "tags": ",".join(mem.metadata.tags) if mem.metadata.tags else "",
+                    "source": "chromadb"
+                }
+            }
+            nodes.append(node)
+            seen_ids.add(str(mem.id))
+
+        try:
+            results = await orchestrator.graph_store.execute_query("MATCH (n:Entity) RETURN n")
+
+            for row in results:
+                entity = row.get("n")
+                if not entity:
+                    continue
+
+                props = {}
+                eid = str(entity.id)
+
+                if eid in seen_ids:
+                    continue
+
+                extra = {}
+                if "props" in entity.properties and isinstance(entity.properties["props"], str):
+                    try:
+                        extra = json.loads(entity.properties["props"])
+                    except Exception:
+                        extra = {}
+
+                etype = entity.properties.get("type", "entity")
+                if etype == "memory" or extra.get("entity_subtype") == "memory":
+                    continue
+
+                node = {
+                    "id": eid,
+                    "name": entity.properties.get("name", eid[:20]),
+                    "type": etype,
+                    "description": entity.properties.get("description", ""),
+                    "created_at": str(entity.properties.get("created_at", "")),
+                    "properties": {"source": "kuzu"}
+                }
+                node["properties"].update(extra)
+                nodes.append(node)
+                seen_ids.add(eid)
+
+            edge_results = await orchestrator.graph_store.execute_query(
+                "MATCH (a)-[r]->(b) RETURN a.id, b.id, label(r)"
+            )
+
+            for row in edge_results:
+                src = row.get("a.id")
+                dst = row.get("b.id")
+                lbl = row.get("label(r)")
+
+                if src and dst:
+                    edges.append({
+                        "from": src,
+                        "to": dst,
+                        "label": lbl or "RELATED"
+                    })
+
+        except Exception as e:
+            self.logger.error(f"Error fetching graph data: {e}")
+
+        snapshot = {
+            "generated_at": datetime.utcnow().isoformat(),
+            "stats": {
+                "total_nodes": len(nodes),
+                "memories": sum(1 for n in nodes if n["type"] == "memory"),
+                "entities": sum(1 for n in nodes if n["type"] != "memory"),
+                "edges": len(edges)
+            },
+            "nodes": nodes,
+            "edges": edges
+        }
+
+        output_path = str(DATA_DIR / "dashboard_snapshot.json")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        with open(output_path, "w") as f:
+            json.dump(snapshot, f, indent=2, default=str)
+
+        return {
+            "success": True,
+            "message": f"Dashboard data refreshed. Nodes: {len(nodes)}, Edges: {len(edges)}",
+            "stats": snapshot["stats"]
+        }
+
+    async def _handle_get_elefante_dashboard(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle elefanteDashboardOpen tool call"""
+        refresh = bool(args.get("refresh", False))
+
+        refresh_result = None
+        if refresh:
+            if not self.mode_manager.is_enabled:
+                return self.mode_manager.get_disabled_response("elefanteDashboardOpen")
+            refresh_result = await self._refresh_dashboard_snapshot()
+
+        open_result = await self._start_dashboard_and_open()
+        result: Dict[str, Any] = {
+            "success": True,
+            "opened": open_result,
+            "refreshed": refresh_result
+        }
+        return result
+
+    async def _handle_set_elefante_connection(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle elefanteGraphConnect tool call"""
+        orchestrator = await self._get_orchestrator()
+
+        entities_input = args.get("entities") or []
+        relationships_input = args.get("relationships") or []
+        include_system_status = bool(args.get("include_system_status", False))
+
+        ref_to_entity_id: Dict[str, str] = {}
+        created_entities = []
+
+        for item in entities_input:
+            ref = item.get("ref")
+            if not ref or not isinstance(ref, str):
+                raise ValueError("Each entity must include a non-empty 'ref' string")
+
+            if item.get("id"):
+                entity_id = validate_uuid(item.get("id"))
+                ref_to_entity_id[ref] = str(entity_id)
+                created_entities.append({
+                    "ref": ref,
+                    "entity_id": str(entity_id),
+                    "source": "existing"
+                })
+                continue
+
+            name = item.get("name")
+            entity_type = item.get("type")
+            if not name or not entity_type:
+                raise ValueError("Entity requires either 'id' or both 'name' and 'type'")
+
+            entity = await orchestrator.create_entity(
+                name=name,
+                entity_type=entity_type,
+                properties=item.get("properties")
+            )
+            ref_to_entity_id[ref] = str(entity.id)
+            created_entities.append({
+                "ref": ref,
+                "entity_id": str(entity.id),
+                "name": entity.name,
+                "type": entity.type.value,
+                "source": "upsert"
+            })
+
+        created_relationships = []
+        for rel in relationships_input:
+            from_id = rel.get("from_entity_id")
+            to_id = rel.get("to_entity_id")
+
+            if not from_id and rel.get("from_ref"):
+                from_id = ref_to_entity_id.get(rel.get("from_ref"))
+            if not to_id and rel.get("to_ref"):
+                to_id = ref_to_entity_id.get(rel.get("to_ref"))
+
+            if not from_id or not to_id:
+                raise ValueError("Relationship requires from/to via entity_id or ref")
+
+            from_uuid = validate_uuid(from_id)
+            to_uuid = validate_uuid(to_id)
+
+            rel_type = self._normalize_relationship_type(rel.get("relationship_type"))
+            # Validate enum
+            _ = RelationshipType(rel_type)
+
+            relationship = await orchestrator.create_relationship(
+                from_entity_id=from_uuid,
+                to_entity_id=to_uuid,
+                relationship_type=rel_type,
+                properties=rel.get("properties")
+            )
+
+            created_relationships.append({
+                "from_entity_id": str(relationship.from_entity_id),
+                "to_entity_id": str(relationship.to_entity_id),
+                "type": relationship.relationship_type.value,
+                "properties": relationship.properties
+            })
+
+        result: Dict[str, Any] = {
+            "success": True,
+            "entities": created_entities,
+            "relationships": created_relationships,
+            "entity_ref_map": ref_to_entity_id,
+            "message": "Connection workflow completed"
+        }
+
+        if include_system_status:
+            result["system_status"] = await self._handle_get_system_status({})
+
+        return result
+
     async def _handle_migrate_memories_v3(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle migrateMemoriesV3 tool call"""
+        """Handle elefanteMemoryMigrateToV3 tool call"""
         self.logger.info("Starting V3 Migration (In-Process)...")
         orchestrator = await self._get_orchestrator()
         
@@ -1005,141 +1300,7 @@ This will gracefully close connections and clear all locks.""",
             "message": f"Migrated {total_migrated} memories to V3 Schema"
         }
 
-    async def _handle_refresh_dashboard_data(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle refreshDashboardData tool call"""
-        import os
-        from src.utils.config import DATA_DIR
-        orchestrator = await self._get_orchestrator()
-        
-        # 1. Fetch ALL memories from ChromaDB
-        # We can use get_all() which we verified earlier
-        memories = await orchestrator.vector_store.get_all(limit=1000)
-        
-        nodes = []
-        edges = []
-        seen_ids = set()
-        
-        # Convert memories to nodes
-        for mem in memories:
-            # Generate title if missing
-            if mem.metadata.custom_metadata.get("title"):
-                name = mem.metadata.custom_metadata.get("title")
-            else:
-                 words = mem.content.split()[:5]
-                 name = " ".join(words) if words else "Untitled Memory"
-            
-            node = {
-                "id": str(mem.id),
-                "name": name,
-                "type": "memory",
-                "description": mem.content,
-                "created_at": mem.metadata.created_at.isoformat(),
-                "properties": {
-                    "content": mem.content,
-                    "memory_type": mem.metadata.memory_type.value if hasattr(mem.metadata.memory_type, "value") else str(mem.metadata.memory_type),
-                    "importance": mem.metadata.importance,
-                    "layer": getattr(mem.metadata, "layer", "world"),
-                    "sublayer": getattr(mem.metadata, "sublayer", "fact"),
-                    "tags": ",".join(mem.metadata.tags) if mem.metadata.tags else "",
-                    "source": "chromadb"
-                }
-            }
-            nodes.append(node)
-            seen_ids.add(str(mem.id))
-            
-        # 2. Fetch Entities from Kuzu (Supplementary)
-        # Using execute_query on orchestrator's graph store
-        try:
-             results = await orchestrator.graph_store.execute_query("MATCH (n:Entity) RETURN n")
-             
-             for row in results:
-                 entity = row.get("n")
-                 if not entity: continue
-                 
-                 # Kuzu returns Node object, need to parse properties
-                 # Assuming entity is a Node object or dict-like
-                 # Based on graph_store.py: execute_query returns dicts
-                 # row['n'] is presumably a Kuzu Node object
-                 
-                 # Extract properties safely
-                 props = {}
-                 eid = str(entity.id)
-                 
-                 if eid in seen_ids: continue
-                 
-                 # Parse JSON props if string
-                 extra = {}
-                 if "props" in entity.properties and isinstance(entity.properties["props"], str):
-                     try:
-                         extra = json.loads(entity.properties["props"])
-                     except:
-                         pass
-                 
-                 # Skip if it's a memory (already have it)
-                 etype = entity.properties.get("type", "entity")
-                 if etype == "memory" or extra.get("entity_subtype") == "memory":
-                     continue
-                 
-                 node = {
-                     "id": eid,
-                     "name": entity.properties.get("name", eid[:20]),
-                     "type": etype,
-                     "description": entity.properties.get("description", ""),
-                     "created_at": str(entity.properties.get("created_at", "")),
-                     "properties": {"source": "kuzu"}
-                 }
-                 # Merge extra props
-                 node["properties"].update(extra)
-                 
-                 nodes.append(node)
-                 seen_ids.add(eid)
-                 
-             # 3. Fetch Relationships
-             edge_results = await orchestrator.graph_store.execute_query("MATCH (a)-[r]->(b) RETURN a.id, b.id, label(r)")
-             
-             for row in edge_results:
-                 # Note: result keys depend on query return clause
-                 # In graph_store.py execute_query maps columns
-                 src = row.get("a.id")
-                 dst = row.get("b.id")
-                 lbl = row.get("label(r)")
-                 
-                 if src and dst:
-                     edges.append({
-                         "from": src,
-                         "to": dst,
-                         "label": lbl or "RELATED"
-                     })
-                     
-        except Exception as e:
-            self.logger.error(f"Error fetching graph data: {e}")
-            # Continue with what we have
-            
-        # 4. Save Snapshot
-        snapshot = {
-            "generated_at": datetime.utcnow().isoformat(),
-            "stats": {
-                "total_nodes": len(nodes),
-                "memories": sum(1 for n in nodes if n["type"] == "memory"),
-                "entities": sum(1 for n in nodes if n["type"] != "memory"),
-                "edges": len(edges)
-            },
-            "nodes": nodes,
-            "edges": edges
-        }
-        
-        output_path = str(DATA_DIR / "dashboard_snapshot.json")
-        # Ensure dir exists
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        with open(output_path, "w") as f:
-            json.dump(snapshot, f, indent=2, default=str)
-            
-        return {
-            "success": True,
-            "message": f"Dashboard data refreshed. Nodes: {len(nodes)}, Edges: {len(edges)}",
-            "stats": snapshot["stats"]
-        }
+
     
     async def run(self):
         """Run the MCP server"""

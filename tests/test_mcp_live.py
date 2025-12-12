@@ -1,4 +1,3 @@
-
 import asyncio
 import json
 import sys
@@ -6,11 +5,15 @@ import os
 import subprocess
 from typing import Dict, Any
 
+import pytest
+
+pytest.skip("manual live MCP integration script (not part of automated pytest)", allow_module_level=True)
+
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 async def run_integration_test():
-    print("🚀 Starting Live MCP Server Integration Test...")
+    print("Starting Live MCP Server Integration Test...")
     
     # Path to server script
     server_script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "mcp", "server.py")
@@ -29,7 +32,7 @@ async def run_integration_test():
         env=env
     )
     
-    print(f"✅ Server process started (PID: {process.pid})")
+    print(f"Server process started (PID: {process.pid})")
 
     async def read_response():
         # Read line-by-line (JSON-RPC over stdio)
@@ -38,7 +41,7 @@ async def run_integration_test():
             if not line:
                 # Check if process exited
                 if process.returncode is not None:
-                    print(f"❌ Process exited with code {process.returncode}")
+                    print(f"Process exited with code {process.returncode}")
                     stderr = await process.stderr.read()
                     print(f"[STDERR]:\n{stderr.decode()}")
                 return None
@@ -65,7 +68,7 @@ async def run_integration_test():
 
     try:
         # 1. Initialize
-        print("\n📡 Sending 'initialize' request...")
+        print("\nSending 'initialize' request...")
         init_response = await send_request("initialize", {
             "protocolVersion": "2024-11-05",
             "capabilities": {},
@@ -73,9 +76,9 @@ async def run_integration_test():
         }, req_id=1)
         
         if init_response and "result" in init_response:
-            print("✅ Initialization successful")
+            print("Initialization successful")
         else:
-            print(f"❌ Initialization failed: {init_response}")
+            print(f"Initialization failed: {init_response}")
             return
 
         # 2. Initialized notification
@@ -87,11 +90,11 @@ async def run_integration_test():
         process.stdin.write(msg.encode())
         await process.stdin.drain()
 
-        # 3. Call Tool: searchMemories (to trigger injection)
-        print("\n🔍 Calling 'tools/call' (searchMemories)...")
+        # 3. Call Tool: elefanteMemorySearch (to trigger injection)
+        print("\nCalling 'tools/call' (elefanteMemorySearch)...")
         # Note: MCP protocol for tool call
         tool_call_response = await send_request("tools/call", {
-            "name": "searchMemories",
+            "name": "elefanteMemorySearch",
             "arguments": {
                 "query": "DEVELOPER ETIQUETTE",
                 "mode": "semantic" # Force semantic to avoid graph errors if empty
@@ -99,7 +102,7 @@ async def run_integration_test():
         }, req_id=2)
 
         # 4. Verify Injection
-        print("\n🧪 Verifying Injection...")
+        print("\nVerifying Injection...")
         if tool_call_response and "result" in tool_call_response:
             content_list = tool_call_response["result"].get("content", [])
             if content_list:
@@ -110,34 +113,34 @@ async def run_integration_test():
                     
                     # Print Result Summary
                     results = data.get("results", [])
-                    print(f"\n📄 Found {len(results)} memories:")
+                    print(f"\nFound {len(results)} memories:")
                     for res in results[:3]:
                         print(f"   - [{res.get('score', 0):.2f}] {res.get('content', '')[:60]}...")
 
                     # CHECK FOR INJECTION KEY
-                    key = "🛑_MANDATORY_PROTOCOLS_READ_THIS_FIRST"
+                    key = "MANDATORY_PROTOCOLS_READ_THIS_FIRST"
                     if key in data:
-                        print(f"✅ FOUND INJECTION KEY: {key}")
+                        print(f"FOUND INJECTION KEY: {key}")
                         print("   Protocols found:")
                         for p in data[key]:
                             print(f"   - {p[:60]}...")
                     else:
-                        print(f"❌ INJECTION KEY NOT FOUND in: {data.keys()}")
+                        print(f"INJECTION KEY NOT FOUND in: {data.keys()}")
                         
                 except json.JSONDecodeError:
-                    print(f"❌ Failed to parse tool response text: {text_content[:100]}...")
+                    print(f"Failed to parse tool response text: {text_content[:100]}...")
             else:
-                print("❌ No content in tool response")
+                print("No content in tool response")
         else:
-            print(f"❌ Tool call failed: {tool_call_response}")
+            print(f"Tool call failed: {tool_call_response}")
 
     except Exception as e:
-        print(f"❌ Test Exception: {e}")
+        print(f"Test Exception: {e}")
     finally:
-        print("\n🛑 Terminating server...")
+        print("\nTerminating server...")
         process.terminate()
         await process.wait()
-        print("✅ Server terminated")
+        print("Server terminated")
 
 if __name__ == "__main__":
     asyncio.run(run_integration_test())

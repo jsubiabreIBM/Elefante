@@ -12,7 +12,7 @@
 
 | # | Flaw | Impact | Status |
 |---|------|--------|--------|
-| 1 | **Response Bloat**: searchMemories returns 500+ tokens per memory (90% nulls) | Context window waste |  OPEN |
+| 1 | **Response Bloat**: `elefanteMemorySearch` returns 500+ tokens per memory (90% nulls) | Context window waste |  OPEN |
 | 2 | **Low Similarity**: Exact topic matches score 0.37-0.39 (should be 0.7+) | Poor retrieval |  OPEN |
 | 3 | **No Action Guidance**: Raw JSON dump, no summary or suggested actions | Integration fail |  OPEN |
 
@@ -59,31 +59,31 @@ all_data = collection._collection.get(
 
 ### LAW #2: Semantic Filter Awareness
 
-**Statement**: `searchMemories` tool applies semantic relevance filtering. Use `listAllMemories` for unfiltered access.
+**Statement**: `elefanteMemorySearch` tool applies semantic relevance filtering. Use `elefanteMemoryListAll` for unfiltered access.
 
 **The Cognitive Trade-off**: Semantic search prioritizes relevance over completeness.
 
 **Tool Comparison**:
 | Tool | Method | Use Case | Returns |
 |------|--------|----------|---------|
-| `searchMemories` | `collection.query()` | Find relevant memories | Top N by similarity |
-| `listAllMemories` | `collection._collection.get()` | Browse all memories | Complete dataset |
+| `elefanteMemorySearch` | `collection.query()` | Find relevant memories | Top N by similarity |
+| `elefanteMemoryListAll` | `collection._collection.get()` | Browse all memories | Complete dataset |
 
 **User Confusion Pattern**:
 
 ```
 User: "Show me all my memories about Python"
-AI uses: searchMemories(query="Python")
+AI uses: elefanteMemorySearch(query="Python")
 Result: Top 10 most relevant memories
 User expectation: ALL memories mentioning Python
 ```
 
-**Resolution**: Clarify in tool descriptions that `searchMemories` filters by relevance.
+**Resolution**: Clarify in tool descriptions that `elefanteMemorySearch` filters by relevance.
 
 **Best Practice**:
 
-- Use `searchMemories` for "find the most relevant..."
-- Use `listAllMemories` + client-side filtering for "show me everything about..."
+- Use `elefanteMemorySearch` for "find the most relevant..."
+- Use `elefanteMemoryListAll` + client-side filtering for "show me everything about..."
 
 ---
 
@@ -139,7 +139,7 @@ Persistent Memory (ChromaDB + Kuzu):
 **Search Behavior**:
 
 ```python
-# searchMemories with include_conversation=True
+# elefanteMemorySearch with include_conversation=True
 results = {
     "conversation": [...],  # From session buffer
     "stored": [...]         # From ChromaDB/Kuzu
@@ -149,7 +149,7 @@ results = {
 **User Confusion**: "Why doesn't the AI remember what I just said?"  
 **Answer**: Session buffer not yet persisted to database (happens on session end or manual save)
 
-**Best Practice**: Explicitly save important conversation turns using `addMemory` tool
+**Best Practice**: Explicitly save important conversation turns using `elefanteMemoryAdd` tool
 
 ---
 
@@ -198,9 +198,9 @@ results = {
 
 **Trigger**: User asks "show all memories about X"  
 **Symptom**: Only top 10 results returned  
-**Root Cause**: `searchMemories` prioritizes relevance over completeness  
+**Root Cause**: `elefanteMemorySearch` prioritizes relevance over completeness  
 **Impact**: User believes memories are missing  
-**Resolution**: Add `listAllMemories` tool for unfiltered access  
+**Resolution**: Add `elefanteMemoryListAll` tool for unfiltered access  
 **Prevention**: Clarify tool descriptions, educate users
 
 ### Pattern #3: Session Context Loss (2025-12-02)

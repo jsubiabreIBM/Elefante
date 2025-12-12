@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-"""
-🐘 ELEFANTE INTERACTIVE DEMO
-Walk through all MCP features step by step
+"""ELEFANTE INTERACTIVE DEMO
+Walk through MCP features step by step
 """
 import asyncio
 import os
@@ -24,9 +23,9 @@ async def demo():
     server = ElefanteMCPServer()
     
     # =========================================================================
-    # FEATURE 1: addMemory
+    # FEATURE 1: elefanteMemoryAdd
     # =========================================================================
-    print_header("FEATURE 1: addMemory")
+    print_header("FEATURE 1: elefanteMemoryAdd")
     print("Adding a NEW memory about user preference...")
     
     result = await server._handle_add_memory({
@@ -40,9 +39,9 @@ async def demo():
     input("\nPress Enter to continue...")
     
     # =========================================================================
-    # FEATURE 2: addMemory (REDUNDANT detection)
+    # FEATURE 2: elefanteMemoryAdd (REDUNDANT detection)
     # =========================================================================
-    print_header("FEATURE 2: addMemory (REDUNDANT Detection)")
+    print_header("FEATURE 2: elefanteMemoryAdd (REDUNDANT Detection)")
     print("Adding the SAME memory again to trigger REDUNDANT classification...")
     
     result = await server._handle_add_memory({
@@ -52,13 +51,13 @@ async def demo():
         "importance": 8
     })
     print_result(result)
-    print("\n👆 Notice classification is 'REDUNDANT'")
+    print("\nNotice classification is 'REDUNDANT'")
     input("\nPress Enter to continue...")
     
     # =========================================================================
-    # FEATURE 3: addMemory (CONTRADICTORY detection)
+    # FEATURE 3: elefanteMemoryAdd (CONTRADICTORY detection)
     # =========================================================================
-    print_header("FEATURE 3: addMemory (CONTRADICTORY Detection)")
+    print_header("FEATURE 3: elefanteMemoryAdd (CONTRADICTORY Detection)")
     print("Adding a CONTRADICTING memory...")
     
     result = await server._handle_add_memory({
@@ -68,13 +67,13 @@ async def demo():
         "importance": 8
     })
     print_result(result)
-    print("\n👆 If similar enough, classification should be 'CONTRADICTORY'")
+    print("\nIf similar enough, classification should be 'CONTRADICTORY'")
     input("\nPress Enter to continue...")
     
     # =========================================================================
-    # FEATURE 4: searchMemories
+    # FEATURE 4: elefanteMemorySearch
     # =========================================================================
-    print_header("FEATURE 4: searchMemories")
+    print_header("FEATURE 4: elefanteMemorySearch")
     print("Searching for 'dark mode'...")
     
     result = await server._handle_search_memories({
@@ -85,19 +84,19 @@ async def demo():
     input("\nPress Enter to continue...")
     
     # =========================================================================
-    # FEATURE 5: getStats
+    # FEATURE 5: elefanteSystemStatusGet
     # =========================================================================
-    print_header("FEATURE 5: getStats")
-    print("Getting system statistics...")
+    print_header("FEATURE 5: elefanteSystemStatusGet")
+    print("Getting system status and statistics...")
     
-    result = await server._handle_get_stats({})
+    result = await server._handle_get_system_status({})
     print_result(result)
     input("\nPress Enter to continue...")
     
     # =========================================================================
-    # FEATURE 6: listAllMemories
+    # FEATURE 6: elefanteMemoryListAll
     # =========================================================================
-    print_header("FEATURE 6: listAllMemories")
+    print_header("FEATURE 6: elefanteMemoryListAll")
     print("Listing all memories (no query needed)...")
     
     result = await server._handle_list_all_memories({"limit": 10})
@@ -108,9 +107,9 @@ async def demo():
     input("\nPress Enter to continue...")
     
     # =========================================================================
-    # FEATURE 7: createEntity
+    # FEATURE 7: elefanteGraphEntityCreate
     # =========================================================================
-    print_header("FEATURE 7: createEntity")
+    print_header("FEATURE 7: elefanteGraphEntityCreate")
     print("Creating a custom entity 'Elefante Project'...")
     
     result = await server._handle_create_entity({
@@ -123,9 +122,9 @@ async def demo():
     input("\nPress Enter to continue...")
     
     # =========================================================================
-    # FEATURE 8: queryGraph
+    # FEATURE 8: elefanteGraphQuery
     # =========================================================================
-    print_header("FEATURE 8: queryGraph (Raw Cypher)")
+    print_header("FEATURE 8: elefanteGraphQuery (Raw Cypher)")
     print("Querying graph for all entities...")
     
     result = await server._handle_query_graph({
@@ -137,18 +136,18 @@ async def demo():
     # =========================================================================
     # DONE
     # =========================================================================
-    print_header("🎉 DEMO COMPLETE")
+    print_header("DEMO COMPLETE")
     print("You've seen the core Elefante features:")
-    print("  1. addMemory     - Store with classification")
-    print("  2. searchMemories - Semantic search")
-    print("  3. getStats       - System health")
-    print("  4. listAllMemories - Browse all")
-    print("  5. createEntity   - Custom graph nodes")
-    print("  6. queryGraph     - Raw Cypher queries")
+    print("  1. elefanteMemoryAdd - Store with classification")
+    print("  2. elefanteMemorySearch - Semantic search")
+    print("  3. elefanteSystemStatusGet - System status")
+    print("  4. elefanteMemoryListAll - Browse all")
+    print("  5. elefanteGraphEntityCreate - Custom graph nodes")
+    print("  6. elefanteGraphQuery - Raw Cypher queries")
     print("\nThe MCP server is still running. Use these tools from your IDE!")
 
 if __name__ == "__main__":
     try:
         asyncio.run(demo())
     except KeyboardInterrupt:
-        print("\n\n⚠ Demo interrupted")
+        print("\n\nDemo interrupted")

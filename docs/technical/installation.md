@@ -93,18 +93,21 @@ cd Elefante
 **CRITICAL**: Use Python 3.11 explicitly (see [`python-version-requirements.md`](python-version-requirements.md))
 
 Mac/Linux:
+
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
 Windows:
+
 ```bash
 python3.11 -m venv .venv
 .venv\Scripts\activate
 ```
 
 **Verify Python 3.11 is active**:
+
 ```bash
 python --version
 # Must output: Python 3.11.x
@@ -146,9 +149,53 @@ Supported IDEs:
 
 ### Manual Configuration
 
-If automatic configuration fails, add this to your IDE's MCP config:
+If automatic configuration fails, add this to your IDE's MCP config.
 
-**VS Code** (`settings.json`):
+#### VS Code (Built-in MCP)
+
+VS Code supports MCP natively (Copilot Chat). Configure servers in `mcp.json`.
+
+You can open the correct file from the Command Palette:
+
+- `MCP: Open User Configuration`
+- `MCP: Open Workspace Folder Configuration`
+
+Common user configuration locations:
+
+- macOS (stable): `~/Library/Application Support/Code/User/mcp.json`
+- macOS (Insiders): `~/Library/Application Support/Code - Insiders/User/mcp.json`
+- Windows (stable): `%APPDATA%\Code\User\mcp.json`
+- Windows (Insiders): `%APPDATA%\Code - Insiders\User\mcp.json`
+- Linux (stable): `~/.config/Code/User/mcp.json`
+- Linux (Insiders): `~/.config/Code - Insiders/User/mcp.json`
+
+Example `mcp.json` (user or workspace config):
+
+```json
+{
+  "servers": {
+    "elefante": {
+      "type": "stdio",
+      "command": "/absolute/path/to/Elefante/.venv/bin/python",
+      "args": ["-m", "src.mcp.server"],
+      "env": {
+        "PYTHONPATH": "/absolute/path/to/Elefante",
+        "ELEFANTE_CONFIG_PATH": "/absolute/path/to/Elefante/config.yaml",
+        "ANONYMIZED_TELEMETRY": "False"
+      }
+    }
+  }
+}
+```
+
+Notes:
+
+- For a workspace-specific config, create `.vscode/mcp.json`.
+- You can open the right file from the Command Palette with `MCP: Open User Configuration` or `MCP: Open Workspace Folder Configuration`.
+
+#### VS Code (Roo-Cline Extension)
+
+If you're using Roo-Cline, configure MCP in `settings.json`:
 
 ```json
 {
@@ -165,7 +212,7 @@ If automatic configuration fails, add this to your IDE's MCP config:
 }
 ```
 
-**Cursor/Bob** (`mcp_config.json`):
+#### Cursor/Bob (`mcp_config.json`)
 
 ```json
 {
@@ -181,6 +228,32 @@ If automatic configuration fails, add this to your IDE's MCP config:
   }
 }
 ```
+
+#### Antigravity (Google) (`mcp_config.json`)
+
+Antigravity uses an MCP config file similar to Cursor/Bob.
+
+- macOS/Linux: `~/.gemini/antigravity/mcp_config.json`
+- Windows: `%USERPROFILE%\.gemini\antigravity\mcp_config.json`
+
+You can generate/update it with:
+
+```bash
+python scripts/configure_antigravity.py
+```
+
+#### Bob-IDE (IBM Bob) (`mcp_settings.json`)
+
+Some Bob-IDE distributions store MCP servers in a dedicated file named `mcp_settings.json`.
+
+The auto-config script handles this format when the file is present.
+
+Common locations the auto-config checks:
+
+- Windows: `%APPDATA%\Bob-IDE\User\globalStorage\ibm.bob-code\settings\mcp_settings.json`
+- Windows: `%APPDATA%\Bob-IDE\User\settings.json`
+- macOS: `~/Library/Application Support/Bob-IDE/User/settings.json`
+- Linux: `~/.config/Bob-IDE/User/settings.json`
 
 **Important**: Replace paths with your actual absolute system paths.
 
@@ -198,7 +271,7 @@ python scripts/health_check.py
 
 Expected output:
 
-```
+```text
  ChromaDB: Connected
  Kuzu: Connected
  MCP Server: Running
@@ -226,7 +299,7 @@ To verify the Inception Memory (The Prime Directive):
 python -c "import sys; sys.path.append('.'); import asyncio; from src.core.orchestrator import get_orchestrator; asyncio.run(get_orchestrator().search_memories('Agentic Protocol'))"
 ```
 
-_(This should return the 'Elefante Agentic Optimization Protocol')_
+This should return the Elefante Agentic Optimization Protocol.
 
 ---
 

@@ -236,7 +236,7 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 ### Pattern #6: Relative Path Read-Only Trap (2025-12-09)
 
 **Trigger**: MCP Server attempting to write snapshot to `data/` (relative path)
-**Symptom**: `[Errno 30] Read-only file system` during `refreshDashboardData`
+**Symptom**: `[Errno 30] Read-only file system` during `elefanteDashboardOpen(refresh=true)`
 **Root Cause**: Execution environment CWD was read-only; code relied on CWD
 **Impact**: Dashboard data refresh failed completely
 **Resolution**: Switch to centralized user data directory (`~/.elefante/data`) using `pathlib.Path.home()`

@@ -13,13 +13,13 @@ Once connected to your IDE, use natural language to interact with Elefante.
 
 ---
 
-## 2. MCP Tools (16 Total)
+## 2. MCP Tools (15 Total)
 
-The MCP server exposes 16 tools to your AI agent:
+The MCP server exposes 15 tools to your AI agent:
 
 ### Core Memory Operations
 
-#### `addMemory`
+#### `elefanteMemoryAdd`
 **Purpose**: Store new information with intelligent ingestion
 
 **Features**:
@@ -41,7 +41,7 @@ The MCP server exposes 16 tools to your AI agent:
 "Remember that I'm working on Project Omega using Python and FastAPI"
 ```
 
-#### `searchMemories`
+#### `elefanteMemorySearch`
 **Purpose**: Retrieve memories using hybrid search (semantic + structured + context)
 
 **CRITICAL**: Query Rewriting Required
@@ -79,7 +79,7 @@ The MCP server exposes 16 tools to your AI agent:
 "What are Jaime's preferences for Python development?"
 ```
 
-#### `queryGraph`
+#### `elefanteGraphQuery`
 **Purpose**: Execute Cypher queries directly on Kuzu knowledge graph
 
 **Use Cases**:
@@ -100,7 +100,7 @@ MATCH (p:Entity {type: 'project'})-[:RELATES_TO]->(t:Entity {name: 'AI'})
 RETURN p
 ```
 
-#### `getContext`
+#### `elefanteContextGet`
 **Purpose**: Retrieve comprehensive context for current session/task
 
 **Returns**:
@@ -122,7 +122,7 @@ RETURN p
 
 ### Graph Building Operations
 
-#### `createEntity`
+#### `elefanteGraphEntityCreate`
 **Purpose**: Create new entity node in Kuzu knowledge graph
 
 **Entity Types**:
@@ -139,7 +139,7 @@ RETURN p
 "Create an entity for 'Bob' as a person"
 ```
 
-#### `createRelationship`
+#### `elefanteGraphRelationshipCreate`
 **Purpose**: Create directed relationship edge between entities
 
 **Relationship Types**:
@@ -161,7 +161,7 @@ RETURN p
 
 ### Session & History Operations
 
-#### `getEpisodes`
+#### `elefanteSessionsList`
 **Purpose**: Retrieve list of recent sessions (episodes) with summaries
 
 **Use Cases**:
@@ -182,22 +182,22 @@ RETURN p
 
 ### System Operations
 
-#### `getStats`
-**Purpose**: Get comprehensive system health & usage statistics
+#### `elefanteSystemStatusGet`
+**Purpose**: Get combined system status and statistics
 
 **Returns**:
-- ChromaDB metrics (vector store size, embedding dimensions)
-- Kuzu metrics (graph node/edge counts, relationship types)
-- System performance indicators
+- Elefante Mode state (enabled/disabled)
+- Lock status / holder information
+- When enabled: system health & usage statistics
 
 **Parameters**: None
 
 **Example**:
 ```
-"Show me memory system statistics"
+"Show me Elefante system status"
 ```
 
-#### `consolidateMemories`
+#### `elefanteMemoryConsolidate`
 **Purpose**: Trigger background process to analyze, merge duplicates, resolve contradictions
 
 **Use Cases**:
@@ -219,7 +219,7 @@ RETURN p
 "Consolidate my memories to remove duplicates"
 ```
 
-#### `listAllMemories`
+#### `elefanteMemoryListAll`
 **Purpose**: Retrieve ALL memories without semantic filtering
 
 **Use Cases**:
@@ -229,7 +229,7 @@ RETURN p
 - Browsing complete memory collection
 - Comprehensive view needed
 
-**Note**: For relevance-based search, use `searchMemories` instead
+**Note**: For relevance-based search, use `elefanteMemorySearch` instead
 
 **Parameters**:
 - `limit` (optional): Maximum memories to return 1-500 (default: 100)
@@ -241,7 +241,7 @@ RETURN p
 "List all my memories for backup"
 ```
 
-#### `openDashboard`
+#### `elefanteDashboardOpen`
 **Purpose**: Launch and open Knowledge Garden Dashboard in browser
 
 **Features**:
@@ -250,30 +250,34 @@ RETURN p
 - Filter by 'Spaces'
 - Interactive graph visualization
 
-**Parameters**: None
+**Parameters**:
+- `refresh` (optional, default: false): If true, regenerate dashboard snapshot before opening (requires Elefante Mode enabled)
 
 **Example**:
 ```
 "Open the dashboard" or "Show me my knowledge graph"
 ```
 
-#### `refreshDashboardData`
-**Purpose**: Regenerate `data/dashboard_snapshot.json` used by the dashboard.
+#### `elefanteGraphConnect`
+**Purpose**: Upsert entities and create relationships in a single workflow call
 
-**When to use**:
-- After adding or consolidating memories
-- When the dashboard looks out of sync with the memory store
+**Use Cases**:
+- Create two (or more) entities and link them without tool-chaining
+- Create relationship edges using stable entity refs
 
-**Parameters**: None
+**Parameters**:
+- `entities` (optional): Array of entities with `ref` and either `id` or (`name` + `type`)
+- `relationships` (optional): Array of relationships using `from_ref`/`to_ref` or explicit UUIDs
+- `include_system_status` (optional, default: false): Include `elefanteSystemStatusGet` output
 
 **Example**:
 ```
-"Refresh dashboard data"
+"Create entities for 'Elefante' (project) and 'Kuzu' (technology) and link them"
 ```
 
 ---
 
-#### `migrateMemoriesV3`
+#### `elefanteMemoryMigrateToV3`
 **Purpose**: Administrative migration tool that re-classifies existing memories into V3 schema (`layer`/`sublayer`) and writes updates back.
 
 **When to use**:
@@ -292,7 +296,7 @@ RETURN p
 
 ### ELEFANTE_MODE Operations (Multi-IDE Safety)
 
-#### `enableElefante`
+#### `elefanteSystemEnable`
 **Purpose**: Acquire exclusive locks and enable memory operations
 
 **CRITICAL**: Server starts in OFF mode by default. User must call this tool before any memory operations work.
@@ -313,7 +317,7 @@ RETURN p
 "Enable Elefante" or "Start memory system"
 ```
 
-#### `disableElefante`
+#### `elefanteSystemDisable`
 **Purpose**: Release exclusive locks and return to OFF state
 
 **Use Case**: Before switching to another IDE (VS Code -> Cursor -> Claude Desktop)
@@ -330,20 +334,7 @@ RETURN p
 "Disable Elefante" or "Release memory locks"
 ```
 
-#### `getElefanteStatus`
-**Purpose**: Check current mode, lock status, and holder information
-
-**Returns**:
-- Current mode (ON/OFF)
-- Lock file status
-- If locked by another process: PID, timestamp, holder info
-
-**Parameters**: None
-
-**Example**:
-```
-"Is Elefante enabled?" or "Check memory system status"
-```
+**Status Check**: Use `elefanteSystemStatusGet` to check mode/locks and (when enabled) system statistics.
 
 ---
 
@@ -433,13 +424,13 @@ Checks:
 - **Create Entities First**: Before creating relationships
 - **Use Standard Types**: Stick to predefined entity/relationship types
 - **Add Properties**: Enrich nodes with metadata
-- **Verify Connections**: Use `queryGraph` to check relationships
+- **Verify Connections**: Use `elefanteGraphQuery` to check relationships
 
 ### System Maintenance
-- **Monitor Stats**: Regular `getStats` checks
-- **Consolidate Periodically**: Run `consolidateMemories` monthly
-- **Review Episodes**: Use `getEpisodes` to track progress
-- **Backup Memories**: Use `listAllMemories` for exports
+- **Monitor Stats**: Regular `elefanteSystemStatusGet` checks
+- **Consolidate Periodically**: Run `elefanteMemoryConsolidate` monthly
+- **Review Episodes**: Use `elefanteSessionsList` to track progress
+- **Backup Memories**: Use `elefanteMemoryListAll` for exports
 
 ---
 
@@ -448,24 +439,24 @@ Checks:
 ### Common Issues
 
 **"No memories found"**
-- Check if memories were actually stored (`getStats`)
+- Check if memories were actually stored (`elefanteSystemStatusGet`)
 - Try broader query or lower similarity threshold
-- Use `listAllMemories` to verify database content
+- Use `elefanteMemoryListAll` to verify database content
 
 **"Duplicate memories"**
-- Run `consolidateMemories` to merge
+- Run `elefanteMemoryConsolidate` to merge
 - Check intelligent ingestion flags (NEW/REDUNDANT)
 - Review memory timestamps
 
 **"Slow search"**
 - Reduce `limit` parameter
 - Use `mode="semantic"` for faster results
-- Check system stats for performance issues
+- Check `elefanteSystemStatusGet` for performance issues
 
 **"Graph query fails"**
 - Verify Cypher syntax
 - Check entity/relationship types exist
-- Use `getStats` to see available node types
+- Use `elefanteSystemStatusGet` to see available node types
 
 ---
 

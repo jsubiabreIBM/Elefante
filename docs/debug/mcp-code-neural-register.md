@@ -178,7 +178,7 @@ async def call_tool(name: str, arguments: dict):
 
 ```python
 types.Tool(
-    name="addMemory",
+    name="elefanteMemoryAdd",
     description="Add memory",
     inputSchema={
         "type": "object",
@@ -193,7 +193,7 @@ types.Tool(
 
 ```python
 types.Tool(
-    name="addMemory",
+    name="elefanteMemoryAdd",
     description="Store a new memory in Elefante's dual-database system. "
                 "INTELLIGENT INGESTION: Automatically analyzes against existing "
                 "knowledge and flags as NEW/REDUNDANT/RELATED/CONTRADICTORY.",
@@ -300,7 +300,7 @@ print("Initializing...", file=sys.stderr)
 **Symptom**: Migration tool reports success, but data unchanged  
 **Root Cause**: Python imports are cached; server uses OLD code version  
 **Impact**: 8+ hours debugging - tool "worked" but used stale logic  
-**Resolution**: Created standalone script (`scripts/migrate_v3_direct.py`) to bypass cache  
+**Resolution**: Created standalone script (`scripts/migrate_memories_v3_direct.py`) to bypass cache  
 **Prevention**: Restart servers after code changes; use `--reload` flag in development
 
 ### Pattern #5: Uvicorn Stdout Pollution (2025-12-09)

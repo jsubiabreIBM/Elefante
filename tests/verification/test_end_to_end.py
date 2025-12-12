@@ -4,8 +4,9 @@ Elefante End-to-End Test Script
 Simulates a full MCP client session:
 1. Starts the server
 2. Initializes connection
-3. Calls 'addMemory' to store a test fact
-4. Calls 'searchMemories' to retrieve it
+3. Calls 'elefanteSystemEnable' to enable Elefante Mode
+4. Calls 'elefanteMemoryAdd' to store a test fact
+5. Calls 'elefanteMemorySearch' to retrieve it
 5. Verifies the result
 """
 
@@ -14,7 +15,19 @@ import json
 import sys
 import time
 import os
+from uuid import uuid4
 from pathlib import Path
+
+# This is a manual integration script.
+# Skip it when collected by pytest, but allow direct execution via:
+#   python tests/verification/test_end_to_end.py
+if "pytest" in sys.modules:
+    import pytest
+
+    pytest.skip(
+        "manual end-to-end script (not part of automated pytest)",
+        allow_module_level=True,
+    )
 
 def log(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}")
@@ -25,9 +38,14 @@ def read_json_rpc(process, timeout=10):
         line = process.stdout.readline()
         if line:
             try:
-                return json.loads(line)
+                msg = json.loads(line)
+                # The server may emit structured logs to stdout that are valid JSON.
+                # Only return actual JSON-RPC payloads.
+                if isinstance(msg, dict) and msg.get("jsonrpc") == "2.0":
+                    return msg
+                log(f"   Ignored non-RPC JSON: {str(msg)[:120]}")
             except json.JSONDecodeError:
-                log(f"   ⚠️  Ignored non-JSON output: {line.strip()}")
+                log(f"   Ignored non-JSON output: {line.strip()}")
         time.sleep(0.01)
     return None
 
@@ -46,13 +64,14 @@ def send_request(process, method, params=None, req_id=1):
     return req_id
 
 def test_end_to_end():
-    log("🚀 Starting End-to-End Test...")
+    log("Starting End-to-End Test...")
     
     # Setup paths
-    cwd = str(Path(__file__).parent.parent.absolute())
+    repo_root = Path(__file__).resolve().parents[2]
+    cwd = str(repo_root)
     server_cmd = [sys.executable, "-m", "src.mcp.server"]
     env = os.environ.copy()
-    env["PYTHONPATH"] = cwd
+    env["PYTHONPATH"] = cwd + os.pathsep + env.get("PYTHONPATH", "")
     
     process = None
     try:
@@ -70,7 +89,7 @@ def test_end_to_end():
         )
         
         # 2. Initialize
-        log("   📤 Sending 'initialize'...")
+        log("   Sending 'initialize'...")
         send_request(process, "initialize", {
             "protocolVersion": "2024-11-05",
             "capabilities": {},
@@ -79,26 +98,44 @@ def test_end_to_end():
         
         resp = read_json_rpc(process)
         if not resp or "result" not in resp:
-            log("   ❌ Initialization failed.")
+            log("   Initialization failed.")
             return False
-        log("   ✅ Initialized.")
+        log("   Initialized.")
+
+        # 3. Enable Elefante Mode (required before memory operations)
+        log("   Enabling Elefante Mode...")
+        send_request(process, "tools/call", {
+            "name": "elefanteSystemEnable",
+            "arguments": {}
+        }, req_id=2)
+
+        resp = read_json_rpc(process, timeout=10)
+        if not resp or "result" not in resp:
+            log("   elefanteSystemEnable failed or timed out.")
+            return False
         
-        # 3. Add Memory
-        test_content = f"Elefante E2E Test Memory {int(time.time())}"
-        log(f"   📤 Adding memory: '{test_content}'...")
+        # 4. Add Memory
+        unique_id = uuid4().hex
+        test_content = f"Elefante E2E Test Memory {int(time.time())} {unique_id}"
+        log(f"   Adding memory: '{test_content}'...")
         
         send_request(process, "tools/call", {
-            "name": "addMemory",
+            "name": "elefanteMemoryAdd",
             "arguments": {
                 "content": test_content,
                 "importance": 10,
-                "tags": ["test", "e2e"]
+                "tags": ["test", "e2e"],
+                "layer": "world",
+                "sublayer": "fact",
+                "metadata": {
+                    "title": f"E2E-Test-{unique_id}"
+                }
             }
-        }, req_id=2)
+        }, req_id=3)
         
         resp = read_json_rpc(process, timeout=15) # Give it time to embed
         if not resp or "result" not in resp:
-            log("   ❌ addMemory failed or timed out.")
+            log("   elefanteMemoryAdd failed or timed out.")
             return False
             
         # Parse inner tool result
@@ -107,25 +144,27 @@ def test_end_to_end():
         if "content" in tool_result:
             inner_json = tool_result["content"][0]["text"]
             inner_data = json.loads(inner_json)
-            if inner_data.get("success"):
-                log("   ✅ Memory stored successfully.")
+            status = inner_data.get("status")
+            success = bool(inner_data.get("success"))
+            if status in {"stored", "reinforced"} or success or inner_data.get("memory_id"):
+                log(f"   Memory stored successfully. status={status}")
             else:
-                log(f"   ❌ addMemory reported failure: {inner_data}")
+                log(f"   elefanteMemoryAdd reported failure: {inner_data}")
                 return False
         
-        # 4. Search Memory
-        log(f"   📤 Searching for memory with query: '{test_content}'...")
+        # 5. Search Memory
+        log(f"   Searching for memory with query: '{test_content}'...")
         send_request(process, "tools/call", {
-            "name": "searchMemories",
+            "name": "elefanteMemorySearch",
             "arguments": {
                 "query": test_content, # Use exact content for better match
                 "limit": 5
             }
-        }, req_id=3)
+        }, req_id=4)
         
         resp = read_json_rpc(process, timeout=10)
         if not resp or "result" not in resp:
-            log("   ❌ searchMemories failed.")
+            log("   elefanteMemorySearch failed.")
             return False
             
         tool_result = resp["result"]
@@ -134,7 +173,7 @@ def test_end_to_end():
             inner_data = json.loads(inner_json)
             results = inner_data.get("results", [])
             
-            log(f"   🔎 Found {len(results)} results.")
+            log(f"   Found {len(results)} results.")
             if len(results) > 0:
                 log(f"   First result raw: {json.dumps(results[0], default=str)}")
             
@@ -146,24 +185,24 @@ def test_end_to_end():
                     found = True
             
             if found:
-                log(f"   ✅ Found memory: '{test_content}'")
+                log(f"   Found memory: '{test_content}'")
                 return True
             else:
-                log(f"   ❌ Memory not found in top {len(results)} results.")
+                log(f"   Memory not found in top {len(results)} results.")
                 return False
                 
     except Exception as e:
-        log(f"   ❌ Test exception: {e}")
+        log(f"   Test exception: {e}")
         return False
     finally:
         if process:
             process.terminate()
-            log("   🛑 Server terminated.")
+            log("   Server terminated.")
 
 if __name__ == "__main__":
     if test_end_to_end():
-        print("\n✅ End-to-End Test PASSED")
+        print("\nEnd-to-End Test PASSED")
         sys.exit(0)
     else:
-        print("\n❌ End-to-End Test FAILED")
+        print("\nEnd-to-End Test FAILED")
         sys.exit(1)

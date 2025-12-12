@@ -4,7 +4,7 @@ REM This starts the MCP server for Claude Desktop integration
 
 echo.
 echo ============================================================
-echo   🐘 ELEFANTE MCP SERVER
+echo   ELEFANTE MCP SERVER
 echo ============================================================
 echo.
 echo Starting Elefante MCP server...

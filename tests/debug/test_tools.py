@@ -39,9 +39,21 @@ async def test_tool_registration():
         print(f"  {i}. {name}")
     
     expected_tools = [
-        'addMemory', 'searchMemories', 'queryGraph', 'getContext',
-        'createEntity', 'createRelationship', 'getEpisodes',
-        'getStats', 'consolidateMemories'
+        'elefanteMemoryAdd',
+        'elefanteMemorySearch',
+        'elefanteGraphQuery',
+        'elefanteContextGet',
+        'elefanteGraphEntityCreate',
+        'elefanteGraphRelationshipCreate',
+        'elefanteSessionsList',
+        'elefanteSystemStatusGet',
+        'elefanteDashboardOpen',
+        'elefanteGraphConnect',
+        'elefanteMemoryConsolidate',
+        'elefanteMemoryListAll',
+        'elefanteMemoryMigrateToV3',
+        'elefanteSystemEnable',
+        'elefanteSystemDisable',
     ]
     
     missing = [t for t in expected_tools if t not in tool_names]
@@ -59,7 +71,7 @@ async def test_tool_registration():
         print(f"\n[WARN] Extra tools: {extra}")
     
     if len(tool_names) == len(expected_tools) and not missing:
-        print("\n[SUCCESS] All 9 tools are defined in the code!")
+        print("\n[SUCCESS] All expected tools are defined in the code!")
         print("\nNext step: Restart Bob-IDE to load the updated server.")
         return True
     else:

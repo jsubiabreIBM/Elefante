@@ -4,7 +4,7 @@ REM This script configures everything you need to use Elefante with Claude Deskt
 
 echo.
 echo ============================================================
-echo   🐘 ELEFANTE - Complete IDE Setup
+echo   ELEFANTE - Complete IDE Setup
 echo ============================================================
 echo.
 echo This script will:
@@ -24,8 +24,8 @@ python configure_claude_desktop.py
 
 if errorlevel 1 (
     echo.
-    echo ❌ Configuration failed!
-    echo Please check IDE_INTEGRATION_GUIDE.md for manual setup
+    echo [ERROR] Configuration failed!
+    echo Manual setup docs: docs\technical\mcp-server-startup.md
     pause
     exit /b 1
 )
@@ -40,7 +40,7 @@ echo KEEP THIS WINDOW OPEN while using Claude Desktop!
 echo.
 echo Next steps:
 echo   1. Restart Claude Desktop (close and reopen)
-echo   2. Look for the 🔌 'Connected' indicator
+echo   2. Look for the 'Connected' indicator
 echo   3. Test: "Remember that I'm Jaime from IBM Toronto"
 echo.
 echo Press any key to start the server...

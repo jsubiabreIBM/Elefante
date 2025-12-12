@@ -9,8 +9,10 @@ This is the central intelligence layer that:
 """
 
 import asyncio
+import hashlib
 import re
 import json
+from difflib import SequenceMatcher
 from typing import List, Optional, Dict, Any, Tuple
 from uuid import UUID, uuid4
 from datetime import datetime
@@ -66,11 +68,32 @@ class MemoryOrchestrator:
         self.config = get_config()
         self.logger = get_logger(self.__class__.__name__)
         self.metadata_store = get_metadata_store()
-        
-        # Initialize metadata store
-        asyncio.create_task(self.metadata_store.initialize())
+
+        self._metadata_init_task: Optional[asyncio.Task] = None
+        self._metadata_initialized: bool = False
+
+        # Initialize metadata store if we're already inside a running event loop.
+        # In synchronous contexts (e.g., pytest fixtures), defer initialization until first use.
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is not None and loop.is_running():
+            self._metadata_init_task = loop.create_task(self.metadata_store.initialize())
         
         self.logger.info("Memory orchestrator initialized")
+
+    async def _ensure_metadata_initialized(self) -> None:
+        if self._metadata_initialized:
+            return
+
+        if self._metadata_init_task is not None:
+            await self._metadata_init_task
+        else:
+            await self.metadata_store.initialize()
+
+        self._metadata_initialized = True
     
     async def add_memory(
         self,
@@ -79,7 +102,8 @@ class MemoryOrchestrator:
         tags: List[str] = None,
         entities: List[Dict[str, str]] = None,
         metadata: Dict[str, Any] = None,
-        importance: int = 1
+        importance: int = 1,
+        force_new: bool = False
     ) -> Optional[Memory]:
         """
         Add a new memory via the Authoritative 5-Step Pipeline.
@@ -91,6 +115,8 @@ class MemoryOrchestrator:
         4. REINFORCE: Initialize plasticity (access_count=1) and decay signals.
         5. GRAPH: Create Entity nodes and Relationships.
         """
+        await self._ensure_metadata_initialized()
+
         from src.core.graph_executor import GraphExecutor
         if not hasattr(self, 'graph_executor'):
             self.graph_executor = GraphExecutor(self.graph_store)
@@ -102,6 +128,17 @@ class MemoryOrchestrator:
         
         if metadata is None:
             metadata = {}
+
+        def _normalize_for_compare(text: str) -> str:
+            text = text.lower().strip()
+            return re.sub(r"\s+", " ", text)
+
+        def _is_near_duplicate(a: str, b: str, threshold: float = 0.985) -> bool:
+            na = _normalize_for_compare(a)
+            nb = _normalize_for_compare(b)
+            if na == nb:
+                return True
+            return SequenceMatcher(None, na, nb).ratio() >= threshold
             
         # Extract Authoritative Classification (Layer/Sublayer)
         # We prefer the classification provided by the Agent (via metadata)
@@ -124,11 +161,18 @@ class MemoryOrchestrator:
                 self.logger.info(f"Memory ignored by Intelligence Pipeline: {content[:50]}...")
                 return None
             
-            # Generate strict Subject-Aspect-Qualifier title
-            title = await self.llm_service.generate_semantic_title(content, layer, sublayer)
-            
+            # Prefer an explicit title provided by the caller (e.g., agent or tests).
+            # This avoids unintended logic-level deduplication collisions and allows
+            # deterministic E2E verification.
+            provided_title = metadata.get("title")
+            if isinstance(provided_title, str) and provided_title.strip():
+                title = provided_title.strip()
+            else:
+                # Generate strict Subject-Aspect-Qualifier title
+                title = await self.llm_service.generate_semantic_title(content, layer, sublayer)
+                metadata["title"] = title
+
             # Update metadata with cognitive context
-            metadata["title"] = title
             metadata["intent"] = analysis.get("intent")
             metadata["emotional_context"] = analysis.get("emotional_context")
             metadata["strategic_insight"] = analysis.get("strategic_insight")
@@ -137,25 +181,35 @@ class MemoryOrchestrator:
             # STEP 1.5: LOGIC-LEVEL DEDUPLICATION (Pattern #5 Fix)
             # ==================================================================================
             # Check if this exact Concept Title already exists
-            existing_memory = await self.vector_store.find_by_title(title)
+            existing_memory = None
+            if not force_new:
+                existing_memory = await self.vector_store.find_by_title(title)
             
             if existing_memory:
-                self.logger.info(f"♻️ LOGIC-LEVEL DEDUPLICATION: '{title}' already exists as {existing_memory.id}. Reinforcing.")
-                
-                # Reinforce existing memory (update timestamp, access count)
-                existing_memory.metadata.last_accessed = datetime.utcnow()
-                existing_memory.metadata.access_count += 1
-                
-                # If content is significantly different but title is same, we might want to append?
-                # For now, we assume the Title is the source of truth for the Concept.
-                # We could ideally merge the new content into "notes" or "history".
-                
-                await self.vector_store.update_memory_access(existing_memory)
-                return existing_memory
+                if _is_near_duplicate(content, existing_memory.content):
+                    self.logger.info(
+                        f"LOGIC-LEVEL DEDUPLICATION: '{title}' already exists as {existing_memory.id}. Reinforcing."
+                    )
+
+                    # Reinforce existing memory (update timestamp, access count)
+                    existing_memory.metadata.last_accessed = datetime.utcnow()
+                    existing_memory.metadata.access_count += 1
+                    await self.vector_store.update_memory_access(existing_memory)
+                    return existing_memory
+
+                # Title collision but materially different content.
+                # Disambiguate title so we don't drop the new memory.
+                digest = hashlib.sha256(_normalize_for_compare(content).encode("utf-8")).hexdigest()[:8]
+                title = f"{title} [{digest}]"
+                metadata["title"] = title
             
         except Exception as e:
             self.logger.warning(f"Intelligence Pipeline enrichment failed: {e}. Proceeding with raw memory.")
-            title = f"memory_{uuid4()}"
+            provided_title = metadata.get("title")
+            if isinstance(provided_title, str) and provided_title.strip():
+                title = provided_title.strip()
+            else:
+                title = f"memory_{uuid4()}"
             analysis = {}
 
         # ==================================================================================
@@ -163,11 +217,16 @@ class MemoryOrchestrator:
         # ==================================================================================
         embedding = await self.embedding_service.generate_embedding(content)
         
-        similar_memories = await self.vector_store.search(
-            query=content,
-            limit=3, 
-            min_similarity=0.65  # Threshold
-        )
+        similar_memories = []
+        if not force_new:
+            similar_memories = await self.vector_store.search(
+                query=content,
+                limit=3,
+                min_similarity=0.65,  # Threshold
+                # Integrity checks should use pure semantic similarity.
+                # Temporal decay/reinforcement can inflate scores and cause false REDUNDANT.
+                apply_temporal_decay=False
+            )
         
         status = MemoryStatus.NEW
         related_id = None
@@ -178,9 +237,13 @@ class MemoryOrchestrator:
             
             # Check for redundancy
             if best_match.score >= 0.95:
-                status = MemoryStatus.REDUNDANT
-                related_id = best_match.memory.id
-                self.logger.info(f"Found redundant memory: {best_match.memory.id} (Score: {best_match.score})")
+                if _is_near_duplicate(content, best_match.memory.content):
+                    status = MemoryStatus.REDUNDANT
+                    related_id = best_match.memory.id
+                    self.logger.info(f"Found redundant memory: {best_match.memory.id} (Score: {best_match.score})")
+                else:
+                    status = MemoryStatus.RELATED
+                    related_id = best_match.memory.id
             
             # Check for contradiction (High similarity but conflicting content)
             elif best_match.score >= 0.75:
@@ -390,6 +453,8 @@ class MemoryOrchestrator:
             List[SearchResult]: Ranked search results
         """
         validate_memory_content(query, min_length=1, max_length=1000)
+
+        await self._ensure_metadata_initialized()
         
         # Extract conversation settings from filters if provided
         if filters:
@@ -557,39 +622,91 @@ class MemoryOrchestrator:
         graph_results = await self.graph_store.execute_query(cypher_query)
         
         # Convert to SearchResult objects
-        # Note: Graph results don't have similarity scores, so we use importance
-        results = []
+        # Note: Graph results don't have similarity scores, so we use importance as a proxy.
+        import json
+
+        results: List[SearchResult] = []
         for row in graph_results:
             entity = row.get("m")
-            if entity:
-                # Reconstruct memory from graph data
-                # In production, we'd fetch full memory from vector store
-                score = entity.properties.get("importance", 5) / 10.0
-                
-                # Create minimal memory object
-                memory_type_str = entity.properties.get("memory_type", "conversation")
+            if not entity:
+                continue
+
+            # Kuzu may return a Node-like object (with `.properties`) or a plain dict.
+            entity_props: Dict[str, Any]
+            if hasattr(entity, "properties"):
+                entity_props = getattr(entity, "properties")
+            elif isinstance(entity, dict):
+                entity_props = entity
+            else:
+                entity_props = {}
+
+            raw_props = entity_props.get("props")
+            extra: Dict[str, Any] = {}
+            if isinstance(raw_props, str) and raw_props.strip():
+                try:
+                    extra = json.loads(raw_props)
+                except Exception:
+                    extra = {}
+
+            memory_id_value = entity_props.get("id") or extra.get("memory_id")
+            memory_id: Optional[UUID] = None
+            try:
+                if isinstance(memory_id_value, str) and memory_id_value:
+                    memory_id = UUID(memory_id_value)
+            except Exception:
+                memory_id = None
+
+            # Try to load the authoritative Memory from the vector store when possible.
+            memory: Optional[Memory] = None
+            vector_backed = False
+            if memory_id is not None:
+                memory = await self.vector_store.get_memory(memory_id)
+                vector_backed = memory is not None
+
+            importance = extra.get("importance")
+            if importance is None:
+                importance = entity_props.get("importance")
+            try:
+                importance_int = int(importance) if importance is not None else 5
+            except Exception:
+                importance_int = 5
+
+            score = max(0.0, min(1.0, importance_int / 10.0))
+
+            if memory is None:
+                # Fallback: construct a minimal Memory object from graph metadata.
+                memory_type_str = extra.get("memory_type") or entity_props.get("memory_type") or "conversation"
                 try:
                     mem_type = MemoryType(memory_type_str)
-                except ValueError:
+                except Exception:
                     mem_type = MemoryType.CONVERSATION
-                
+
                 memory_metadata = MemoryMetadata(
                     memory_type=mem_type,
-                    importance=entity.properties.get("importance", 5)
+                    importance=importance_int,
                 )
-                
+
                 memory = Memory(
-                    content=entity.properties.get("content", ""),
-                    metadata=memory_metadata
+                    id=memory_id or uuid4(),
+                    content=extra.get("content") or entity_props.get("description") or "",
+                    metadata=memory_metadata,
                 )
-                
-                results.append(SearchResult(
+
+            # Mark whether this result is backed by an actual vector-store record.
+            try:
+                memory.metadata.custom_metadata["_vector_backed"] = vector_backed
+            except Exception:
+                pass
+
+            results.append(
+                SearchResult(
                     memory=memory,
                     score=score,
                     source="graph",
                     vector_score=None,
-                    graph_score=score
-                ))
+                    graph_score=score,
+                )
+            )
         
         # Apply Temporal Decay & Reinforcement (Read-Side Plasticity)
         if apply_temporal_decay:
@@ -606,10 +723,14 @@ class MemoryOrchestrator:
                 
                 # Re-calculate score
                 result.score = (semantic_weight * result.score) + (temporal_weight * temporal_score)
+                result.score = max(0.0, min(1.0, result.score))
                 
                 # REINFORCEMENT: Update access stats in Vector Store
                 # This ensures graph-found memories also get "stronger"
-                await self.vector_store.update_memory_access(result.memory)
+                # Only persist access stats when this is a real vector-store backed memory.
+                # (Fallback graph-only results may not exist in ChromaDB.)
+                if getattr(result.memory.metadata, "custom_metadata", {}).get("_vector_backed"):
+                    await self.vector_store.update_memory_access(result.memory)
                 
             # Re-sort after decay application
             results.sort(key=lambda r: r.score, reverse=True)

@@ -42,7 +42,7 @@ class Logger:
                 with open(log_file, 'a', encoding='utf-8') as f:
                     pass
             except Exception as e:
-                print(f"⚠️  Could not open log file {log_file}: {e}")
+                print(f"WARN: Could not open log file {log_file}: {e}")
                 self.log_file = None
 
     def log(self, msg, end="\n"):
@@ -62,7 +62,7 @@ logger = None
 
 def print_header(msg):
     logger.log("\n" + "="*60)
-    logger.log(f"🐘 {msg}")
+    logger.log(msg)
     logger.log("="*60 + "\n")
 
 def print_step(step, msg):
@@ -102,14 +102,15 @@ def run_command(cmd, cwd=None, shell=False):
     except subprocess.CalledProcessError:
         return False
     except Exception as e:
-        logger.log(f"❌ Execution error: {e}")
+        logger.log(f"ERROR: Execution error: {e}")
+        return False
 
 def check_kuzu_compatibility(root_dir):
     """
     Pre-flight check for Kuzu 0.11+ compatibility issues
     Prevents the "Database path cannot be a directory" error
     """
-    logger.log("\n🔍 Checking Kuzu compatibility...")
+    logger.log("\nChecking Kuzu compatibility...")
     
     # Check if Kuzu database directory exists
     kuzu_db_path = Path.home() / ".elefante" / "data" / "kuzu_db"
@@ -119,7 +120,7 @@ def check_kuzu_compatibility(root_dir):
         kuzu_files = list(kuzu_db_path.glob("*.kz")) + list(kuzu_db_path.glob(".lock"))
         
         if kuzu_files:
-            logger.log(f"⚠️  Found existing Kuzu database at: {kuzu_db_path}")
+            logger.log(f"WARN: Found existing Kuzu database at: {kuzu_db_path}")
             logger.log("   Kuzu 0.11+ requires clean installation for path compatibility.")
             logger.log("")
             logger.log("   Options:")
@@ -132,40 +133,40 @@ def check_kuzu_compatibility(root_dir):
             if response in ['', 'y', 'yes']:
                 # Create backup
                 backup_path = kuzu_db_path.parent / f"kuzu_db.backup.{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                logger.log(f"📦 Creating backup at: {backup_path}")
+                logger.log(f"Creating backup at: {backup_path}")
                 shutil.copytree(kuzu_db_path, backup_path)
-                logger.log("✅ Backup created successfully")
+                logger.log("OK: Backup created successfully")
                 
                 # Remove original
-                logger.log(f"🗑️  Removing original database...")
+                logger.log("Removing original database...")
                 shutil.rmtree(kuzu_db_path)
-                logger.log("✅ Original database removed")
+                logger.log("OK: Original database removed")
                 logger.log("")
                 return True
             else:
-                logger.log("⚠️  Skipping database removal. Installation may fail.")
+                logger.log("WARN: Skipping database removal. Installation may fail.")
                 logger.log("   If installation fails, manually remove: " + str(kuzu_db_path))
                 logger.log("")
                 return False
         else:
             # Empty directory - safe to remove
-            logger.log(f"🗑️  Removing empty Kuzu directory: {kuzu_db_path}")
+            logger.log(f"Removing empty Kuzu directory: {kuzu_db_path}")
             kuzu_db_path.rmdir()
-            logger.log("✅ Empty directory removed")
+            logger.log("OK: Empty directory removed")
             return True
     else:
-        logger.log("✅ No Kuzu compatibility issues detected")
+        logger.log("OK: No Kuzu compatibility issues detected")
         return True
 
 def check_dependency_versions(root_dir):
     """
     Check for known breaking changes in dependencies
     """
-    logger.log("\n🔍 Checking dependency versions for breaking changes...")
+    logger.log("\nChecking dependency versions for breaking changes...")
     
     requirements_file = root_dir / "requirements.txt"
     if not requirements_file.exists():
-        logger.log("⚠️  requirements.txt not found")
+        logger.log("WARN: requirements.txt not found")
         return True
     
     breaking_changes = {
@@ -182,13 +183,13 @@ def check_dependency_versions(root_dir):
     issues_found = []
     for package, info in breaking_changes.items():
         if package in requirements and info["version"] in requirements:
-            logger.log(f"⚠️  {package} {info['version']}+ detected")
+            logger.log(f"WARN: {package} {info['version']}+ detected")
             logger.log(f"   Known issue: {info['issue']}")
             logger.log(f"   Mitigation: {info['fixed_by']}")
             issues_found.append(package)
     
     if not issues_found:
-        logger.log("✅ No known breaking changes detected")
+        logger.log("OK: No known breaking changes detected")
     
     logger.log("")
     return True
@@ -197,7 +198,7 @@ def check_disk_space(root_dir):
     """
     Verify sufficient disk space for installation
     """
-    logger.log("\n🔍 Checking disk space...")
+    logger.log("\nChecking disk space...")
     
     required_space = 5_000_000_000  # 5 GB
     
@@ -219,12 +220,12 @@ def check_disk_space(root_dir):
     required_gb = required_space / (1024**3)
     
     if available < required_space:
-        logger.log(f"❌ Insufficient disk space!")
+        logger.log("ERROR: Insufficient disk space")
         logger.log(f"   Available: {available_gb:.2f} GB")
         logger.log(f"   Required: {required_gb:.2f} GB")
         return False
     else:
-        logger.log(f"✅ Sufficient disk space: {available_gb:.2f} GB available")
+        logger.log(f"OK: Sufficient disk space: {available_gb:.2f} GB available")
         return True
 
 def run_preflight_checks(root_dir):
@@ -246,26 +247,24 @@ def run_preflight_checks(root_dir):
             result = check_func()
             if not result:
                 all_passed = False
-                logger.log(f"❌ {check_name} check failed")
+                logger.log(f"ERROR: {check_name} check failed")
         except Exception as e:
-            logger.log(f"⚠️  {check_name} check error: {e}")
+            logger.log(f"WARN: {check_name} check error: {e}")
             all_passed = False
     
     if all_passed:
-        logger.log("\n✅ All pre-flight checks passed!")
+        logger.log("\nOK: All pre-flight checks passed")
         logger.log("="*60 + "\n")
         return True
     else:
-        logger.log("\n❌ Some pre-flight checks failed")
+        logger.log("\nERROR: Some pre-flight checks failed")
         logger.log("Please resolve the issues above before continuing.")
         logger.log("="*60 + "\n")
-        return False
-        return False
         return False
 
 def purge_bytecode(root_dir):
     """Purge compiled bytecode to prevent stale execution"""
-    logger.log("\n🧹 Purging bytecode...")
+    logger.log("\nPurging bytecode...")
     count = 0
     try:
         # Walk and delete __pycache__ folders
@@ -280,10 +279,10 @@ def purge_bytecode(root_dir):
                  path.unlink()
                  count += 1
                  
-        logger.log(f"✅ Cleaned {count} stale bytecode artifacts.")
+        logger.log(f"OK: Cleaned {count} stale bytecode artifacts")
         return True
     except Exception as e:
-        logger.log(f"⚠️  Bytecode purge failed: {e}")
+        logger.log(f"WARN: Bytecode purge failed: {e}")
         return False
 
 
@@ -297,52 +296,52 @@ def create_venv(root_dir):
     """Create virtual environment if it doesn't exist"""
     venv_dir = root_dir / ".venv"
     if venv_dir.exists():
-        logger.log("✅ Virtual environment already exists.")
+        logger.log("OK: Virtual environment already exists")
         return True
     
-    logger.log("📦 Creating virtual environment...")
+    logger.log("Creating virtual environment...")
     if run_command([sys.executable, "-m", "venv", ".venv"], cwd=root_dir):
-        logger.log("✅ Virtual environment created.")
+        logger.log("OK: Virtual environment created")
         return True
     else:
-        logger.log("❌ Failed to create virtual environment.")
+        logger.log("ERROR: Failed to create virtual environment")
         return False
 
 def install_dependencies(root_dir, python_cmd):
     """Install requirements.txt"""
-    logger.log("📥 Installing dependencies...")
+    logger.log("Installing dependencies...")
     
     # Upgrade pip
     run_command([python_cmd, "-m", "pip", "install", "--upgrade", "pip"], cwd=root_dir)
     
     # Install requirements
     if run_command([python_cmd, "-m", "pip", "install", "-r", "requirements.txt"], cwd=root_dir):
-        logger.log("✅ Dependencies installed.")
+        logger.log("OK: Dependencies installed")
         return True
     else:
-        logger.log("❌ Failed to install dependencies.")
+        logger.log("ERROR: Failed to install dependencies")
         return False
 
 def init_databases(root_dir, python_cmd):
     """Initialize ChromaDB and Kuzu"""
-    logger.log("💽 Initializing databases...")
+    logger.log("Initializing databases...")
     script_path = root_dir / "scripts" / "init_databases.py"
     if run_command([python_cmd, str(script_path)], cwd=root_dir):
-        logger.log("✅ Databases initialized.")
+        logger.log("OK: Databases initialized")
         return True
     else:
-        logger.log("❌ Database initialization failed.")
+        logger.log("ERROR: Database initialization failed")
         return False
 
 def run_health_check(root_dir, python_cmd):
     """Run health check script"""
-    logger.log("🏥 Running health check...")
+    logger.log("Running health check...")
     script_path = root_dir / "scripts" / "health_check.py"
     if run_command([python_cmd, str(script_path)], cwd=root_dir):
-        logger.log("✅ Health check passed.")
+        logger.log("OK: Health check passed")
         return True
     else:
-        logger.log("❌ Health check failed.")
+        logger.log("ERROR: Health check failed")
         return False
 
 def generate_proof(root_dir, success):
@@ -352,7 +351,7 @@ def generate_proof(root_dir, success):
     
     proof = f"""
 ============================================================
-📜 INSTALLATION PROOF
+INSTALLATION PROOF
 ============================================================
 Date:   {timestamp}
 Status: {status}
@@ -376,15 +375,15 @@ def main():
     os.chdir(root_dir)
     
     print_header("ELEFANTE INSTALLATION WIZARD")
-    logger.log(f"📂 Installation Directory: {root_dir}")
-    logger.log(f"🐍 Python: {sys.version.split()[0]}")
+    logger.log(f"Installation Directory: {root_dir}")
+    logger.log(f"Python: {sys.version.split()[0]}")
     
     # 0a. Purge Bytecode (Prevent Stale Code)
     purge_bytecode(root_dir)
     
     # 0. Pre-Flight Checks (NEW - Prevents Kuzu and other issues)
     if not run_preflight_checks(root_dir):
-        logger.log("\n❌ Installation aborted due to pre-flight check failures.")
+        logger.log("\nERROR: Installation aborted due to pre-flight check failures")
         logger.log("Please resolve the issues above and try again.")
         sys.exit(1)
     
@@ -394,7 +393,7 @@ def main():
     print_step(1, "Environment Setup")
     in_venv = sys.prefix != sys.base_prefix
     if not in_venv:
-        logger.log("⚠️  Not running in a virtual environment.")
+        logger.log("WARN: Not running in a virtual environment")
         logger.log("   It is recommended to run this script via 'install.bat' (Windows) or 'install.sh' (Mac/Linux).")
     
     python_cmd = get_python_cmd()
@@ -418,56 +417,56 @@ def main():
             antigravity_success = configure_antigravity()
             
             if vscode_success:
-                logger.log("✅ MCP Server configured for VSCode/Bob.")
+                logger.log("OK: MCP Server configured for VSCode/Bob")
             
             if antigravity_success:
-                logger.log("✅ MCP Server configured for Antigravity.")
+                logger.log("OK: MCP Server configured for Antigravity")
                 
             if not vscode_success and not antigravity_success:
-                logger.log("⚠️  Automatic MCP Configuration skipped.")
+                logger.log("WARN: Automatic MCP configuration skipped")
                 logger.log("   Please configure your IDE manually.")
-                logger.log("   See docs/IDE_SETUP.md for instructions.")
+                logger.log("   See docs/technical/installation.md and docs/technical/mcp-server-startup.md for instructions.")
         except Exception as e:
-            logger.log(f"❌ Error configuring MCP: {e}")
+            logger.log(f"ERROR: Error configuring MCP: {e}")
             
     if success:
         # 5. Verification
         print_step(5, "System Verification")
         if not run_health_check(root_dir, python_cmd):
-            logger.log("⚠️  Health check failed. Please review the errors.")
+            logger.log("WARN: Health check failed. Please review the errors.")
             success = False
 
         if success:
              # 5a. MCP Handshake Verification (Real Liveness Check)
-             logger.log("\n🔌 Verifying MCP Handshake...")
+             logger.log("\nVerifying MCP handshake...")
              handshake_script = root_dir / "scripts" / "verify_mcp_handshake.py"
              if run_command([python_cmd, str(handshake_script)], cwd=root_dir):
-                 logger.log("✅ MCP Handshake Verified.")
+                 logger.log("OK: MCP handshake verified")
              else:
-                 logger.log("❌ MCP Handshake FAILED. Server is not responding to protocol.")
+                 logger.log("ERROR: MCP handshake failed. Server is not responding to protocol.")
                  success = False
 
         if success:
              # 5b. Inception Memory (Agentic Optimization)
-             logger.log("\n🧠 LOCATING INCEPTION MEMORY...")
+             logger.log("\nLocating inception memory...")
              inception_script = root_dir / "scripts" / "ingest_inception.py"
              if run_command([python_cmd, str(inception_script)], cwd=root_dir):
-                 logger.log("✅ Inception Memory Ingested.")
+                 logger.log("OK: Inception memory ingested")
              else:
-                 logger.log("❌ Inception Memory FAILED.")
+                 logger.log("ERROR: Inception memory ingest failed")
                  success = False
     
     # Generate Proof
     generate_proof(root_dir, success)
     
     if success:
-        print_header("INSTALLATION COMPLETE! 🎉")
+        print_header("INSTALLATION COMPLETE")
         logger.log("Next Steps:")
         logger.log("1. Restart your IDE to load the MCP server.")
         logger.log("2. Start using Elefante commands in your AI chat!")
         logger.log("   - 'Remember that...'\n   - 'What do you know about...'\n")
     else:
-        print_header("INSTALLATION FAILED ❌")
+        print_header("INSTALLATION FAILED")
         logger.log("Please check the logs above for errors.")
         sys.exit(1)
     

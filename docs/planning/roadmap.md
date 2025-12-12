@@ -11,7 +11,7 @@
 
 | Issue | Severity | Impact |
 |-------|----------|--------|
-| **Response Bloat** | CRITICAL | searchMemories returns ~500 tokens/memory (90% nulls) - wastes context window |
+| **Response Bloat** | CRITICAL | `elefanteMemorySearch` returns ~500 tokens/memory (90% nulls) - wastes context window |
 | **Low Similarity Scores** | HIGH | Exact topic matches score 0.37-0.39 (should be 0.7+) - retrieval broken |
 | **No Action Guidance** | HIGH | Raw JSON dump with no summary - agent can't use results effectively |
 
@@ -27,7 +27,7 @@
 - **Cognitive Memory Model** - LLM extracts emotional context, intent, entities, relationships
 - **Temporal Decay** - Memories decay over time, reinforced on access
 - **Dual Storage** - ChromaDB (vectors) + Kuzu (graph)
-- **MCP Server** - 16 tools for IDE integration
+- **MCP Server** - 15 tools for IDE integration
 - **Dashboard** - React/Vite visualization (functional but needs UX work)
 
 ###  Partial Implementation

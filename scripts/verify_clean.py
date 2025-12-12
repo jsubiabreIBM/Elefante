@@ -16,7 +16,7 @@ def check_clean_repo():
     """Verify repository cleanliness"""
     
     print("\n" + "="*70)
-    print("🧹 ELEFANTE REPOSITORY CLEANLINESS CHECK")
+    print("ELEFANTE REPOSITORY CLEANLINESS CHECK")
     print("="*70 + "\n")
     
     issues = []
@@ -24,43 +24,43 @@ def check_clean_repo():
     
     # Check for data directory
     if Path("data").exists():
-        issues.append("❌ data/ directory exists (should be gitignored)")
+        issues.append("ERROR: data/ directory exists (should be gitignored)")
     else:
-        print("✅ No data/ directory (clean)")
+        print("OK: No data/ directory (clean)")
     
     # Check for logs directory
     if Path("logs").exists():
-        issues.append("❌ logs/ directory exists (should be gitignored)")
+        issues.append("ERROR: logs/ directory exists (should be gitignored)")
     else:
-        print("✅ No logs/ directory (clean)")
+        print("OK: No logs/ directory (clean)")
     
     # Check for __pycache__
     pycache_dirs = list(Path(".").rglob("__pycache__"))
     if pycache_dirs:
-        issues.append(f"❌ Found {len(pycache_dirs)} __pycache__ directories")
+        issues.append(f"ERROR: Found {len(pycache_dirs)} __pycache__ directories")
     else:
-        print("✅ No __pycache__ directories (clean)")
+        print("OK: No __pycache__ directories (clean)")
     
     # Check for .pyc files
     pyc_files = list(Path(".").rglob("*.pyc"))
     if pyc_files:
-        issues.append(f"❌ Found {len(pyc_files)} .pyc files")
+        issues.append(f"ERROR: Found {len(pyc_files)} .pyc files")
     else:
-        print("✅ No .pyc files (clean)")
+        print("OK: No .pyc files (clean)")
     
     # Check for .env file
     if Path(".env").exists():
-        warnings.append("⚠️  .env file exists (should be .env.example only)")
+        warnings.append("WARN: .env file exists (should be .env.example only)")
     else:
-        print("✅ No .env file (use .env.example)")
+        print("OK: No .env file (use .env.example)")
     
     # Check for proper structure
-    required_dirs = ["src", "scripts", "docs", "setup", "examples"]
+    required_dirs = ["src", "scripts", "docs", "examples", "tests"]
     for dir_name in required_dirs:
         if Path(dir_name).exists():
-            print(f"✅ {dir_name}/ directory exists")
+            print(f"OK: {dir_name}/ directory exists")
         else:
-            issues.append(f"❌ Missing {dir_name}/ directory")
+            issues.append(f"ERROR: Missing {dir_name}/ directory")
     
     # Check for required files
     required_files = [
@@ -70,37 +70,37 @@ def check_clean_repo():
         "setup.py",
         ".gitignore",
         "CONTRIBUTING.md",
-        "PROJECT_STRUCTURE.md"
+        "CHANGELOG.md"
     ]
     for file_name in required_files:
         if Path(file_name).exists():
-            print(f"✅ {file_name} exists")
+            print(f"OK: {file_name} exists")
         else:
-            issues.append(f"❌ Missing {file_name}")
+            issues.append(f"ERROR: Missing {file_name}")
     
     # Summary
     print("\n" + "="*70)
-    print("📊 SUMMARY")
+    print("SUMMARY")
     print("="*70)
     
     if not issues and not warnings:
-        print("\n🎉 REPOSITORY IS CLEAN AND READY FOR GITHUB!")
-        print("\n✅ All checks passed")
-        print("✅ No test artifacts found")
-        print("✅ Proper structure verified")
-        print("✅ All required files present")
+        print("\nOK: Repository is clean and ready")
+        print("OK: All checks passed")
+        print("OK: No test artifacts found")
+        print("OK: Proper structure verified")
+        print("OK: All required files present")
         return 0
     
     if warnings:
-        print("\n⚠️  WARNINGS:")
+        print("\nWARNINGS:")
         for warning in warnings:
             print(f"  {warning}")
     
     if issues:
-        print("\n❌ ISSUES FOUND:")
+        print("\nISSUES FOUND:")
         for issue in issues:
             print(f"  {issue}")
-        print("\n🔧 Please fix these issues before pushing to GitHub")
+        print("\nPlease fix these issues before pushing")
         return 1
     
     return 0

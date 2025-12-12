@@ -1,6 +1,6 @@
-"""
-Automatic VSCode/Bob MCP Configuration Script
-Configures VSCode (Bob fork) to use Elefante MCP server automatically
+"""Automatic VS Code/Bob MCP configuration.
+
+Configures VS Code (including Insiders) and Bob-IDE to use the Elefante MCP server.
 """
 
 import json
@@ -15,7 +15,7 @@ if sys.platform == 'win32':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 def get_settings_paths():
-    """Get potential settings.json paths for VSCode and Bob-IDE"""
+    """Get potential settings.json paths for VS Code, Cursor, and Bob-IDE."""
     paths = []
     
     if os.name == 'nt':  # Windows
@@ -23,6 +23,10 @@ def get_settings_paths():
         if appdata:
             # Standard VSCode
             paths.append(Path(appdata) / "Code" / "User" / "settings.json")
+            # VS Code Insiders
+            paths.append(Path(appdata) / "Code - Insiders" / "User" / "settings.json")
+            # Cursor
+            paths.append(Path(appdata) / "Cursor" / "User" / "settings.json")
             # Bob-IDE (User provided path)
             paths.append(Path(appdata) / "Bob-IDE" / "User" / "globalStorage" / "ibm.bob-code" / "settings" / "mcp_settings.json")
             # Bob-IDE (Standard User settings)
@@ -32,48 +36,124 @@ def get_settings_paths():
         home = Path.home()
         if os.uname().sysname == 'Darwin':  # macOS
             paths.append(home / "Library" / "Application Support" / "Code" / "User" / "settings.json")
+            paths.append(home / "Library" / "Application Support" / "Code - Insiders" / "User" / "settings.json")
+            paths.append(home / "Library" / "Application Support" / "Cursor" / "User" / "settings.json")
             paths.append(home / "Library" / "Application Support" / "Bob-IDE" / "User" / "settings.json")
         else:  # Linux
             paths.append(home / ".config" / "Code" / "User" / "settings.json")
+            paths.append(home / ".config" / "Code - Insiders" / "User" / "settings.json")
+            paths.append(home / ".config" / "Cursor" / "User" / "settings.json")
             paths.append(home / ".config" / "Bob-IDE" / "User" / "settings.json")
             
     return paths
 
+
+def get_mcp_json_paths():
+    """Get potential VS Code MCP configuration file paths (mcp.json)."""
+    paths = []
+
+    if os.name == 'nt':
+        appdata = os.environ.get('APPDATA')
+        if appdata:
+            paths.append(Path(appdata) / "Code" / "User" / "mcp.json")
+            paths.append(Path(appdata) / "Code - Insiders" / "User" / "mcp.json")
+    elif os.name == 'posix':
+        home = Path.home()
+        if os.uname().sysname == 'Darwin':
+            paths.append(home / "Library" / "Application Support" / "Code" / "User" / "mcp.json")
+            paths.append(home / "Library" / "Application Support" / "Code - Insiders" / "User" / "mcp.json")
+        else:
+            paths.append(home / ".config" / "Code" / "User" / "mcp.json")
+            paths.append(home / ".config" / "Code - Insiders" / "User" / "mcp.json")
+
+    return paths
+
+
+def configure_vscode_mcp_json(mcp_json_path: Path, elefante_path: Path) -> bool:
+    """Add/update the Elefante server config in a VS Code mcp.json file."""
+    try:
+        mcp_json_path.parent.mkdir(parents=True, exist_ok=True)
+        if mcp_json_path.exists():
+            with open(mcp_json_path, 'r', encoding='utf-8') as f:
+                config = json.load(f) or {}
+        else:
+            config = {}
+    except Exception:
+        config = {}
+
+    if not isinstance(config, dict):
+        config = {}
+
+    if 'servers' not in config or not isinstance(config.get('servers'), dict):
+        config['servers'] = {}
+
+    config['servers']['elefante'] = {
+        "type": "stdio",
+        "command": sys.executable,
+        "args": ["-m", "src.mcp.server"],
+        "env": {
+            "PYTHONPATH": str(elefante_path),
+            "ELEFANTE_CONFIG_PATH": str(elefante_path / "config.yaml"),
+            "ANONYMIZED_TELEMETRY": "False",
+        },
+    }
+
+    try:
+        with open(mcp_json_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2)
+        return True
+    except Exception:
+        return False
+
 def configure_mcp():
     """Configure IDE to use Elefante MCP server"""
     
-    print("\n" + "="*70)
-    print("🐘 ELEFANTE - IDE MCP Configuration")
-    print("="*70 + "\n")
+    print("\n" + "=" * 70)
+    print("ELEFANTE - IDE MCP Configuration")
+    print("=" * 70 + "\n")
     
     # Get current Elefante path (AGNOSTIC)
     # We use the parent of the 'scripts' directory where this script resides
     elefante_path = Path(__file__).parent.parent.absolute()
     
-    print(f"📁 Elefante Location: {elefante_path}")
+    print(f"Elefante Location: {elefante_path}")
+
+    # Configure VS Code MCP (mcp.json) when available
+    mcp_paths = get_mcp_json_paths()
+    mcp_configured = False
+    for mcp_path in mcp_paths:
+        if mcp_path.parent.exists():
+            print(f"\nConfiguring VS Code MCP config: {mcp_path}")
+            if configure_vscode_mcp_json(mcp_path, elefante_path):
+                mcp_configured = True
+            else:
+                print(f"Warning: Failed to write {mcp_path}")
     
     # Find valid settings files
     potential_paths = get_settings_paths()
     found_paths = [p for p in potential_paths if p.exists()]
     
-    if not found_paths:
-        print("❌ No compatible IDE settings found!")
+    if not found_paths and not mcp_configured:
+        print("No compatible IDE settings found!")
         print("Checked locations:")
         for p in potential_paths:
             print(f" - {p}")
+        for p in mcp_paths:
+            print(f" - {p}")
         return False
         
-    print(f"✅ Found {len(found_paths)} configuration file(s).")
+    if found_paths:
+        print(f"Found {len(found_paths)} IDE settings file(s).")
     
     # Configure each found settings file
     for settings_path in found_paths:
-        print(f"\n📄 Configuring: {settings_path}")
+        print(f"\nConfiguring: {settings_path}")
         
         try:
             with open(settings_path, 'r', encoding='utf-8') as f:
                 settings = json.load(f)
         except json.JSONDecodeError:
-            print(f"⚠️  Error reading {settings_path}. Skipping.")
+            print(f"Warning: Error reading {settings_path}. Skipping.")
             continue
             
         # Determine config structure based on file type
@@ -90,8 +170,21 @@ def configure_mcp():
             },
             "disabled": False,
             "alwaysAllow": [
-                "searchMemories", "addMemory", "getStats", 
-                "getContext", "createEntity", "createRelationship", "queryGraph"
+                "elefanteMemorySearch",
+                "elefanteMemoryAdd",
+                "elefanteSystemStatusGet",
+                "elefanteDashboardOpen",
+                "elefanteGraphConnect",
+                "elefanteContextGet",
+                "elefanteGraphEntityCreate",
+                "elefanteGraphRelationshipCreate",
+                "elefanteGraphQuery",
+                "elefanteSystemEnable",
+                "elefanteSystemDisable",
+                "elefanteSessionsList",
+                "elefanteMemoryListAll",
+                "elefanteMemoryConsolidate",
+                "elefanteMemoryMigrateToV3",
             ]
         }
         
@@ -115,12 +208,12 @@ def configure_mcp():
             settings['chat.mcp.servers']['elefante'] = vscode_config
             
         # Save settings
-        print("💾 Saving configuration...")
+        print("Saving configuration...")
         with open(settings_path, 'w', encoding='utf-8') as f:
             json.dump(settings, f, indent=4)
             
     print("\n" + "="*70)
-    print("✅ Configuration complete!")
+    print("Configuration complete!")
     print("="*70)
     print("1. Restart your IDE")
     print("2. Elefante will auto-connect from:")
@@ -135,5 +228,5 @@ if __name__ == "__main__":
         if not success:
             sys.exit(1)
     except Exception as e:
-        print(f"\n❌ Error: {e}\n")
+        print(f"\nError: {e}\n")
         sys.exit(1)

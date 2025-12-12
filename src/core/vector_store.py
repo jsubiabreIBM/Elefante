@@ -282,6 +282,10 @@ class VectorStore:
                         semantic_weight = self.config.elefante.temporal_decay.semantic_weight
                         temporal_weight = self.config.elefante.temporal_decay.temporal_weight
                         final_score = (semantic_weight * similarity) + (temporal_weight * temporal_score)
+
+                        # The temporal model can yield values > 1.0 (due to reinforcement).
+                        # Clamp final score to the SearchResult contract.
+                        final_score = max(0.0, min(1.0, final_score))
                         
                         # Update access tracking
                         memory.record_access()

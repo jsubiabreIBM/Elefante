@@ -137,7 +137,7 @@ class TestVectorStoreV2Metadata:
         )
         
         assert len(results) > 0
-        assert any(r.content == sample_memory_v2.content for r in results)
+        assert any(r.memory.content == sample_memory_v2.content for r in results)
         
         print(f"✅ Search with V2 schema successful, found {len(results)} results")
     

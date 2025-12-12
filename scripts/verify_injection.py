@@ -19,23 +19,23 @@ def test_injection():
     print("--- Test Case 1: Generic Tool ---")
     print(json.dumps(injected, indent=2))
     
-    if "🛑_MANDATORY_PROTOCOLS_READ_THIS_FIRST" in injected:
-        print("✅ Injection successful")
+    if "MANDATORY_PROTOCOLS_READ_THIS_FIRST" in injected:
+        print("Injection successful")
     else:
-        print("❌ Injection failed")
+        print("Injection failed")
 
-    # Test case 2: searchMemories
+    # Test case 2: elefanteMemorySearch
     result_search = {"results": []}
-    injected_search = server._inject_pitfalls(result_search, "searchMemories")
+    injected_search = server._inject_pitfalls(result_search, "elefanteMemorySearch")
     
-    print("\n--- Test Case 2: searchMemories ---")
+    print("\n--- Test Case 2: elefanteMemorySearch ---")
     print(json.dumps(injected_search, indent=2))
     
-    protocols = injected_search.get("🛑_MANDATORY_PROTOCOLS_READ_THIS_FIRST", [])
+    protocols = injected_search.get("MANDATORY_PROTOCOLS_READ_THIS_FIRST", [])
     if any("SEARCH BIAS" in p for p in protocols):
-        print("✅ Context-specific injection successful")
+        print("Context-specific injection successful")
     else:
-        print("❌ Context-specific injection failed")
+        print("Context-specific injection failed")
 
 if __name__ == "__main__":
     # Mock the _register_handlers to avoid async issues during init if any

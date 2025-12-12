@@ -31,7 +31,7 @@ Instead of a static RAG formula, Elefante analyzes the query to shift importance
 
 ### Data Flow: Storing a Memory
 
-1.  **Ingest:** Text received via `addMemory`.
+1.  **Ingest:** Text received via `elefanteMemoryAdd`.
 2.  **Dual-Write:**
     - **Vector:** Content embedded and stored in ChromaDB.
     - **Graph:** A `Memory` node is created in Kuzu.
