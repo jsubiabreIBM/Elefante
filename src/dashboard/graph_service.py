@@ -11,6 +11,7 @@ from datetime import datetime
 import kuzu
 import numpy as np
 from src.utils.config import get_config
+from src.utils.config import DATA_DIR
 
 class GraphService:
     def __init__(self):
@@ -34,7 +35,12 @@ class GraphService:
         import json
         from datetime import datetime
         
-        snapshot_path = Path("data/dashboard_snapshot.json")
+        # Prefer Elefante's global data dir (~/.elefante/data) so the dashboard
+        # reflects MCP-driven refreshes. Fall back to repo-local data/ for dev.
+        snapshot_path = Path(DATA_DIR) / "dashboard_snapshot.json"
+        if not snapshot_path.exists():
+            snapshot_path = Path("data/dashboard_snapshot.json")
+
         if not snapshot_path.exists():
             return [], [], ["Snapshot not found"]
             

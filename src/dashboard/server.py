@@ -88,10 +88,14 @@ async def get_graph(limit: int = 1000, space: Optional[str] = None):
             src = e.get("from") or e.get("source")
             dst = e.get("to") or e.get("target")
             if src in node_ids and dst in node_ids:
+                label = e.get("label", "RELATED")
+                edge_type = e.get("type") or ("semantic" if label == "SIMILAR" else "graph")
                 edges.append({
                     "source": src,
                     "target": dst,
-                    "type": e.get("label", "RELATED"),
+                    "type": edge_type,
+                    "label": label,
+                    "similarity": e.get("similarity"),
                     "properties": {}
                 })
         
@@ -122,6 +126,7 @@ async def get_stats():
     import json
     from pathlib import Path
     from src.utils.config import DATA_DIR
+    from src.utils.config import get_config
     
     try:
         snapshot_path = DATA_DIR / "dashboard_snapshot.json"
@@ -132,17 +137,35 @@ async def get_stats():
         with open(snapshot_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         
+        cfg = get_config()
+        try:
+            from src import __version__ as pkg_version
+        except Exception:
+            pkg_version = None
+
+        snapshot_stat = data.get("stats", {}) if isinstance(data.get("stats", {}), dict) else {}
+        snapshot_generated_at = data.get("generated_at", "unknown")
+
         return {
+            "elefante": {
+                "package_version": pkg_version,
+                "config_version": getattr(cfg.elefante, "version", None),
+                "data_dir": str(DATA_DIR),
+            },
             "vector_store": {
-                "total_memories": data.get("stats", {}).get("memories", 0),
+                "total_memories": snapshot_stat.get("memories", 0),
             },
             "graph_store": {
-                "total_entities": data.get("stats", {}).get("entities", 0),
-                "total_relationships": data.get("stats", {}).get("edges", 0),
+                "total_entities": snapshot_stat.get("entities", 0),
+                "total_relationships": snapshot_stat.get("edges", 0),
             },
             "snapshot": {
-                "generated_at": data.get("generated_at", "unknown"),
-                "total_nodes": data.get("stats", {}).get("total_nodes", 0),
+                "path": str(snapshot_path),
+                "generated_at": snapshot_generated_at,
+                "total_nodes": snapshot_stat.get("total_nodes", 0),
+                "memories": snapshot_stat.get("memories", 0),
+                "entities": snapshot_stat.get("entities", 0),
+                "edges": snapshot_stat.get("edges", 0),
             }
         }
     except Exception as e:

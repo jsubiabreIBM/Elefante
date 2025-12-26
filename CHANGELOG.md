@@ -7,18 +7,93 @@ Project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [Unreleased] - Planned for v1.2.0
 
 ### Added
 - Agent-managed enrichment architecture: Elefante never calls an LLM; agents pass enrichment via tool inputs.
+- Auto-classification of domain/category via LLM
+- Smart UPDATE (merge instead of duplicate)
+- Automatic relationship inference
+- Knowledge clustering
 
 ### Changed
 - MCP tool names standardized with an `elefante*` prefix (see MCP tool list in `src/mcp/server.py`).
 - Protocol injection key standardized to `MANDATORY_PROTOCOLS_READ_THIS_FIRST`.
+- Dashboard semantic zoom
+- Improved label rendering
 
 ### Removed
 - Internal LLM connectivity and config/env overrides for LLM providers.
 - OpenAI-based embeddings provider path (embeddings are local-only via sentence-transformers).
+
+---
+
+## [1.1.0] - 2025-12-26
+
+### Summary
+
+Transaction-scoped locking for true multi-IDE safety. Fixes the fundamental lock deadlock problem where stale locks from crashed/closed IDEs would block other instances indefinitely.
+
+### The Problem Solved
+
+v1.0.1 used **session-based locking**:
+- `elefanteSystemEnable` acquired locks → held indefinitely
+- `elefanteSystemDisable` released locks only on explicit call
+- Crashed processes left stale locks forever (e.g., PID 4563 from Dec 14 blocking all access on Dec 26)
+- Multiple IDEs could never interleave operations
+
+### The Solution
+
+v1.1.0 uses **transaction-scoped locking**:
+- Each write operation acquires lock → does work → releases lock (milliseconds)
+- Read operations are lock-free
+- Stale locks auto-expire after 30 seconds
+- Multiple IDEs can interleave operations safely
+
+### Changes
+
+#### Transaction-Scoped Locking (`src/utils/elefante_mode.py`)
+- **NEW**: `TransactionLock` class - short-lived, auto-releasing locks
+- **NEW**: `write_lock()` context manager for write operations
+- **NEW**: `read_lock()` context manager (no-op - reads are lock-free)
+- **NEW**: Stale lock detection (dead PID or timeout > 30s)
+- **CHANGED**: `is_enabled` always returns `True` (no more enable/disable ceremony)
+- **CHANGED**: `enable()`/`disable()` are now no-ops for backward compatibility
+- **REMOVED**: Session-based lock files (`chroma.lock`, `kuzu.lock`)
+- **ADDED**: Single `write.lock` file with PID/timestamp tracking
+
+#### MCP Server Updates (`src/mcp/server.py`)
+- **CHANGED**: Write operations wrapped in `write_lock()`:
+  - `_handle_add_memory`
+  - `_handle_create_entity`
+  - `_handle_create_relationship`
+  - `_handle_consolidate_memories`
+  - `_handle_set_elefante_connection`
+  - `_handle_etl_classify`
+  - `_handle_migrate_memories_v3`
+- **REMOVED**: Blocking mode check that returned "disabled" response
+- **ADDED**: Graceful retry response when lock unavailable
+
+### Migration
+
+No migration needed. v1.1.0 is backward compatible:
+- `elefanteSystemEnable` still works (now a no-op that returns success)
+- `elefanteSystemDisable` still works (clears resources)
+- All existing tool calls work unchanged
+
+### Versioning Logic
+
+Elefante follows [Semantic Versioning](https://semver.org/):
+- **MAJOR** (x.0.0): Breaking changes requiring user action
+- **MINOR** (1.x.0): New features, backward compatible
+- **PATCH** (1.0.x): Bug fixes, documentation
+
+This release is **1.1.0** (minor) because:
+- New feature (transaction-scoped locking)
+- Backward compatible (existing tools work unchanged)
+- No user migration required
+
+---
 
 ## [1.0.1] - 2025-12-11
 
@@ -119,21 +194,6 @@ First stable production release with comprehensive documentation cleanup.
 - Memory Schema V2 taxonomy (domain/category) requires manual input - auto-classification planned for v1.1.0
 - Dashboard UX needs improvement - semantic zoom planned
 - Smart UPDATE (merge) not yet implemented
-
----
-
-## [Unreleased]
-
-### Planned for v1.1.0
-- Auto-classification of domain/category via LLM
-- Smart UPDATE (merge instead of duplicate)
-- Dashboard semantic zoom
-- Improved label rendering
-
-### Planned for v1.2.0
-- Automatic relationship inference
-- Knowledge clustering
-- Contradiction detection
 
 ---
 

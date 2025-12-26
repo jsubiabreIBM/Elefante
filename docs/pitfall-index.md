@@ -110,6 +110,13 @@ Before completing ANY task, MUST:
 **Why:** MCP SDK uses strict runtime type checking  
 **Source:** debug/mcp-code-neural-register.md Law #1
 
+### pitfall: mcp vscode duplicate server scopes
+
+**Trigger:** VS Code shows two identical `elefante` MCP servers  
+**Action:** Keep `elefante` only in User `mcp.json`; ensure `.vscode/mcp.json` does not define `servers.elefante`; remove `chat.mcp.servers.elefante` / `roo-cline.mcpServers.elefante` if present; reload window  
+**Why:** VS Code merges User + Workspace MCP servers; multiple mechanisms/scopes can register the same server name  
+**Source:** debug/mcp-code-neural-register.md Law #7, technical/ide-mcp-configuration.md
+
 ### pitfall: mcp connection crash uvicorn
 
 **Trigger**: `invalid character 'I'` when launching dashboard

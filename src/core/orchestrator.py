@@ -10,6 +10,7 @@ This is the central intelligence layer that:
 
 import asyncio
 import hashlib
+import os
 import re
 import json
 from difflib import SequenceMatcher
@@ -26,12 +27,13 @@ from src.models.query import QueryMode, QueryPlan, SearchResult, SearchFilters
 from src.core.vector_store import VectorStore, get_vector_store
 from src.core.graph_store import GraphStore, get_graph_store
 from src.core.embeddings import EmbeddingService, get_embedding_service
-from src.core.llm import get_llm_service
+from src.core.classifier import classify_memory_full
 from src.utils.logger import get_logger
 from src.utils.config import get_config
 from src.utils.validators import validate_memory_content, validate_uuid
 from src.models.metadata import StandardizedMetadata, CoreMetadata, ContextMetadata, SystemMetadata, MemoryType as StdMemoryType
 from src.core.metadata_store import get_metadata_store
+from src.core.etl import ProcessingStatus  # Only need status, classification is agent-driven
 
 logger = get_logger(__name__)
 
@@ -64,7 +66,6 @@ class MemoryOrchestrator:
         self.vector_store = vector_store or get_vector_store()
         self.graph_store = graph_store or get_graph_store()
         self.embedding_service = embedding_service or get_embedding_service()
-        self.llm_service = get_llm_service()
         self.config = get_config()
         self.logger = get_logger(self.__class__.__name__)
         self.metadata_store = get_metadata_store()
@@ -129,6 +130,43 @@ class MemoryOrchestrator:
         if metadata is None:
             metadata = {}
 
+        # Guardrail: block test-memory creation unless explicitly allowed.
+        # Rationale: production memory graph should not accumulate E2E/persistence test artifacts.
+        allow_test = os.getenv("ELEFANTE_ALLOW_TEST_MEMORIES", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "y",
+            "on",
+        }
+
+        tags_list = tags or []
+        tags_lower = {t.strip().lower() for t in tags_list if isinstance(t, str) and t.strip()}
+        category_lower = str(metadata.get("category") or "").strip().lower()
+        namespace_lower = str(metadata.get("namespace") or "").strip().lower()
+        content_lower = (content or "").strip().lower()
+
+        is_test_like = (
+            namespace_lower == "test"
+            or category_lower == "test"
+            or category_lower.startswith("hybrid_test_")
+            or "test" in tags_lower
+            or "e2e" in tags_lower
+            or any(t.startswith("hybrid_test_") for t in tags_lower)
+            or content_lower.startswith("elefante e2e test memory")
+            or content_lower.startswith("hybrid search test memory")
+            or " test memory" in content_lower
+        )
+
+        if is_test_like and not allow_test:
+            self.logger.warning(
+                "blocked_test_memory_submission",
+                category=category_lower or None,
+                namespace=namespace_lower or None,
+                tags=sorted(tags_lower),
+            )
+            return None
+
         def _normalize_for_compare(text: str) -> str:
             text = text.lower().strip()
             return re.sub(r"\s+", " ", text)
@@ -139,78 +177,186 @@ class MemoryOrchestrator:
             if na == nb:
                 return True
             return SequenceMatcher(None, na, nb).ratio() >= threshold
+
+        def _keywords(text: str) -> set[str]:
+            words = re.findall(r"[a-zA-Z][a-zA-Z\-']+", text.lower())
+            stop = {
+                "the", "a", "an", "and", "or", "to", "of", "in", "on", "for", "with", "is", "are",
+                "be", "being", "been", "should", "must", "always", "please", "this", "that", "it",
+                "i", "me", "my", "we", "you", "your", "they", "them", "he", "she", "as",
+            }
+            return {w for w in words if w not in stop and len(w) >= 3}
+
+        def _has_meaningful_overlap(a: str, b: str) -> bool:
+            ka = _keywords(a)
+            kb = _keywords(b)
+            if not ka or not kb:
+                return False
+            overlap = ka & kb
+            # Guardrail: require at least a few shared keywords.
+            return len(overlap) >= 3
             
         # Extract Authoritative Classification (Layer/Sublayer)
         # We prefer the classification provided by the Agent (via metadata)
         layer = metadata.get("layer")
         sublayer = metadata.get("sublayer")
         
-        # If Agent failed to classify, we mark it but don't block (system resilience)
+        # If Agent failed to classify, fall back to deterministic rules (NO LLM calls).
         if not layer or not sublayer:
-             self.logger.warning("Memory missing explicit Layer/Sublayer classification. Using defaults.")
-             if not layer: layer = "world"
-             if not sublayer: sublayer = "fact"
+            self.logger.warning("Memory missing explicit Layer/Sublayer classification. Using deterministic classifier.")
+            detected_layer, detected_sublayer, detected_importance = classify_memory_full(content)
+            if not layer:
+                layer = detected_layer
+                metadata["layer"] = layer
+            if not sublayer:
+                sublayer = detected_sublayer
+                metadata["sublayer"] = sublayer
+            # Only fill importance if caller left it at default/low.
+            if importance <= 1:
+                importance = max(importance, detected_importance)
 
-        # 1b. Cognitive Analysis (Optional Enrichment)
-        # We still use the LLM to get a Title and deeper intent, but we don't let it override the Agent's layer
-        try:
-            analysis = await self.llm_service.analyze_memory(content)
-            
-            # Handle IGNORE action
-            if analysis.get("action") == "IGNORE":
-                self.logger.info(f"Memory ignored by Intelligence Pipeline: {content[:50]}...")
-                return None
-            
-            # Prefer an explicit title provided by the caller (e.g., agent or tests).
-            # This avoids unintended logic-level deduplication collisions and allows
-            # deterministic E2E verification.
-            provided_title = metadata.get("title")
-            if isinstance(provided_title, str) and provided_title.strip():
-                title = provided_title.strip()
-            else:
-                # Generate strict Subject-Aspect-Qualifier title
-                title = await self.llm_service.generate_semantic_title(content, layer, sublayer)
-                metadata["title"] = title
+        # Agent-driven enrichment (Elefante never calls an LLM).
+        # The calling agent may provide these fields in metadata.
+        action = metadata.get("action")
+        if isinstance(action, str) and action.strip().upper() == "IGNORE":
+            self.logger.info(f"Memory ignored by agent instruction: {content[:50]}...")
+            return None
 
-            # Update metadata with cognitive context
-            metadata["intent"] = analysis.get("intent")
-            metadata["emotional_context"] = analysis.get("emotional_context")
-            metadata["strategic_insight"] = analysis.get("strategic_insight")
-            
-            # ==================================================================================
-            # STEP 1.5: LOGIC-LEVEL DEDUPLICATION (Pattern #5 Fix)
-            # ==================================================================================
-            # Check if this exact Concept Title already exists
-            existing_memory = None
-            if not force_new:
-                existing_memory = await self.vector_store.find_by_title(title)
-            
-            if existing_memory:
-                if _is_near_duplicate(content, existing_memory.content):
-                    self.logger.info(
-                        f"LOGIC-LEVEL DEDUPLICATION: '{title}' already exists as {existing_memory.id}. Reinforcing."
+        provided_title = metadata.get("title")
+        if isinstance(provided_title, str) and provided_title.strip():
+            title = provided_title.strip()
+        else:
+            # Deterministic title generation: stable, cheap, and offline.
+            from src.utils.curation import generate_title
+
+            title = generate_title(content=content, layer=str(layer), sublayer=str(sublayer), max_len=120)
+            metadata["title"] = title
+
+        # ==================================================================================
+        # STEP 1.5: LOGIC-LEVEL DEDUPLICATION (Pattern #5 Fix)
+        # ==================================================================================
+        # Check if this exact Concept Title already exists
+        existing_memory = None
+        if not force_new:
+            existing_memory = await self.vector_store.find_by_title(title)
+
+        if existing_memory:
+            if _is_near_duplicate(content, existing_memory.content):
+                self.logger.info(
+                    f"LOGIC-LEVEL DEDUPLICATION: '{title}' already exists as {existing_memory.id}. Reinforcing."
+                )
+
+                # Reinforce existing memory (update timestamp, access count)
+                existing_memory.metadata.last_accessed = datetime.utcnow()
+                existing_memory.metadata.access_count += 1
+                await self.vector_store.update_memory_access(existing_memory)
+                return existing_memory
+
+            # Title collision but materially different content.
+            # Disambiguate title so we don't drop the new memory.
+            digest = hashlib.sha256(_normalize_for_compare(content).encode("utf-8")).hexdigest()[:8]
+            title = f"{title} [{digest}]"
+            metadata["title"] = title
+
+        # ==================================================================================
+        # STEP 1.75: PREFERENCE RE-ASSERTION MERGE (Graceful Redundancy Handling)
+        # ==================================================================================
+        # For self-level preferences/constraints, semantic similarity may be < 0.65 while still
+        # representing the same intent. In that case, we prefer updating/reinforcing the existing
+        # preference instead of creating a new redundant record.
+        is_self = isinstance(layer, str) and layer.strip().lower() == "self"
+        prefish_sublayer = isinstance(sublayer, str) and sublayer.strip().lower() in {"preference", "constraint"}
+        is_preference_like = (
+            str(memory_type).lower() == MemoryType.PREFERENCE.value
+            or (is_self and prefish_sublayer)
+        )
+
+        if is_preference_like and not force_new:
+            # Only consider existing self-level preference memories.
+            preference_candidates = await self.vector_store.search(
+                query=content,
+                limit=5,
+                min_similarity=0.30,
+                apply_temporal_decay=False,
+                where_override={"layer": "self"},
+            )
+
+            if preference_candidates:
+                # Filter down to preference-like candidates after retrieval to avoid
+                # brittle Chroma where-clauses and to include self.constraints too.
+                pref_like = [
+                    r
+                    for r in preference_candidates
+                    if (
+                        str(r.memory.metadata.memory_type).lower() == MemoryType.PREFERENCE.value
+                        or str(r.memory.metadata.sublayer).strip().lower() in {"preference", "constraint"}
+                    )
+                ]
+
+                if not pref_like:
+                    pref_like = preference_candidates
+
+                best_pref = pref_like[0]
+
+                # Merge only when we're confident it's the same preference.
+                if best_pref.score >= 0.40 and _has_meaningful_overlap(content, best_pref.memory.content):
+                    existing = best_pref.memory
+                    now = datetime.utcnow()
+
+                    merged_tags: List[str] = []
+                    seen = set()
+                    for t in (existing.metadata.tags or []) + (tags or []):
+                        if isinstance(t, str):
+                            tt = t.strip()
+                            if tt and tt not in seen:
+                                seen.add(tt)
+                                merged_tags.append(tt)
+
+                    merged_importance = max(int(existing.metadata.importance or 1), int(importance or 1))
+
+                    merged_content = existing.content
+                    if not _is_near_duplicate(content, existing.content):
+                        normalized_existing = _normalize_for_compare(existing.content)
+                        normalized_incoming = _normalize_for_compare(content)
+                        if normalized_incoming not in normalized_existing:
+                            merged_content = (
+                                f"{existing.content.rstrip()}\n\n"
+                                f"Reasserted ({now.date().isoformat()}): {content.strip()}"
+                            )
+
+                    cm = dict(existing.metadata.custom_metadata or {})
+                    reinforcements = cm.get("reinforcements")
+                    if not isinstance(reinforcements, list):
+                        reinforcements = []
+                    reinforcements.append(
+                        {
+                            "at": now.isoformat(),
+                            "content": content[:200],
+                            "similarity": float(best_pref.score),
+                        }
+                    )
+                    cm["reinforcements"] = reinforcements[-10:]
+
+                    await self.vector_store.update_memory(
+                        existing.id,
+                        {
+                            "content": merged_content,
+                            "tags": merged_tags,
+                            "importance": merged_importance,
+                            "last_accessed": now,
+                            "last_modified": now,
+                            "access_count": int(existing.metadata.access_count or 1) + 1,
+                            "custom_metadata": cm,
+                        },
                     )
 
-                    # Reinforce existing memory (update timestamp, access count)
-                    existing_memory.metadata.last_accessed = datetime.utcnow()
-                    existing_memory.metadata.access_count += 1
-                    await self.vector_store.update_memory_access(existing_memory)
-                    return existing_memory
-
-                # Title collision but materially different content.
-                # Disambiguate title so we don't drop the new memory.
-                digest = hashlib.sha256(_normalize_for_compare(content).encode("utf-8")).hexdigest()[:8]
-                title = f"{title} [{digest}]"
-                metadata["title"] = title
-            
-        except Exception as e:
-            self.logger.warning(f"Intelligence Pipeline enrichment failed: {e}. Proceeding with raw memory.")
-            provided_title = metadata.get("title")
-            if isinstance(provided_title, str) and provided_title.strip():
-                title = provided_title.strip()
-            else:
-                title = f"memory_{uuid4()}"
-            analysis = {}
+                    updated = await self.vector_store.get_memory(existing.id)
+                    self.logger.info(
+                        "preference_reassertion_merged",
+                        existing_id=str(existing.id),
+                        similarity=float(best_pref.score),
+                    )
+                    return updated or existing
 
         # ==================================================================================
         # STEP 2: INTEGRITY (Duplicate & Contradiction Check)
@@ -270,11 +416,41 @@ class MemoryOrchestrator:
             category = metadata.get("category", tags[0] if tags else "general")
             confidence = metadata.get("confidence", 0.7)
             source = metadata.get("source", "user_input")
+
+            intent_value = metadata.get("intent")
+            try:
+                intent_enum = IntentType(intent_value) if intent_value else IntentType.REFERENCE
+            except Exception:
+                intent_enum = IntentType.REFERENCE
+
+            summary_text = metadata.get("summary")
+            if not isinstance(summary_text, str) or not summary_text.strip():
+                from src.utils.curation import generate_summary
+
+                summary_text = generate_summary(content=content, max_len=220)
+                metadata["summary"] = summary_text
             
             custom_metadata = {
                 k: v for k, v in metadata.items()
                 if k not in ["domain", "category", "intent", "confidence", "source", "layer", "sublayer"]
             }
+            
+            # ==================================================================================
+            # STEP 3.5: RAW STORAGE (ETL Phase 1)
+            # V5 topology classification happens asynchronously via agent-driven ETL Phase 2.
+            # Store with processing_status=raw. Agent will classify via elefanteETLProcess/Classify.
+            # ==================================================================================
+            custom_metadata["processing_status"] = ProcessingStatus.RAW
+            custom_metadata["ingested_at"] = datetime.utcnow().isoformat()
+            # Leave V5 fields empty - agent will populate via ETL Phase 2
+            # custom_metadata["ring"] = None
+            # custom_metadata["knowledge_type"] = None  
+            # custom_metadata["topic"] = None
+            # custom_metadata["owner_id"] = None
+            # Persist curated fields into custom_metadata so they become top-level Chroma fields
+            # in VectorStore.add_memory (title/summary are used by dashboard + dedup).
+            custom_metadata["title"] = title
+            custom_metadata["summary"] = summary_text
             
             # Create V2 Metadata
             memory_metadata = MemoryMetadata(
@@ -287,10 +463,11 @@ class MemoryOrchestrator:
                 # Enforce Layer/Sublayer
                 layer=layer,
                 sublayer=sublayer,
-                intent=IntentType.REFERENCE, # Default, refined by analysis if avail
+                intent=intent_enum,
                 confidence=confidence,
                 source=SourceType(source),
                 custom_metadata=custom_metadata,
+                summary=summary_text,
                 # ==================================================================================
                 # STEP 4: REINFORCE (Plasticity & Decay)
                 # ==================================================================================
@@ -319,14 +496,16 @@ class MemoryOrchestrator:
                 id=memory.id,
                 name=entity_name,
                 type=EntityType.MEMORY,
-                description=analysis.get("summary", content[:200]),
+                description=summary_text,
                 properties={
                     "content": content[:200],
                     "layer": layer,
                     "sublayer": sublayer,
                     "importance": importance,
                     "status": status.value,
-                    "timestamp": memory.metadata.created_at
+                    "timestamp": memory.metadata.created_at,
+                    # V5 Topology - populated during ETL Phase 2
+                    "processing_status": ProcessingStatus.RAW,
                 }
             )
             await self.graph_store.create_entity(memory_entity)
@@ -482,11 +661,11 @@ class MemoryOrchestrator:
             if include_stored:
                 # Execute traditional search (semantic/structured/hybrid) with temporal decay
                 if mode == QueryMode.SEMANTIC:
-                    stored_results = await self._search_semantic(query, plan, apply_temporal_decay)
+                    stored_results = await self._search_semantic(query, plan, filters, apply_temporal_decay)
                 elif mode == QueryMode.STRUCTURED:
                     stored_results = await self._search_structured(query, plan, apply_temporal_decay)
                 else:  # HYBRID
-                    stored_results = await self._search_hybrid(query, plan, apply_temporal_decay)
+                    stored_results = await self._search_hybrid(query, plan, filters, apply_temporal_decay)
                 results.extend(stored_results)
             
             if include_conversation and session_id:
@@ -564,9 +743,14 @@ class MemoryOrchestrator:
         self,
         query: str,
         plan: QueryPlan,
+        filters: Optional[SearchFilters] = None,
         apply_temporal_decay: bool = True
     ) -> List[SearchResult]:
-        """Execute semantic search via vector store with optional temporal decay"""
+        """Execute semantic search via vector store with optional temporal decay.
+
+        Uses metadata-filtered federated search to prevent core/domain memories from being
+        drowned out by leaf noise.
+        """
         # Build metadata filters
         metadata_filter = {}
         if plan.memory_types:
@@ -575,26 +759,78 @@ class MemoryOrchestrator:
             metadata_filter["tags"] = {"$in": plan.tags}
         if plan.min_importance:
             metadata_filter["importance"] = {"$gte": plan.min_importance}
-        
-        # Search vector store with temporal decay - returns List[SearchResult]
-        results = await self.vector_store.search(
+
+        # Federated search: anchors (core/domain) + general, then deterministic interleaved merge.
+        anchor_fetch = max(3, int(plan.limit * 0.7))
+        general_fetch = max(plan.limit * 3, 10)
+
+        anchors = await self.vector_store.search(
             query=query,
-            limit=plan.limit * 2,  # Get more for filtering
-            apply_temporal_decay=apply_temporal_decay
+            limit=anchor_fetch,
+            filters=filters,
+            where_override={"ring": {"$in": ["core", "domain"]}},
+            min_similarity=plan.min_similarity,
+            apply_temporal_decay=apply_temporal_decay,
         )
-        
-        # Filter by minimum similarity
-        filtered_results = [
-            result for result in results
-            if result.score >= plan.min_similarity
-        ]
-        
+
+        general = await self.vector_store.search(
+            query=query,
+            limit=general_fetch,
+            filters=filters,
+            min_similarity=plan.min_similarity,
+            apply_temporal_decay=apply_temporal_decay,
+        )
+
+        # Remove duplicates from general bucket
+        anchor_ids = {r.memory.id for r in anchors}
+        general = [r for r in general if r.memory.id not in anchor_ids]
+
+        merged: List[SearchResult] = []
+        seen: set[UUID] = set()
+
+        # Deterministic interleave pattern: 1 anchor, then 2 general
+        ai = 0
+        gi = 0
+        while len(merged) < plan.limit and (ai < len(anchors) or gi < len(general)):
+            if ai < len(anchors):
+                candidate = anchors[ai]
+                ai += 1
+                if candidate.memory.id not in seen:
+                    merged.append(candidate)
+                    seen.add(candidate.memory.id)
+                if len(merged) >= plan.limit:
+                    break
+
+            for _ in range(2):
+                if gi >= len(general) or len(merged) >= plan.limit:
+                    break
+                candidate = general[gi]
+                gi += 1
+                if candidate.memory.id not in seen:
+                    merged.append(candidate)
+                    seen.add(candidate.memory.id)
+
+        # Backfill if one side exhausted early
+        while len(merged) < plan.limit and ai < len(anchors):
+            candidate = anchors[ai]
+            ai += 1
+            if candidate.memory.id not in seen:
+                merged.append(candidate)
+                seen.add(candidate.memory.id)
+
+        while len(merged) < plan.limit and gi < len(general):
+            candidate = general[gi]
+            gi += 1
+            if candidate.memory.id not in seen:
+                merged.append(candidate)
+                seen.add(candidate.memory.id)
+
         # Update access counts for retrieved memories
         if apply_temporal_decay:
-            for result in filtered_results:
+            for result in merged:
                 await self.vector_store.update_memory_access(result.memory)
-        
-        return filtered_results
+
+        return merged
     
     async def _search_structured(
         self,
@@ -741,6 +977,7 @@ class MemoryOrchestrator:
         self,
         query: str,
         plan: QueryPlan,
+        filters: Optional[SearchFilters] = None,
         apply_temporal_decay: bool = True
     ) -> List[SearchResult]:
         """
@@ -753,7 +990,7 @@ class MemoryOrchestrator:
         4. Deduplicate and rank
         """
         # Execute both searches in parallel with temporal decay
-        semantic_task = self._search_semantic(query, plan, apply_temporal_decay)
+        semantic_task = self._search_semantic(query, plan, filters, apply_temporal_decay)
         structured_task = self._search_structured(query, plan, apply_temporal_decay)
         
         semantic_results, structured_results = await asyncio.gather(
@@ -1415,17 +1652,23 @@ class MemoryOrchestrator:
     
     async def consolidate_memories(self, force: bool = False) -> Dict[str, Any]:
         """
-        Trigger memory consolidation process
+        Trigger memory cleanup/consolidation process.
+
+        Note: Elefante does not perform internal LLM synthesis. This endpoint is used
+        for deterministic cleanup (canonicalization, duplicate marking, test quarantine)
+        using the existing tool surface.
         """
-        from src.core.consolidation import MemoryConsolidator
-        
-        consolidator = MemoryConsolidator()
-        new_memories = await consolidator.consolidate_recent(force=force)
-        
+        from src.core.refinery import MemoryRefinery
+
+        refinery = MemoryRefinery(self.vector_store)
+        result = await refinery.run(apply=bool(force))
+
+        # Backward-compatible envelope keys
         return {
             "success": True,
-            "consolidated_count": len(new_memories),
-            "new_memory_ids": [str(m.id) for m in new_memories]
+            "consolidated_count": 0,
+            "new_memory_ids": [],
+            "refinery": result,
         }
     
     async def list_all_memories(

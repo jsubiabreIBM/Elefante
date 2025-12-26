@@ -1,6 +1,6 @@
 # Technical Documentation Index
 
-**Status**:  Production (v1.0.1)  
+**Status**:  Production (v1.1.0)  
 **Purpose**: Complete technical reference for Elefante AI Memory System
 
 ---
@@ -73,13 +73,13 @@
 |---------|--------|-------|
 | Dual Storage (ChromaDB + Kuzu) |  | Production |
 | MCP Server (15 tools) |  | Production |
-| ELEFANTE_MODE (Multi-IDE Safety) |  | v1.0.1 |
+| Transaction-Scoped Locking |  | v1.1.0 (replaced session-based locks) |
 | Auto-Inject Pitfalls |  | v1.0.1 |
 | Cognitive Analysis (emotions, intent) |  | Agent-managed (passed via tool inputs) |
 | Temporal Decay |  | Production |
 | Entity/Relationship Extraction |  | Agent-managed (provided entities/relationships; no internal extraction) |
 | 3-Level Taxonomy Auto-Classification |  | Schema exists; agent can supply domain/category |
-| Smart UPDATE (merge) |  | Planned for v1.1.0 |
+| Smart UPDATE (merge) |  | Planned for v1.2.0 |
 | Dashboard UX |  | Functional but needs work |
 
 ---
@@ -92,5 +92,5 @@
 
 ---
 
-**Version**: 1.0.1  
-**Last Updated**: 2025-12-13
+**Version**: 1.1.0  
+**Last Updated**: 2025-12-26

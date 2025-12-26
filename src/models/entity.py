@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Dict, Any
 from uuid import UUID, uuid4
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EntityType(str, Enum):
@@ -49,11 +49,7 @@ class Entity(BaseModel):
     # Tags for categorization
     tags: List[str] = Field(default_factory=list)
     
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            UUID: lambda v: str(v),
-        }
+    model_config = ConfigDict()
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert entity to dictionary"""
@@ -123,11 +119,7 @@ class Relationship(BaseModel):
     # Properties (flexible key-value storage)
     properties: Dict[str, Any] = Field(default_factory=dict)
     
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            UUID: lambda v: str(v),
-        }
+    model_config = ConfigDict()
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert relationship to dictionary"""

@@ -17,7 +17,6 @@ kuzu==0.11.3
 
 # Embeddings
 sentence-transformers==2.7.0
-openai>=1.0.0,<2.0.0  # Optional, for OpenAI embeddings
 
 # MCP Protocol
 mcp==1.23.1
@@ -25,7 +24,6 @@ mcp==1.23.1
 # Utilities
 python-dotenv>=1.0.0,<2.0.0
 structlog>=24.1.0,<25.0.0
-openai
 aiosqlite>=0.19.0
 
 # Dashboard

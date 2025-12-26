@@ -14,6 +14,12 @@ Elefante MCP server command (same for all IDEs):
 
 ## VS Code (Built-in MCP)
 
+Important: choose **one** VS Code configuration mechanism.
+
+- Prefer **Built-in MCP** via `mcp.json`.
+- Only use `chat.mcp.servers` if your VS Code build/extension specifically requires it.
+- If you configure both, VS Code may show **two** Elefante servers.
+
 VS Code supports MCP natively. Configuration file is `mcp.json`.
 
 Open from Command Palette:
@@ -30,9 +36,19 @@ Common locations:
 - Linux (stable): `~/.config/Code/User/mcp.json`
 - Linux (Insiders): `~/.config/Code - Insiders/User/mcp.json`
 
-Workspace-local option:
+Policy: Elefante is enabled globally.
 
-- Create `.vscode/mcp.json`
+- Configure Elefante in **User** `mcp.json` (global), not per-workspace.
+- Do not create `.vscode/mcp.json` with a `servers.elefante` entry, or you will get duplicates.
+- If you need a template in the repo, keep it as `.vscode/mcp.example.jsonc` (VS Code will not load it).
+
+Avoid duplicates:
+
+- VS Code merges **User** (`~/.../User/mcp.json`) and **Workspace** (`.vscode/mcp.json`) servers.
+- If both define `servers.elefante`, VS Code may show **two identical Elefante servers**.
+- Required fix (global policy):
+  - Keep `servers.elefante` in **User** `mcp.json`.
+  - Ensure `.vscode/mcp.json` does **not** define `servers.elefante` (workspace can be empty).
 
 Example:
 
@@ -54,6 +70,9 @@ Example:
 ```
 
 ## VS Code Chat MCP (Experimental)
+
+Use this section only if you cannot use `mcp.json` or your setup explicitly requires `chat.mcp.servers`.
+If you already have `mcp.json` configured, remove `chat.mcp.servers.elefante` to avoid duplicates.
 
 Some builds/extensions use VS Code `settings.json` keys under `chat.mcp.servers`.
 
@@ -127,6 +146,8 @@ Notes:
 Auto-config:
 
 - Run: `python scripts/configure_vscode_bob.py`
+  - Default configures VS Code via `mcp.json` and removes duplicate `chat.mcp.servers.elefante`.
+  - To configure `chat.mcp.servers` explicitly: `python scripts/configure_vscode_bob.py --vscode chat-settings`
 
 ## Antigravity (Gemini)
 

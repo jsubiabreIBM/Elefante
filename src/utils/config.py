@@ -9,7 +9,7 @@ import os
 import yaml
 from pathlib import Path
 from typing import Any, Dict, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, model_validator
 from dotenv import load_dotenv
 
 # Define absolute paths relative to user home directory for global persistence
@@ -58,14 +58,12 @@ class OrchestratorConfig(BaseModel):
     max_results: int = Field(default=10, ge=1, le=100)
     min_similarity: float = Field(default=0.3, ge=0.0, le=1.0)
     
-    @validator('vector_weight', 'graph_weight')
-    def validate_weights(cls, v, values):
-        """Ensure weights are valid"""
-        if 'vector_weight' in values and 'graph_weight' in values:
-            total = values['vector_weight'] + v
-            if abs(total - 1.0) > 0.01:
-                raise ValueError("vector_weight + graph_weight must equal 1.0")
-        return v
+    @model_validator(mode="after")
+    def validate_weights(self):
+        total = self.vector_weight + self.graph_weight
+        if abs(total - 1.0) > 0.01:
+            raise ValueError("vector_weight + graph_weight must equal 1.0")
+        return self
 
 
 class MCPServerConfig(BaseModel):
@@ -88,10 +86,12 @@ class EmbeddingsConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     """LLM service configuration"""
-    provider: str = "openai"
-    model: str = "gpt-4o"
+    # NOTE: Elefante does not connect to an LLM. This section is kept for legacy
+    # config compatibility, but is not used by runtime.
+    provider: str = "agent-managed"
+    model: str = ""
     temperature: float = 0.0
-    max_tokens: int = 1000
+    max_tokens: int = 0
     api_key: Optional[str] = None
     base_url: Optional[str] = None
 
@@ -131,14 +131,12 @@ class TemporalDecayConfig(BaseModel):
     temporal_weight: float = Field(default=0.3, ge=0.0, le=1.0)
     consolidation: ConsolidationConfig = Field(default_factory=ConsolidationConfig)
     
-    @validator('semantic_weight', 'temporal_weight')
-    def validate_weights(cls, v, values):
-        """Ensure weights sum to 1.0"""
-        if 'semantic_weight' in values and 'temporal_weight' in values:
-            total = values['semantic_weight'] + v
-            if abs(total - 1.0) > 0.01:
-                raise ValueError("semantic_weight + temporal_weight must equal 1.0")
-        return v
+    @model_validator(mode="after")
+    def validate_weights(self):
+        total = self.semantic_weight + self.temporal_weight
+        if abs(total - 1.0) > 0.01:
+            raise ValueError("semantic_weight + temporal_weight must equal 1.0")
+        return self
 
 
 class PerformanceConfig(BaseModel):
@@ -158,8 +156,8 @@ class FeaturesConfig(BaseModel):
 
 
 class ElefanteModeConfig(BaseModel):
-    """Elefante Mode configuration (v1.0.1) - Multi-IDE Safety"""
-    enabled: bool = False  # Default OFF - user must explicitly enable
+    """Elefante Mode configuration (v1.1.0) - Transaction-Scoped Locking"""
+    enabled: bool = True  # v1.1.0: Always enabled (transaction-scoped locking)
     lock_timeout_seconds: int = Field(default=5, ge=1, le=30)
     cleanup_on_disable: bool = True
 
@@ -288,39 +286,8 @@ class Config:
                 config_dict['elefante_mode'] = {}
             config_dict['elefante_mode']['enabled'] = elefante_mode.upper() in ('Y', 'YES', 'TRUE', '1', 'ON')
         
-        # OpenAI API key (for optional OpenAI embeddings)
-        if openai_key := os.getenv('OPENAI_API_KEY'):
-            if 'embeddings' not in config_dict:
-                config_dict['embeddings'] = {}
-            # Store for later use if provider is set to openai
-            # Store for later use if provider is set to openai
-            config_dict['embeddings']['openai_api_key'] = openai_key
-            
-            # Also set for LLM if provider is openai
-            if 'llm' not in config_dict:
-                config_dict['llm'] = {}
-            config_dict['llm']['api_key'] = openai_key
-
-        # LLM overrides (OpenAI or OpenAI-compatible endpoints like Ollama/LM Studio/vLLM)
-        if llm_provider := os.getenv('ELEFANTE_LLM_PROVIDER'):
-            if 'llm' not in config_dict:
-                config_dict['llm'] = {}
-            config_dict['llm']['provider'] = llm_provider
-
-        if llm_base_url := os.getenv('ELEFANTE_LLM_BASE_URL'):
-            if 'llm' not in config_dict:
-                config_dict['llm'] = {}
-            config_dict['llm']['base_url'] = llm_base_url
-
-        if llm_model := os.getenv('ELEFANTE_LLM_MODEL'):
-            if 'llm' not in config_dict:
-                config_dict['llm'] = {}
-            config_dict['llm']['model'] = llm_model
-
-        if llm_api_key := os.getenv('ELEFANTE_LLM_API_KEY'):
-            if 'llm' not in config_dict:
-                config_dict['llm'] = {}
-            config_dict['llm']['api_key'] = llm_api_key
+        # NOTE: Elefante does not make direct LLM calls; no LLM/OpenAI env overrides are applied here.
+        # Any LLM connectivity must live in the calling agent, which passes enriched fields into tools.
         
         return config_dict
     
@@ -371,7 +338,7 @@ class Config:
         """Convert configuration to dictionary"""
         if self._config is None:
             self.load()
-        return self._config.dict()
+        return self._config.model_dump()
     
     def __repr__(self) -> str:
         return f"Config(version={self.elefante.version}, data_dir={self.elefante.data_dir})"

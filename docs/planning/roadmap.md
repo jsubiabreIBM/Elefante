@@ -1,13 +1,26 @@
 # Elefante Development Roadmap
 
-**Current Version**: v1.0.1  
-**Last Updated**: 2025-12-13
+**Current Version**: v1.1.0  
+**Last Updated**: 2025-12-26
+
+---
+
+##  v1.1.0 SHIPPED (2025-12-26)
+
+**Transaction-Scoped Locking** - Fixed multi-IDE deadlock issue where session-based locks blocked access for 12+ days.
+
+| Feature | Status | Impact |
+|---------|--------|--------|
+| Transaction-scoped locking | ✅ DONE | Per-operation locks (ms) instead of per-session (hours) |
+| Stale lock auto-expiry | ✅ DONE | Locks > 30 seconds auto-cleared |
+| Dead PID detection | ✅ DONE | Orphaned locks from crashed processes cleared |
+| Backward compatibility | ✅ DONE | `enable()`/`disable()` are no-ops |
 
 ---
 
 ##  CRITICAL: Production Testing Findings (2025-12-10)
 
-**Real-world testing revealed fundamental design flaws that MUST be addressed before v1.1.0:**
+**Real-world testing revealed fundamental design flaws that MUST be addressed before v1.2.0:**
 
 | Issue | Severity | Impact |
 |-------|----------|--------|
@@ -21,9 +34,10 @@
 
 ---
 
-## Current State (v1.0.0)
+## Current State (v1.1.0)
 
 ###  Implemented Features
+- **Transaction-Scoped Locking** (v1.1.0) - Per-operation locks with auto-expiry
 - **Cognitive Memory Model** - Agent-managed enrichment (agent supplies intent/entities/relationships)
 - **Temporal Decay** - Memories decay over time, reinforced on access
 - **Dual Storage** - ChromaDB (vectors) + Kuzu (graph)
@@ -38,7 +52,7 @@
 
 ---
 
-## Next Phase: v1.1.0 - Complete Schema V2
+## Next Phase: v1.2.0 - Complete Schema V2
 
 ### Priority 1: Auto-Classification (HIGH)
 **Goal**: Agent automatically detects domain/category and passes them into Elefante (Elefante remains LLM-free).
@@ -94,6 +108,9 @@
 - [ ] Implement semantic zoom (hide labels at low zoom)
 - [ ] Color by memory type or domain
 - [ ] Show only high-importance nodes by default
+- [ ] Internal iteration v32: Add a dashboard **Ribbon** (top toolbar)
+  - Refresh snapshot + show snapshot source/timestamp
+  - Toggles: hide test artifacts, show signal hubs (topic/ring/knowledge_type)
 
 **Files to Modify**:
 - `src/dashboard/ui/src/components/GraphCanvas.tsx`

@@ -3,7 +3,7 @@
 
 **Purpose**: Permanent record of database failure patterns and prevention protocols  
 **Status**: Active Neural Register  
-**Last Updated**: 2025-12-05
+**Last Updated**: 2025-12-26
 
 ---
 
@@ -33,32 +33,51 @@
 
 ---
 
-### LAW #2: Single-Writer Lock Architecture
-**Statement**: Kuzu uses file-based locking. Only ONE process can access database at a time.
+### LAW #2: Transaction-Scoped Locking (v1.1.0+)
+**Statement**: Database locks MUST be per-operation (milliseconds), not per-session (hours).
 
-**Architectural Limitation**: Dashboard and MCP server CANNOT run simultaneously.
+**SUPERSEDES**: Previous "Single-Writer Lock Architecture" guidance from v1.0.1.
 
-**Lock Mechanism**:
+**The Session Lock Trap** (v1.0.1 - OBSOLETE):
 ```
-kuzu_db/
-├── .lock          # File-based lock
-├── catalog/
-├── wal/
-└── storage/
+IDE 1: enable() → locks held indefinitely
+IDE 2: enable() → BLOCKED forever
+IDE 1: crashes → locks remain stale for days/weeks
 ```
 
-**Failure Modes**:
-1. **Concurrent Access**: Second process blocked with "Cannot acquire lock"
-2. **Stale Lock**: Crashed process leaves `.lock` file, blocks all access
-3. **Process Leak**: Multiple Python processes competing for database
+**Transaction-Scoped Model** (v1.1.0+):
+```
+IDE 1: add_memory() → acquire_lock → write → release_lock (5ms)
+IDE 2: add_memory() → wait briefly → acquire_lock → write → release_lock (5ms)
+Both IDEs can interleave operations!
+```
 
-**Resolution Protocol**:
-1. Kill all Python processes: `taskkill /F /IM python.exe`
-2. Remove stale lock: `del kuzu_db\.lock`
-3. Restart IDE to let autoStart handle server lifecycle
-4. NEVER run MCP server manually when IDE has autoStart enabled
+**Lock Files** (v1.1.0):
+```
+~/.elefante/locks/
+├── write.lock          # Short-lived write lock (contains PID|timestamp)
+└── elefante.lock       # Master lock (rarely used)
+```
 
-**Prevention**: Implement connection lifecycle with context managers (`__enter__`, `__exit__`, `close()`)
+**Stale Lock Detection**:
+- Lock is stale if: PID is dead OR timestamp > 30 seconds old
+- Stale locks are automatically cleared on next operation
+
+**Key Code** (`src/utils/elefante_mode.py`):
+```python
+from src.utils.elefante_mode import write_lock
+
+# Write operations use transaction-scoped lock
+with write_lock() as lock:
+    if lock.acquired:
+        # Safe to write - lock held briefly
+        await orchestrator.add_memory(...)
+    # Lock auto-released here
+```
+
+**Origin**: 2025-12-26 - Multi-IDE deadlock analysis  
+**Symptom**: Stale lock from PID 4563 (Dec 14) blocking all access on Dec 26  
+**Fix**: Implemented `TransactionLock` class with auto-expiry
 
 ---
 
@@ -185,6 +204,32 @@ class GraphStore:
 **Impact**: Complete graph database loss  
 **Resolution**: Nuclear reset, rebuild from ChromaDB  
 **Prevention**: Proper error handling, atomic operations
+
+### Pattern #4: Session-Based Lock Deadlock (2025-12-26) - RESOLVED in v1.1.0
+**Trigger**: IDE crashes or closes without calling `elefanteSystemDisable`  
+**Symptom**: New IDE instances blocked with "Elefante Mode is DISABLED" or "Could not acquire lock"  
+**Root Cause**: v1.0.1 used session-based locks that held indefinitely until explicit release  
+**Impact**: Complete lockout - stale lock from Dec 14 blocking all access on Dec 26 (12 days!)  
+**Resolution**: Implemented transaction-scoped locking in v1.1.0  
+**Prevention**: 
+- Locks now auto-expire after 30 seconds
+- Dead PID detection clears stale locks automatically
+- Each operation acquires/releases lock in milliseconds
+
+**Debug Commands** (if you encounter stale locks on older versions):
+```bash
+# Check for stale locks
+ls -la ~/.elefante/locks/
+
+# Clear all locks (safe if no Elefante processes running)
+rm -f ~/.elefante/locks/*.lock
+
+# Check what process holds a lock
+cat ~/.elefante/locks/write.lock  # Shows PID|timestamp
+
+# Verify PID is still alive
+ps aux | grep <PID>
+```
 
 ---
 

@@ -1,32 +1,33 @@
 """
-Elefante Mode Manager (v1.0.1)
+Elefante Mode Manager (v1.1.0) - Transaction-Scoped Locking
 
-Handles multi-IDE safety by providing:
-- Lock detection and cleanup
-- Graceful resource release
-- Mode switching (ON/OFF)
-- Database corruption prevention
+EVOLUTION from v1.0.1:
+- Locks are now PER-OPERATION, not per-session
+- No more "enable/disable" ceremony - operations auto-acquire/release
+- Multiple IDEs can interleave operations safely
+- Stale locks auto-expire after configurable timeout
 
-When ELEFANTE_MODE=N (OFF):
-  - Server responds with graceful "disabled" messages
-  - All locks are released
-  - No database connections held
-  - Safe for other IDEs to access the data
+Versioning:
+- v1.0.0: Initial release (session-based locking)
+- v1.0.1: Multi-IDE safety with enable/disable ceremony
+- v1.1.0: Transaction-scoped locking (this version)
 
-When ELEFANTE_MODE=Y (ON):
-  - Full memory system active
-  - Protocol enforcement enabled
-  - Databases locked for exclusive access
+Design Principles:
+1. SHORT TRANSACTIONS: Acquire → Work → Release (milliseconds, not hours)
+2. AUTO-EXPIRY: Locks older than LOCK_TIMEOUT_SECONDS are considered stale
+3. READ vs WRITE: Reads can proceed without locks; writes need brief exclusive lock
+4. GRACEFUL DEGRADATION: If lock fails, return helpful error (don't crash)
 """
 
 import os
 import fcntl
-import signal
+import time
 import atexit
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from contextlib import contextmanager
+import threading
 
 from src.utils.config import get_config, DATA_DIR, ELEFANTE_HOME
 from src.utils.logger import get_logger
@@ -36,24 +37,192 @@ logger = get_logger(__name__)
 # Lock file paths
 LOCK_DIR = ELEFANTE_HOME / "locks"
 MASTER_LOCK_FILE = LOCK_DIR / "elefante.lock"
-CHROMA_LOCK_FILE = LOCK_DIR / "chroma.lock"
-KUZU_LOCK_FILE = LOCK_DIR / "kuzu.lock"
+WRITE_LOCK_FILE = LOCK_DIR / "write.lock"
+
+# Default timeout for stale lock detection (seconds)
+DEFAULT_LOCK_TIMEOUT = 30
+# Max time to wait for lock acquisition (seconds)
+DEFAULT_ACQUIRE_TIMEOUT = 10
+
+
+class TransactionLock:
+    """
+    A short-lived, auto-releasing lock for database operations.
+    
+    Usage:
+        with TransactionLock("write") as lock:
+            if lock.acquired:
+                # do work
+            else:
+                # lock unavailable, handle gracefully
+    """
+    
+    def __init__(
+        self,
+        lock_type: str = "write",
+        timeout: float = DEFAULT_ACQUIRE_TIMEOUT,
+        stale_threshold: float = DEFAULT_LOCK_TIMEOUT
+    ):
+        self.lock_type = lock_type
+        self.timeout = timeout
+        self.stale_threshold = stale_threshold
+        self.acquired = False
+        self._fd: Optional[int] = None
+        self._lock_path = WRITE_LOCK_FILE if lock_type == "write" else MASTER_LOCK_FILE
+        self._holder_info: Optional[Dict[str, str]] = None
+        
+    def __enter__(self) -> 'TransactionLock':
+        self._acquire()
+        return self
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._release()
+        return False  # Don't suppress exceptions
+    
+    def _is_lock_stale(self) -> bool:
+        """Check if existing lock is stale (holder dead or timed out)."""
+        if not self._lock_path.exists():
+            return True
+            
+        try:
+            content = self._lock_path.read_text().strip()
+            if not content:
+                return True
+                
+            parts = content.split("|")
+            if len(parts) < 2:
+                return True
+                
+            pid_str, timestamp_str = parts[0], parts[1]
+            
+            # Check if PID is still alive
+            try:
+                pid = int(pid_str)
+                os.kill(pid, 0)  # Signal 0 = check existence
+            except (ValueError, ProcessLookupError, PermissionError):
+                logger.info(f"Lock holder PID {pid_str} is dead, lock is stale")
+                return True
+            
+            # Check if lock is older than threshold
+            try:
+                lock_time = datetime.fromisoformat(timestamp_str)
+                age = (datetime.utcnow() - lock_time).total_seconds()
+                if age > self.stale_threshold:
+                    logger.info(f"Lock is {age:.1f}s old (threshold: {self.stale_threshold}s), treating as stale")
+                    return True
+            except ValueError:
+                return True
+                
+            # Lock is valid and held by alive process
+            self._holder_info = {"pid": pid_str, "timestamp": timestamp_str}
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error checking lock staleness: {e}")
+            return True
+    
+    def _clear_stale_lock(self):
+        """Remove a stale lock file."""
+        try:
+            if self._lock_path.exists():
+                self._lock_path.unlink()
+                logger.info(f"Cleared stale lock: {self._lock_path}")
+        except Exception as e:
+            logger.warning(f"Failed to clear stale lock: {e}")
+    
+    def _acquire(self) -> bool:
+        """Attempt to acquire the lock with timeout."""
+        LOCK_DIR.mkdir(parents=True, exist_ok=True)
+        
+        start_time = time.time()
+        
+        while (time.time() - start_time) < self.timeout:
+            # Check for stale lock first
+            if self._is_lock_stale():
+                self._clear_stale_lock()
+            
+            try:
+                # Open/create lock file
+                self._fd = os.open(str(self._lock_path), os.O_RDWR | os.O_CREAT)
+                
+                # Try non-blocking exclusive lock
+                fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                
+                # Write our PID and timestamp
+                os.ftruncate(self._fd, 0)
+                os.lseek(self._fd, 0, os.SEEK_SET)
+                lock_info = f"{os.getpid()}|{datetime.utcnow().isoformat()}\n"
+                os.write(self._fd, lock_info.encode())
+                
+                self.acquired = True
+                logger.debug(f"Lock acquired: {self._lock_path}")
+                return True
+                
+            except (IOError, OSError):
+                # Lock held by another process
+                if self._fd is not None:
+                    try:
+                        os.close(self._fd)
+                    except:
+                        pass
+                    self._fd = None
+                
+                # Brief sleep before retry
+                time.sleep(0.1)
+                
+            except Exception as e:
+                logger.error(f"Unexpected error acquiring lock: {e}")
+                break
+        
+        # Timeout - couldn't acquire
+        logger.warning(f"Failed to acquire {self.lock_type} lock after {self.timeout}s")
+        return False
+    
+    def _release(self):
+        """Release the lock."""
+        if not self.acquired or self._fd is None:
+            return
+            
+        try:
+            fcntl.flock(self._fd, fcntl.LOCK_UN)
+            os.close(self._fd)
+            
+            # Clear lock file content (don't delete - avoids race)
+            try:
+                self._lock_path.write_text("")
+            except:
+                pass
+                
+            logger.debug(f"Lock released: {self._lock_path}")
+            
+        except Exception as e:
+            logger.warning(f"Error releasing lock: {e}")
+            
+        finally:
+            self._fd = None
+            self.acquired = False
 
 
 class ElefanteModeManager:
     """
-    Singleton manager for Elefante Mode state and lock management.
+    Transaction-scoped lock manager for Elefante (v2.0.0).
     
-    Ensures only one IDE has active write access to the databases
-    while allowing graceful degradation when another IDE needs access.
+    Key changes from v1.x:
+    - No persistent "enabled/disabled" state
+    - Operations acquire locks on-demand and release immediately
+    - `is_enabled` always returns True (mode concept deprecated)
+    - `enable()`/`disable()` are no-ops for backward compatibility
     """
     
     _instance: Optional['ElefanteModeManager'] = None
+    _lock = threading.Lock()
     
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialized = False
         return cls._instance
     
     def __init__(self):
@@ -61,177 +230,111 @@ class ElefanteModeManager:
             return
             
         self._initialized = True
-        self._enabled = False
-        self._lock_files: Dict[str, int] = {}  # path -> file descriptor
-        self._orchestrator_ref = None
         self._startup_time = datetime.utcnow()
+        self._orchestrator_ref = None
         
         # Ensure lock directory exists
         LOCK_DIR.mkdir(parents=True, exist_ok=True)
         
-        # Register cleanup on exit
-        atexit.register(self._cleanup_on_exit)
+        # Get config for timeouts
+        try:
+            config = get_config()
+            self._lock_timeout = config.elefante.elefante_mode.lock_timeout_seconds
+        except:
+            self._lock_timeout = DEFAULT_LOCK_TIMEOUT
         
-        # Handle signals for graceful shutdown
-        for sig in (signal.SIGTERM, signal.SIGINT):
-            try:
-                signal.signal(sig, self._signal_handler)
-            except (ValueError, OSError):
-                pass  # Signal handling may not work in all contexts
-        
-        logger.info("ElefanteModeManager initialized", startup_time=self._startup_time.isoformat())
+        logger.info(
+            "ElefanteModeManager v1.1.0 initialized (transaction-scoped locking)",
+            startup_time=self._startup_time.isoformat()
+        )
     
     @property
     def is_enabled(self) -> bool:
-        """Check if Elefante Mode is currently enabled."""
-        return self._enabled
+        """
+        Always returns True in v2.0.0.
+        
+        The "enabled/disabled" concept is deprecated. Operations now
+        acquire locks on-demand and release immediately.
+        """
+        return True
     
     @property
     def status(self) -> Dict[str, Any]:
-        """Get current status of Elefante Mode."""
+        """Get current status."""
         return {
-            "enabled": self._enabled,
+            "enabled": True,  # Always enabled in v1.1.0
+            "version": "1.1.0",
+            "mode": "transaction-scoped",
             "startup_time": self._startup_time.isoformat(),
-            "locks_held": list(self._lock_files.keys()),
-            "lock_count": len(self._lock_files),
+            "lock_timeout_seconds": self._lock_timeout,
             "data_dir": str(DATA_DIR),
             "pid": os.getpid()
         }
     
-    def _signal_handler(self, signum, frame):
-        """Handle termination signals gracefully."""
-        logger.info(f"Received signal {signum}, cleaning up...")
-        self.disable()
-        # Re-raise to allow normal termination
-        signal.signal(signum, signal.SIG_DFL)
-        os.kill(os.getpid(), signum)
-    
-    def _cleanup_on_exit(self):
-        """Cleanup handler for normal exit."""
-        if self._enabled:
-            logger.info("Cleaning up on exit...")
-            self.disable()
-    
-    def _acquire_lock(self, lock_path: Path, timeout: int = 5) -> bool:
+    @contextmanager
+    def write_transaction(self, timeout: float = None):
         """
-        Attempt to acquire a file lock.
+        Context manager for write operations.
         
-        Args:
-            lock_path: Path to lock file
-            timeout: Max seconds to wait (not used with non-blocking)
-            
-        Returns:
-            True if lock acquired, False otherwise
+        Usage:
+            with mode_manager.write_transaction() as txn:
+                if txn.acquired:
+                    # safe to write
+                else:
+                    # another process is writing, handle gracefully
         """
-        try:
-            # Create lock file if it doesn't exist
-            lock_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            fd = os.open(str(lock_path), os.O_RDWR | os.O_CREAT)
-            
-            # Try non-blocking exclusive lock
-            try:
-                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                
-                # Write PID and timestamp to lock file
-                os.ftruncate(fd, 0)
-                os.lseek(fd, 0, os.SEEK_SET)
-                lock_info = f"{os.getpid()}|{datetime.utcnow().isoformat()}\n"
-                os.write(fd, lock_info.encode())
-                
-                self._lock_files[str(lock_path)] = fd
-                logger.info(f"Lock acquired: {lock_path}")
-                return True
-                
-            except (IOError, OSError) as e:
-                # Lock is held by another process
-                os.close(fd)
-                
-                # Try to read who holds the lock
-                try:
-                    with open(lock_path, 'r') as f:
-                        holder_info = f.read().strip()
-                    logger.warning(f"Lock held by another process: {lock_path} -> {holder_info}")
-                except:
-                    logger.warning(f"Lock held by another process: {lock_path}")
-                
-                return False
-                
-        except Exception as e:
-            logger.error(f"Failed to acquire lock {lock_path}: {e}")
-            return False
+        timeout = timeout or self._lock_timeout
+        lock = TransactionLock("write", timeout=timeout, stale_threshold=self._lock_timeout)
+        with lock:
+            yield lock
     
-    def _release_lock(self, lock_path: Path) -> bool:
+    @contextmanager  
+    def read_transaction(self):
         """
-        Release a file lock.
+        Context manager for read operations.
         
-        Args:
-            lock_path: Path to lock file
-            
-        Returns:
-            True if released, False if not held
+        Reads don't need locks in our model - ChromaDB and Kuzu
+        handle read consistency internally.
         """
-        path_str = str(lock_path)
-        
-        if path_str not in self._lock_files:
-            return False
-        
-        try:
-            fd = self._lock_files[path_str]
-            fcntl.flock(fd, fcntl.LOCK_UN)
-            os.close(fd)
-            del self._lock_files[path_str]
-            
-            # Clear lock file content
-            try:
-                lock_path.write_text("")
-            except:
-                pass
-            
-            logger.info(f"Lock released: {lock_path}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to release lock {lock_path}: {e}")
-            return False
-    
-    def _release_all_locks(self):
-        """Release all held locks."""
-        for lock_path in list(self._lock_files.keys()):
-            self._release_lock(Path(lock_path))
+        # No-op context manager - reads are lock-free
+        class ReadLock:
+            acquired = True
+        yield ReadLock()
     
     def check_locks(self) -> Dict[str, Any]:
-        """
-        Check the status of all lock files.
-        
-        Returns:
-            Dict with lock status for each database
-        """
+        """Check status of lock files."""
         lock_status = {}
         
-        for name, path in [
-            ("master", MASTER_LOCK_FILE),
-            ("chroma", CHROMA_LOCK_FILE),
-            ("kuzu", KUZU_LOCK_FILE)
-        ]:
+        for name, path in [("write", WRITE_LOCK_FILE), ("master", MASTER_LOCK_FILE)]:
             status = {
                 "path": str(path),
                 "exists": path.exists(),
-                "held_by_us": str(path) in self._lock_files,
-                "holder_info": None
+                "holder_info": None,
+                "is_stale": False
             }
             
-            if path.exists() and not status["held_by_us"]:
+            if path.exists():
                 try:
                     content = path.read_text().strip()
                     if content:
                         parts = content.split("|")
-                        status["holder_info"] = {
-                            "pid": parts[0] if len(parts) > 0 else "unknown",
-                            "timestamp": parts[1] if len(parts) > 1 else "unknown"
-                        }
+                        if len(parts) >= 2:
+                            status["holder_info"] = {
+                                "pid": parts[0],
+                                "timestamp": parts[1]
+                            }
+                            # Check staleness
+                            try:
+                                pid = int(parts[0])
+                                os.kill(pid, 0)
+                                lock_time = datetime.fromisoformat(parts[1])
+                                age = (datetime.utcnow() - lock_time).total_seconds()
+                                status["is_stale"] = age > self._lock_timeout
+                                status["age_seconds"] = age
+                            except:
+                                status["is_stale"] = True
                 except:
-                    pass
+                    status["is_stale"] = True
             
             lock_status[name] = status
         
@@ -239,112 +342,55 @@ class ElefanteModeManager:
     
     def enable(self, force: bool = False) -> Dict[str, Any]:
         """
-        Enable Elefante Mode.
+        DEPRECATED in v1.1.0 - kept for backward compatibility.
         
-        Acquires all necessary locks and prepares the system for operation.
-        
-        Args:
-            force: If True, attempt to break stale locks
-            
-        Returns:
-            Status dict with success/failure info
+        Always returns success. Operations now auto-acquire locks.
         """
-        if self._enabled:
-            return {
-                "success": True,
-                "message": "Elefante Mode already enabled",
-                "status": self.status
-            }
+        logger.info("enable() called - no-op in v1.1.0 (transaction-scoped mode)")
         
-        logger.info("Enabling Elefante Mode...")
-        
-        # Get config
-        config = get_config()
-        timeout = config.elefante.elefante_mode.lock_timeout_seconds
-        
-        # Acquire locks in order
-        locks_to_acquire = [
-            ("master", MASTER_LOCK_FILE),
-            ("chroma", CHROMA_LOCK_FILE),
-            ("kuzu", KUZU_LOCK_FILE)
-        ]
-        
-        acquired = []
-        failed = []
-        
-        for name, path in locks_to_acquire:
-            if self._acquire_lock(path, timeout):
-                acquired.append(name)
-            else:
-                failed.append(name)
-        
-        if failed:
-            # Rollback acquired locks
-            for name in acquired:
-                for lock_name, lock_path in locks_to_acquire:
-                    if lock_name == name:
-                        self._release_lock(lock_path)
-            
-            return {
-                "success": False,
-                "message": f"Failed to acquire locks: {failed}. Another IDE may be using Elefante.",
-                "acquired": acquired,
-                "failed": failed,
-                "lock_status": self.check_locks()
-            }
-        
-        self._enabled = True
-        logger.info("Elefante Mode ENABLED")
+        if force:
+            # Force flag = clear any stale locks
+            self._clear_all_stale_locks()
         
         return {
             "success": True,
-            "message": "Elefante Mode enabled successfully",
+            "message": "Elefante v1.1.0: Transaction-scoped locking active. No enable needed.",
             "status": self.status
         }
     
     def disable(self) -> Dict[str, Any]:
         """
-        Disable Elefante Mode.
+        DEPRECATED in v1.1.0 - kept for backward compatibility.
         
-        Releases all locks and cleans up resources.
-        
-        Returns:
-            Status dict
+        Clears any locks this process might hold and resets orchestrator ref.
         """
-        if not self._enabled:
-            return {
-                "success": True,
-                "message": "Elefante Mode already disabled",
-                "status": self.status
-            }
+        logger.info("disable() called - clearing resources in v1.1.0")
         
-        logger.info("Disabling Elefante Mode...")
-        
-        config = get_config()
-        
-        # Cleanup orchestrator if configured
-        if config.elefante.elefante_mode.cleanup_on_disable:
-            if self._orchestrator_ref is not None:
-                try:
-                    # Close database connections
-                    # The orchestrator doesn't have explicit close methods,
-                    # but we can clear references to allow GC
-                    self._orchestrator_ref = None
-                    logger.info("Orchestrator reference cleared")
-                except Exception as e:
-                    logger.warning(f"Error cleaning up orchestrator: {e}")
-        
-        # Release all locks
-        self._release_all_locks()
-        
-        self._enabled = False
-        logger.info("Elefante Mode DISABLED")
+        # Best-effort cleanup of orchestrator
+        if self._orchestrator_ref is not None:
+            try:
+                from src.core.graph_store import get_graph_store, reset_graph_store
+                graph_store = get_graph_store()
+                graph_store.close()
+                reset_graph_store()
+            except Exception as e:
+                logger.warning(f"GraphStore cleanup: {e}")
+            self._orchestrator_ref = None
         
         return {
             "success": True,
-            "message": "Elefante Mode disabled. All locks released.",
+            "message": "Resources cleared. Other IDEs can now access databases.",
             "status": self.status
         }
+    
+    def _clear_all_stale_locks(self):
+        """Clear any stale lock files."""
+        for path in [WRITE_LOCK_FILE, MASTER_LOCK_FILE]:
+            if path.exists():
+                lock = TransactionLock()
+                lock._lock_path = path
+                if lock._is_lock_stale():
+                    lock._clear_stale_lock()
     
     def set_orchestrator_ref(self, orchestrator):
         """Store reference to orchestrator for cleanup."""
@@ -352,25 +398,20 @@ class ElefanteModeManager:
     
     def get_disabled_response(self, tool_name: str) -> Dict[str, Any]:
         """
-        Generate a graceful disabled response for when mode is OFF.
+        DEPRECATED in v1.1.0 - operations should not be blocked.
         
-        Args:
-            tool_name: Name of the tool that was called
-            
-        Returns:
-            Response dict explaining the disabled state
+        Kept for backward compatibility but should rarely be called.
         """
         return {
             "success": False,
-            "elefante_mode": "disabled",
-            "message": f"Elefante Mode is OFF. Tool '{tool_name}' is not available.",
-            "reason": "Multi-IDE safety mode - another IDE may be using the databases.",
-            "action_required": "Call 'enableElefante' tool to activate Elefante Mode.",
+            "elefante_mode": "transaction-scoped",
+            "message": f"Tool '{tool_name}' temporarily unavailable - another process is writing.",
+            "reason": "Write lock held by another process. Retry in a moment.",
             "lock_status": self.check_locks(),
             "help": [
-                "1. Ensure no other IDE is using Elefante databases",
-                "2. Call enableElefante tool to acquire locks",
-                "3. If locks are stale, restart the other IDE or manually delete lock files"
+                "1. Wait a few seconds and retry (locks are short-lived)",
+                "2. If persistent, another IDE may have crashed - restart it",
+                "3. Check lock status with elefanteSystemStatusGet"
             ]
         }
 
@@ -388,25 +429,45 @@ def get_mode_manager() -> ElefanteModeManager:
 
 
 def is_elefante_enabled() -> bool:
-    """Quick check if Elefante Mode is enabled."""
-    return get_mode_manager().is_enabled
+    """Always returns True in v1.1.0 - operations auto-acquire locks."""
+    return True
 
 
 def require_elefante_mode(func):
     """
-    Decorator that requires Elefante Mode to be enabled.
+    DEPRECATED decorator in v1.1.0.
     
-    If mode is disabled, returns a graceful disabled response instead
-    of executing the function.
+    Kept for backward compatibility - just passes through to function.
+    Operations should use write_transaction() context manager instead.
     """
     async def wrapper(*args, **kwargs):
-        manager = get_mode_manager()
-        if not manager.is_enabled:
-            # Extract tool name from function name or kwargs
-            tool_name = kwargs.get('tool_name', func.__name__)
-            return manager.get_disabled_response(tool_name)
         return await func(*args, **kwargs)
     
     wrapper.__name__ = func.__name__
     wrapper.__doc__ = func.__doc__
     return wrapper
+
+
+@contextmanager
+def write_lock(timeout: float = DEFAULT_ACQUIRE_TIMEOUT):
+    """
+    Convenience function for write operations.
+    
+    Usage:
+        with write_lock() as lock:
+            if lock.acquired:
+                # do write operation
+    """
+    manager = get_mode_manager()
+    with manager.write_transaction(timeout) as txn:
+        yield txn
+
+
+@contextmanager
+def read_lock():
+    """
+    Convenience function for read operations (no-op, reads are lock-free).
+    """
+    manager = get_mode_manager()
+    with manager.read_transaction() as txn:
+        yield txn

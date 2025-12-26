@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Dict, Any
 from uuid import UUID, uuid4
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class MemoryType(str, Enum):
     """Types of memories that can be stored"""
@@ -61,8 +61,4 @@ class StandardizedMetadata(BaseModel):
     system: SystemMetadata = Field(default_factory=SystemMetadata)
     custom: Dict[str, Any] = Field(default_factory=dict, description="Extensible custom fields")
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            UUID: lambda v: str(v),
-        }
+    model_config = ConfigDict()

@@ -11,6 +11,8 @@ import time
 import os
 from pathlib import Path
 
+import pytest
+
 def log(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}")
 
@@ -19,7 +21,8 @@ def test_mcp_server():
     
     # Path to server module
     server_cmd = [sys.executable, "-m", "src.mcp.server"]
-    cwd = str(Path(__file__).parent.parent.absolute())
+    repo_root = Path(__file__).resolve().parents[2]
+    cwd = str(repo_root)
     
     # Add PYTHONPATH
     env = os.environ.copy()
@@ -78,28 +81,26 @@ def test_mcp_server():
                 break
             time.sleep(0.1)
             
-        if response_line:
-            log(f"   ✅ Received response: {response_line.strip()[:100]}...")
-            
-            try:
-                response = json.loads(response_line)
-                if "result" in response and "capabilities" in response["result"]:
-                    log("   ✅ Server returned capabilities.")
-                    log(f"   Server Name: {response['result']['serverInfo']['name']}")
-                    return True
-                else:
-                    log("   ❌ Invalid response format.")
-                    return False
-            except json.JSONDecodeError:
-                log("   ❌ Failed to decode JSON response.")
-                return False
-        else:
+        if not response_line:
             log("   ❌ Timed out waiting for response.")
-            # Check stderr
             stderr_out = process.stderr.read()
             if stderr_out:
                 log(f"   ⚠️  Server Stderr: {stderr_out}")
-            return False
+            pytest.fail("Timed out waiting for MCP server response")
+
+        log(f"   ✅ Received response: {response_line.strip()[:100]}...")
+
+        try:
+            response = json.loads(response_line)
+        except json.JSONDecodeError as e:
+            pytest.fail(f"Failed to decode JSON response: {e}")
+
+        assert "result" in response, "MCP initialize response missing 'result'"
+        assert "capabilities" in response["result"], "MCP initialize response missing 'capabilities'"
+        assert "serverInfo" in response["result"], "MCP initialize response missing 'serverInfo'"
+        assert "name" in response["result"]["serverInfo"], "MCP initialize response missing server name"
+        log("   ✅ Server returned capabilities.")
+        log(f"   Server Name: {response['result']['serverInfo']['name']}")
             
     except Exception as e:
         log(f"   ❌ Test failed: {e}")
@@ -110,9 +111,11 @@ def test_mcp_server():
             log("   🛑 Server process terminated.")
 
 if __name__ == "__main__":
-    if test_mcp_server():
-        print("\n✅ MCP Server is functioning correctly.")
-        sys.exit(0)
-    else:
+    try:
+        test_mcp_server()
+    except AssertionError:
         print("\n❌ MCP Server test failed.")
         sys.exit(1)
+    else:
+        print("\n✅ MCP Server is functioning correctly.")
+        sys.exit(0)

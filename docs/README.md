@@ -2,7 +2,7 @@
 
 ## Overview
 
-Complete documentation index for Elefante AI Memory System v1.0.1.
+Complete documentation index for Elefante AI Memory System v1.1.0.
 
 ---
 
@@ -115,14 +115,14 @@ Elefante provides **15 MCP tools** for AI agents:
 | `elefanteGraphEntityCreate` | Create nodes in knowledge graph |
 | `elefanteGraphRelationshipCreate` | Link entities with relationships |
 | `elefanteSessionsList` | Browse past sessions with summaries |
-| `elefanteSystemStatusGet` | Mode + lock info + (when enabled) system stats |
+| `elefanteSystemStatusGet` | System status + lock info + database health |
 | `elefanteMemoryConsolidate` | Deterministic cleanup (canonicalize, quarantine tests, mark duplicates) |
 | `elefanteMemoryListAll` | Export/inspect all memories (no filtering) |
 | `elefanteDashboardOpen` | Open dashboard (optionally refresh snapshot) |
 | `elefanteGraphConnect` | Upsert entities + create relationships in one call |
 | `elefanteMemoryMigrateToV3` | Admin schema migration to V3 |
-| `elefanteSystemEnable` | Acquire exclusive locks, enable memory operations |
-| `elefanteSystemDisable` | Release locks, safe for IDE switching |
+| `elefanteSystemEnable` | *(v1.1.0: No-op)* Backward compatibility shim |
+| `elefanteSystemDisable` | *(v1.1.0: No-op)* Backward compatibility shim |
 
 **Complete API reference**: [`technical/usage.md`](technical/usage.md)
 
@@ -158,14 +158,14 @@ Elefante provides **15 MCP tools** for AI agents:
 
 ## Current Development Status
 
-**Version**: v1.0.1 (Production)  
-**Next**: v1.1.0 - Complete Schema V2 Auto-Classification
+**Version**: v1.1.0 (Production)  
+**Next**: v1.2.0 - Smart UPDATE (merge logic)
 
-**Priority Features** (from [`planning/roadmap.md`](planning/roadmap.md)):
+**v1.1.0 Features** (see [CHANGELOG.md](../CHANGELOG.md)):
 
-- Auto-classification of domain/category
-- Smart UPDATE (merge logic)
-- Dashboard UX improvements
+- Transaction-scoped locking (multi-IDE safety without deadlocks)
+- Auto-expiry of stale locks (no more 12-day orphan locks!)
+- Backward compatible `enable()`/`disable()` shims
 
 
 **Active Roadmap**: [`planning/roadmap.md`](planning/roadmap.md)
@@ -303,9 +303,16 @@ archive/protocol-enforcement-v2.md
 
 ## Maintenance
 
-**Last Updated**: 2025-12-11  
-**Documentation Version**: v1.0.1  
+**Last Updated**: 2025-12-26  
+**Documentation Version**: v1.1.0  
 **Status**: Complete and up-to-date
+
+**Changes in v1.1.0**:
+
+- Transaction-scoped locking (replaces session-based locks)
+- Auto-expiry of stale locks (30 second timeout)
+- Multi-IDE safety without deadlocks
+- `elefanteSystemEnable`/`elefanteSystemDisable` become no-ops (backward compatible)
 
 **Changes in v1.0.1**:
 

@@ -1,6 +1,14 @@
 """Automatic VS Code/Bob MCP configuration.
 
 Configures VS Code (including Insiders) and Bob-IDE to use the Elefante MCP server.
+
+Important:
+- VS Code can load MCP servers from **mcp.json** (built-in MCP).
+- Some builds/extensions also support **chat.mcp.servers** in settings.json.
+
+If you configure BOTH, VS Code may show two Elefante entries.
+Default behavior of this script is to configure **mcp.json** and remove
+settings-based duplicates for VS Code.
 """
 
 import json
@@ -8,6 +16,42 @@ import os
 import sys
 import io
 from pathlib import Path
+
+
+def _infer_repo_python(elefante_path: Path) -> str:
+    """Prefer the repo venv Python for stability; fall back to sys.executable."""
+    if os.name == "nt":
+        candidate = elefante_path / ".venv" / "Scripts" / "python.exe"
+    else:
+        candidate = elefante_path / ".venv" / "bin" / "python"
+    if candidate.exists():
+        return str(candidate)
+    return sys.executable
+
+
+def _is_vscode_settings_path(path: Path) -> bool:
+    """Best-effort check for VS Code (stable/insiders) settings.json."""
+    s = str(path)
+    return (
+        s.endswith("settings.json")
+        and ("/Code/" in s or "/Code - Insiders/" in s or "\\Code\\" in s or "\\Code - Insiders\\" in s)
+        and "Cursor" not in s
+        and "Bob-IDE" not in s
+    )
+
+
+def _remove_vscode_chat_server(settings: dict, server_name: str) -> bool:
+    """Remove settings-based MCP server definition if present."""
+    changed = False
+    chat_servers = settings.get("chat.mcp.servers")
+    if isinstance(chat_servers, dict) and server_name in chat_servers:
+        del chat_servers[server_name]
+        changed = True
+        # If empty, remove container key for neatness.
+        if not chat_servers:
+            settings.pop("chat.mcp.servers", None)
+
+    return changed
 
 # Fix Windows console encoding
 if sys.platform == 'win32':
@@ -69,7 +113,7 @@ def get_mcp_json_paths():
     return paths
 
 
-def configure_vscode_mcp_json(mcp_json_path: Path, elefante_path: Path) -> bool:
+def configure_vscode_mcp_json(mcp_json_path: Path, elefante_path: Path, python_cmd: str) -> bool:
     """Add/update the Elefante server config in a VS Code mcp.json file."""
     try:
         mcp_json_path.parent.mkdir(parents=True, exist_ok=True)
@@ -89,7 +133,7 @@ def configure_vscode_mcp_json(mcp_json_path: Path, elefante_path: Path) -> bool:
 
     config['servers']['elefante'] = {
         "type": "stdio",
-        "command": sys.executable,
+        "command": python_cmd,
         "args": ["-m", "src.mcp.server"],
         "env": {
             "PYTHONPATH": str(elefante_path),
@@ -105,7 +149,7 @@ def configure_vscode_mcp_json(mcp_json_path: Path, elefante_path: Path) -> bool:
     except Exception:
         return False
 
-def configure_mcp():
+def configure_mcp(argv: list[str] | None = None):
     """Configure IDE to use Elefante MCP server"""
     
     print("\n" + "=" * 70)
@@ -115,19 +159,56 @@ def configure_mcp():
     # Get current Elefante path (AGNOSTIC)
     # We use the parent of the 'scripts' directory where this script resides
     elefante_path = Path(__file__).parent.parent.absolute()
+    python_cmd = _infer_repo_python(elefante_path)
     
     print(f"Elefante Location: {elefante_path}")
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Configure IDE MCP settings for Elefante")
+    parser.add_argument(
+        "--vscode",
+        choices=["mcp.json", "chat-settings", "both"],
+        default="mcp.json",
+        help="How to configure VS Code (default: mcp.json).",
+    )
+    parser.add_argument(
+        "--no-clean-duplicates",
+        action="store_true",
+        help="Do not remove settings-based duplicate servers in VS Code settings.json.",
+    )
+    parser.add_argument(
+        "--write-user-mcp-json",
+        action="store_true",
+        help=(
+            "Compatibility flag (no longer required). The script always writes VS Code user-level mcp.json for global enablement."
+        ),
+    )
+    args = parser.parse_args(argv)
+
+    configure_vscode_mcp = args.vscode in {"mcp.json", "both"}
+    configure_vscode_chat_settings = args.vscode in {"chat-settings", "both"}
+    clean_duplicates = not bool(args.no_clean_duplicates)
 
     # Configure VS Code MCP (mcp.json) when available
     mcp_paths = get_mcp_json_paths()
     mcp_configured = False
-    for mcp_path in mcp_paths:
-        if mcp_path.parent.exists():
-            print(f"\nConfiguring VS Code MCP config: {mcp_path}")
-            if configure_vscode_mcp_json(mcp_path, elefante_path):
-                mcp_configured = True
-            else:
-                print(f"Warning: Failed to write {mcp_path}")
+    if configure_vscode_mcp:
+        for mcp_path in mcp_paths:
+            if mcp_path.parent.exists():
+                print(f"\nConfiguring VS Code MCP config: {mcp_path}")
+                if configure_vscode_mcp_json(mcp_path, elefante_path, python_cmd):
+                    mcp_configured = True
+                else:
+                    print(f"Warning: Failed to write {mcp_path}")
+
+        # Warn about duplicate scope definitions (User + Workspace).
+        workspace_mcp = elefante_path / ".vscode" / "mcp.json"
+        if workspace_mcp.exists():
+            print("\nNOTE: Workspace MCP config exists:")
+            print(f"  {workspace_mcp}")
+            print("If it defines servers.elefante, VS Code will show duplicates.")
+            print("Recommendation: keep workspace mcp.json empty and use .vscode/mcp.example.jsonc as a template.")
     
     # Find valid settings files
     potential_paths = get_settings_paths()
@@ -161,11 +242,12 @@ def configure_mcp():
         
         # Prepare Elefante config
         elefante_config = {
-            "command": sys.executable,
+            "command": python_cmd,
             "args": ["-m", "src.mcp.server"],
             "cwd": str(elefante_path),
             "env": {
                 "PYTHONPATH": str(elefante_path),
+                "ELEFANTE_CONFIG_PATH": str(elefante_path / "config.yaml"),
                 "ANONYMIZED_TELEMETRY": "False" # Disable ChromaDB telemetry
             },
             "disabled": False,
@@ -196,16 +278,24 @@ def configure_mcp():
             settings["mcpServers"]["elefante"] = elefante_config
         else:
             # Standard VSCode settings.json structure
-            if not settings.get('chat.mcp.gallery.enabled'):
-                settings['chat.mcp.gallery.enabled'] = True
-                
-            if 'chat.mcp.servers' not in settings:
-                settings['chat.mcp.servers'] = {}
-            
-            # VSCode uses a slightly different format for autoStart
-            vscode_config = elefante_config.copy()
-            vscode_config["autoStart"] = True
-            settings['chat.mcp.servers']['elefante'] = vscode_config
+            # Default behavior: avoid duplicating built-in MCP (mcp.json). Only write
+            # settings-based config if explicitly requested.
+            if _is_vscode_settings_path(settings_path) and mcp_configured and clean_duplicates:
+                removed = _remove_vscode_chat_server(settings, "elefante")
+                if removed:
+                    print("Removed duplicate VS Code settings entry: chat.mcp.servers.elefante")
+
+            if configure_vscode_chat_settings:
+                if not settings.get('chat.mcp.gallery.enabled'):
+                    settings['chat.mcp.gallery.enabled'] = True
+
+                if 'chat.mcp.servers' not in settings:
+                    settings['chat.mcp.servers'] = {}
+
+                # VSCode uses a slightly different format for autoStart
+                vscode_config = elefante_config.copy()
+                vscode_config["autoStart"] = True
+                settings['chat.mcp.servers']['elefante'] = vscode_config
             
         # Save settings
         print("Saving configuration...")

@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Dict, Any, Literal
 from uuid import UUID, uuid4
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # ============================================================================
@@ -196,19 +196,14 @@ class MemoryMetadata(BaseModel):
     custom_metadata: Dict[str, Any] = Field(default_factory=dict)
     system_metadata: Dict[str, Any] = Field(default_factory=dict)
     
-    @validator('source_reliability', always=True)
-    def set_source_reliability(cls, v, values):
-        """Auto-set source reliability based on source type if not provided"""
-        if v == 0.9 and 'source' in values:  # Default value
-            return SOURCE_RELIABILITY_SCORES.get(values['source'], 0.7)
-        return v
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            UUID: lambda v: str(v),
-        }
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
+
+    @model_validator(mode="after")
+    def set_source_reliability(self):
+        """Auto-set source reliability based on source type when not explicitly provided."""
+        if "source_reliability" not in self.model_fields_set:
+            self.source_reliability = SOURCE_RELIABILITY_SCORES.get(self.source, 0.7)
+        return self
 
 
 # ============================================================================
@@ -233,19 +228,14 @@ class Memory(BaseModel):
     similarity_score: Optional[float] = None
     relevance_score: Optional[float] = None
     
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            UUID: lambda v: str(v),
-        }
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert memory to dictionary"""
         return {
             "id": str(self.id),
             "content": self.content,
-            "metadata": self.metadata.dict(),
+            "metadata": self.metadata.model_dump(mode="json"),
             "embedding": self.embedding,
             "related_entities": [str(e) for e in self.related_entities],
             "similarity_score": self.similarity_score,

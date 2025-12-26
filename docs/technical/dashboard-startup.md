@@ -95,6 +95,18 @@ curl http://127.0.0.1:8000/api/stats
 # {"total_memories": 7, "total_relationships": 0, ...}
 ```
 
+### Method 3.5: Run the Health Check Script
+
+```bash
+python scripts/dashboard_health_check.py --port 8000
+```
+
+### Method 3.6: Validate the Snapshot File
+
+```bash
+python scripts/validate_dashboard_snapshot.py --path ~/.elefante/data/dashboard_snapshot.json
+```
+
 ### Method 4: Open in Browser
 
 1. Open **http://127.0.0.1:8000**

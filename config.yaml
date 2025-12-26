@@ -45,24 +45,20 @@ elefante:
 
   # Embedding Service Configuration
   embeddings:
-    provider: "sentence-transformers" # Options: sentence-transformers, openai
+    provider: "sentence-transformers" # Local-only (no external AI API calls)
     model: "all-MiniLM-L6-v2"
     device: "cpu" # Options: cpu, cuda, mps (for Apple Silicon)
     batch_size: 32
     normalize: true
 
-    # Optional: OpenAI embeddings (requires API key in .env)
-    # provider: "openai"
-    # model: "text-embedding-3-small"
-    # dimensions: 1536
-
-  # LLM Configuration (for Consolidation & Curation)
+  # LLM Configuration
+  # Elefante does NOT connect to an LLM. Any LLM usage must be handled by the calling agent.
+  # (Kept as a placeholder for legacy configs; currently ignored by runtime.)
   llm:
-    provider: "openai" # Options: openai, anthropic, local
-    model: "gpt-4o"
+    provider: "agent-managed"
+    model: ""
     temperature: 0.0
-    max_tokens: 1000
-    # api_key: set via env var OPENAI_API_KEY or ANTHROPIC_API_KEY
+    max_tokens: 0
 
   # Logging Configuration
   logging:
@@ -107,11 +103,11 @@ elefante:
     enable_auto_tagging: false # AI-powered auto-tagging (future)
     enable_deduplication: true
 
-  # Elefante Mode (v1.0.1) - Multi-IDE Safety
-  # When OFF: Server returns graceful disabled responses, releases all locks
-  # When ON: Full memory system active with protocol enforcement
+  # Elefante Mode (v1.1.0) - Transaction-Scoped Locking
+  # Lock per operation (milliseconds), not per session (hours)
+  # Stale locks auto-expire after 30 seconds
   elefante_mode:
-    enabled: false  # Default OFF - user must explicitly enable
+    enabled: true  # v1.1.0: Always enabled (backward compat - this field is ignored)
     lock_timeout_seconds: 5  # Max time to wait for lock acquisition
     cleanup_on_disable: true  # Release all resources when switching to OFF
 

@@ -4,7 +4,7 @@
 
 **Purpose**: Permanent record of memory retrieval failures and cognitive architecture principles  
 **Status**: Active Neural Register  
-**Last Updated**: 2025-12-10
+**Last Updated**: 2025-12-26
 
 ---
 
@@ -110,7 +110,7 @@ def calculate_decayed_importance(
     return original_importance * decay_factor * reinforcement
 ```
 
-**Implementation Status**: Designed but not yet deployed (as of v1.0.0)
+**Implementation Status**: Deployed (v1.1.0) - Active in `_search_structured` and `_search_semantic`
 
 **Rationale**: Prevent memory bloat, prioritize recent/frequently-accessed information
 

@@ -44,11 +44,17 @@ async def check_vector_store():
         
         vector_store = get_vector_store()
         stats = await vector_store.get_stats()
+
+        count = (
+            stats.get("total_memories")
+            if stats.get("total_memories") is not None
+            else stats.get("count", 0)
+        )
         
         return {
             "status": "healthy",
             "collection": stats.get("collection_name"),
-            "count": stats.get("count", 0)
+            "count": count,
         }
     except Exception as e:
         return {
@@ -64,11 +70,22 @@ async def check_graph_store():
         
         graph_store = get_graph_store()
         stats = await graph_store.get_stats()
+
+        nodes = (
+            stats.get("total_entities")
+            if stats.get("total_entities") is not None
+            else stats.get("num_nodes", 0)
+        )
+        relationships = (
+            stats.get("total_relationships")
+            if stats.get("total_relationships") is not None
+            else stats.get("num_relationships", 0)
+        )
         
         return {
             "status": "healthy",
-            "nodes": stats.get("num_nodes", 0),
-            "relationships": stats.get("num_relationships", 0)
+            "nodes": nodes,
+            "relationships": relationships,
         }
     except Exception as e:
         return {

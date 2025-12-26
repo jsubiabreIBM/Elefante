@@ -15,7 +15,6 @@ if "pytest" in sys.modules:
 # =============================================================================
 # MOCK DEPENDENCIES BEFORE IMPORT
 # =============================================================================
-sys.modules["openai"] = MagicMock()
 sys.modules["aiosqlite"] = MagicMock()
 sys.modules["chromadb"] = MagicMock()
 sys.modules["kuzu"] = MagicMock()
@@ -62,27 +61,20 @@ async def test_authoritative_pipeline():
     embedding_service = AsyncMock()
     embedding_service.generate_embedding.return_value = [0.1, 0.2, 0.3]
     
-    llm_service = AsyncMock()
-    llm_service.analyze_memory.return_value = {
-        "title": "Test Memory",
-        "intent": "statement",
-        "action": "ADD"
-    }
-    
     # Instantiate Orchestrator with mocks
     orchestrator = MemoryOrchestrator(
         vector_store=vector_store,
         graph_store=graph_store,
         embedding_service=embedding_service
     )
-    # Inject LLM service manualy because get_llm_service is global
-    orchestrator.llm_service = llm_service
     
     # 2. Test Payload (Authoritative)
     content = "I prefer to use Python 3.10"
     payload_metadata = {
         "layer": "self",
         "sublayer": "preference",
+        "title": "Self.preference: Python version preference",
+        "intent": "statement",
         "tags": ["python", "coding"]
     }
     

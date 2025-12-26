@@ -1,70 +1,131 @@
+from __future__ import annotations
+
+import argparse
 import os
-import time
 import subprocess
-import shutil
+import sys
+import time
 from pathlib import Path
 
-def unlock_database():
-    """
-    Force unlock the Kuzu database by killing Python processes and removing .lock file.
-    Follows Law #2 and Prevention Protocols from DATABASE_NEURAL_REGISTER.md
-    """
-    print("🔒 KUZU DATABASE UNLOCKER 🔒")
-    print("----------------------------")
-    
-    # 1. Kill MCP server processes specifically
-    print(f"1. Attempting to stop Elefante MCP server processes...")
+
+def _truthy_env(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _repo_root() -> Path:
+    # scripts/debug/unlock_database.py -> scripts -> repo root
+    return Path(__file__).resolve().parents[2]
+
+
+def _default_db_paths() -> list[Path]:
+    paths: list[Path] = []
+
+    # Prefer configured database path.
     try:
-        # Pkill is standard on Mac/Linux
-        # Targeting the specific module execution
-        subprocess.run(["pkill", "-f", "src.mcp.server"], check=False)
-        print("   ✓ Sent kill signal to src.mcp.server processes.")
-    except FileNotFoundError:
-        print("   ⚠ pkill command not found. Skipping process kill.")
-    except Exception as e:
-        print(f"   ⚠ Error killing processes: {e}")
+        sys.path.insert(0, str(_repo_root()))
+        from src.utils.config import get_config  # type: ignore
 
-    time.sleep(1) # Wait for OS to release handles
+        cfg = get_config()
+        paths.append(Path(cfg.elefante.graph_store.database_path))
+    except Exception:
+        pass
 
-    # 2. Find and remove log file
-    # We need to find where the DB is. Using default location or looking at config
-    # hardcoded for now based on standard Elefante path, or trying to find it.
-    
-    # Assuming standard path from register: $env:USERPROFILE\.elefante\data\kuzu_db
-    # But checking multiple potential locations just in case
-    
-    potential_paths = [
-        Path.home() / ".elefante" / "data" / "kuzu_db",
-        Path("kuzu_db").absolute(), 
-        Path("/Volumes/X10Pro/X10-2025/Documents2025/Elefante_early_dec2025/kuzu_db")
-    ]
-    
+    # Common defaults.
+    paths.append(Path.home() / ".elefante" / "data" / "kuzu_db")
+    paths.append(Path("kuzu_db").resolve())
+
+    # De-dupe while preserving order.
+    seen: set[str] = set()
+    uniq: list[Path] = []
+    for p in paths:
+        key = str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(p)
+    return uniq
+
+
+def unlock_database(*, apply: bool, confirm: str, kill: bool) -> bool:
+    """Attempt to unlock the Kuzu database (safe-by-default).
+
+    Default is dry-run. To actually kill processes / delete lock files you must provide:
+    - environment: ELEFANTE_PRIVILEGED=1
+    - flag: --apply
+    - flag: --confirm DELETE
+    """
+    print("KUZU DATABASE UNLOCKER")
+    print("----------------------")
+
+    db_paths = _default_db_paths()
+    lock_files = [p / ".lock" for p in db_paths]
+
+    print("DB paths checked:")
+    for p in db_paths:
+        print(f"- {p}")
+
+    found = [lf for lf in lock_files if lf.exists()]
+    if not found:
+        print("No lock file found in known locations.")
+        return True
+
+    print("Lock files found:")
+    for lf in found:
+        print(f"- {lf}")
+
+    if not apply:
+        print("Dry-run only.")
+        print("Re-run with: ELEFANTE_PRIVILEGED=1 --apply --confirm DELETE")
+        print("Optional: add --kill to attempt stopping src.mcp.server processes.")
+        return True
+
+    if not _truthy_env("ELEFANTE_PRIVILEGED"):
+        print("Refusing to apply: set ELEFANTE_PRIVILEGED=1")
+        return False
+    if (confirm or "").strip() != "DELETE":
+        print("Refusing to apply: pass --confirm DELETE")
+        return False
+
+    if kill:
+        print("Attempting to stop Elefante MCP server processes (best-effort)...")
+        try:
+            subprocess.run(["pkill", "-f", "src.mcp.server"], check=False)
+            print("Kill signal sent to src.mcp.server processes (if any).")
+        except FileNotFoundError:
+            print("pkill not found; skipping process kill.")
+        except Exception as e:
+            print(f"Error killing processes: {e}")
+
+        # Wait briefly for OS to release handles.
+        time.sleep(1)
+
     lock_removed = False
-    
-    for db_path in potential_paths:
-        lock_file = db_path / ".lock"
-        if lock_file.exists():
-            print(f"2. Found lock file at: {lock_file}")
-            try:
-                os.remove(lock_file)
-                print("   ✓ Lock file REMOVED.")
-                lock_removed = True
-            except Exception as e:
-                print(f"   ❌ Failed to remove lock: {e}")
-        else:
-             # Check if it is a file (corruption check Law #4)
-             if db_path.exists() and db_path.is_file():
-                 print(f"   ❌ CRITICAL: {db_path} is a FILE, not a directory! Database corrupt.")
-                 print("      Please run init_databases.py to reset.")
-    
-    if not lock_removed:
-        print("2. No lock file found in standard locations.")
-        
-    print("\n✅ Database should be unlocked.")
-    print("   You may now restart the MCP server or run verify scripts.")
+    for lf in found:
+        try:
+            lf.unlink()
+            print(f"Removed: {lf}")
+            lock_removed = True
+        except Exception as e:
+            print(f"Failed to remove {lf}: {e}")
+
+    if lock_removed:
+        print("Database lock file(s) removed.")
+        return True
+
+    print("No lock files could be removed.")
+    return False
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description="Unlock Kuzu database (dry-run by default)")
+    p.add_argument("--apply", action="store_true", help="Actually remove lock file(s)")
+    p.add_argument("--confirm", type=str, default="", help="Must be exactly 'DELETE' to apply")
+    p.add_argument("--kill", action="store_true", help="Also attempt to stop src.mcp.server processes")
+    args = p.parse_args()
+
+    ok = unlock_database(apply=bool(args.apply), confirm=str(args.confirm), kill=bool(args.kill))
+    return 0 if ok else 1
+
 
 if __name__ == "__main__":
-    try:
-        unlock_database()
-    except Exception as e:
-        print(f"\n❌ Script failed: {e}")
+    raise SystemExit(main())

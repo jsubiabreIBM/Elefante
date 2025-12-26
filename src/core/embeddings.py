@@ -1,8 +1,8 @@
-"""
-Embedding service for Elefante memory system
+"""Embedding service for Elefante memory system.
 
-Generates vector embeddings for text using Sentence Transformers or OpenAI.
-Supports batch processing, caching, and async operations.
+ARCHITECTURE RULE:
+Elefante must not make external AI API calls. Embeddings are therefore generated
+locally using Sentence Transformers.
 """
 
 import asyncio
@@ -20,9 +20,8 @@ class EmbeddingService:
     """
     Service for generating text embeddings
     
-    Supports multiple providers:
-    - Sentence Transformers (local, free)
-    - OpenAI (API-based, requires key)
+    Supports:
+    - Sentence Transformers (local)
     """
     
     def __init__(self, provider: Optional[str] = None, model: Optional[str] = None):
@@ -30,7 +29,7 @@ class EmbeddingService:
         Initialize embedding service
         
         Args:
-            provider: Embedding provider ("sentence-transformers" or "openai")
+            provider: Embedding provider (must be "sentence-transformers")
             model: Model name (provider-specific)
         """
         self.config = get_config()
@@ -55,12 +54,13 @@ class EmbeddingService:
         if self._model is not None:
             return
         
-        if self.provider == "sentence-transformers":
-            self._load_sentence_transformer()
-        elif self.provider == "openai":
-            self._load_openai()
-        else:
-            raise ValueError(f"Unsupported embedding provider: {self.provider}")
+        if self.provider != "sentence-transformers":
+            raise ValueError(
+                f"Unsupported embedding provider: {self.provider}. "
+                "Elefante is local-only; use provider='sentence-transformers'."
+            )
+
+        self._load_sentence_transformer()
     
     def _load_sentence_transformer(self):
         """Load Sentence Transformer model"""
@@ -91,40 +91,6 @@ class EmbeddingService:
             logger.error("failed_to_load_model", error=str(e))
             raise
     
-    def _load_openai(self):
-        """Load OpenAI embedding client"""
-        try:
-            import openai
-            import os
-            
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("OPENAI_API_KEY environment variable not set")
-            
-            self._model = openai.OpenAI(api_key=api_key)
-            
-            # Set dimension based on model
-            dimension_map = {
-                "text-embedding-3-small": 1536,
-                "text-embedding-3-large": 3072,
-                "text-embedding-ada-002": 1536,
-            }
-            self._dimension = dimension_map.get(self.model_name, 1536)
-            
-            logger.info(
-                "openai_client_loaded",
-                model=self.model_name,
-                dimension=self._dimension
-            )
-        except ImportError:
-            logger.error("openai_not_installed")
-            raise ImportError(
-                "openai not installed. "
-                "Install with: pip install openai"
-            )
-        except Exception as e:
-            logger.error("failed_to_load_openai", error=str(e))
-            raise
     
     async def generate_embedding(self, text: str) -> List[float]:
         """
@@ -157,12 +123,13 @@ class EmbeddingService:
         
         logger.debug("generating_embeddings", count=len(texts))
         
-        if self.provider == "sentence-transformers":
-            embeddings = await self._generate_sentence_transformer_batch(texts)
-        elif self.provider == "openai":
-            embeddings = await self._generate_openai_batch(texts)
-        else:
-            raise ValueError(f"Unsupported provider: {self.provider}")
+        if self.provider != "sentence-transformers":
+            raise ValueError(
+                f"Unsupported embedding provider: {self.provider}. "
+                "Elefante is local-only; use provider='sentence-transformers'."
+            )
+
+        embeddings = await self._generate_sentence_transformer_batch(texts)
         
         logger.debug("embeddings_generated", count=len(embeddings))
         return embeddings
@@ -185,30 +152,6 @@ class EmbeddingService:
             return embeddings.tolist()
         
         embeddings = await loop.run_in_executor(None, _encode)
-        return embeddings
-    
-    async def _generate_openai_batch(self, texts: List[str]) -> List[List[float]]:
-        """Generate embeddings using OpenAI API"""
-        embeddings = []
-        
-        # Process in batches (OpenAI has rate limits)
-        for i in range(0, len(texts), self.batch_size):
-            batch = texts[i:i + self.batch_size]
-            
-            try:
-                response = await asyncio.to_thread(
-                    self._model.embeddings.create,
-                    input=batch,
-                    model=self.model_name
-                )
-                
-                batch_embeddings = [item.embedding for item in response.data]
-                embeddings.extend(batch_embeddings)
-                
-            except Exception as e:
-                logger.error("openai_embedding_failed", error=str(e), batch_size=len(batch))
-                raise
-        
         return embeddings
     
     def get_embedding_dimension(self) -> int:

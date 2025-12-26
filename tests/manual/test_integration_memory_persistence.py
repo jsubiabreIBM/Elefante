@@ -4,6 +4,7 @@ Test script to verify memory persistence across sessions
 import asyncio
 import sys
 import io
+import os
 from pathlib import Path
 
 if "pytest" in sys.modules:
@@ -28,6 +29,8 @@ from src.models.memory import MemoryType
 from src.models.query import QueryMode
 
 async def main():
+    write_test_memory = "--write-test-memory" in sys.argv
+
     print("="*70)
     print("ELEFANTE MEMORY PERSISTENCE TEST")
     print("="*70)
@@ -69,28 +72,33 @@ async def main():
         print("  2. The MCP server is using a different database location")
         print("  3. The memory was stored in a different session's temporary context")
     
-    # Try to add a test memory
-    print("\n\nAdding test memory...")
-    memory_id = await orch.add_memory(
-        content="TEST: This is a persistence test memory added at session startup.",
-        memory_type=MemoryType.NOTE,
-        importance=5,
-        tags=["test", "persistence_check"]
-    )
-    print(f"Test memory added with ID: {memory_id}")
-    
-    # Verify it was stored
-    print("\nVerifying test memory was stored...")
-    test_results = await orch.search_memories(
-        query="persistence test memory",
-        mode=QueryMode.HYBRID,
-        limit=1
-    )
-    
-    if test_results:
-        print("Test memory successfully stored and retrieved!")
+    if write_test_memory:
+        os.environ.setdefault("ELEFANTE_ALLOW_TEST_MEMORIES", "1")
+        print("\n\nAdding test memory (explicit flag enabled)...")
+        memory = await orch.add_memory(
+            content="TEST: This is a persistence test memory added at session startup.",
+            memory_type=MemoryType.NOTE,
+            importance=5,
+            tags=["test", "persistence_check"],
+            metadata={"namespace": "test", "category": "test"},
+        )
+        print(f"Test memory add result: {getattr(memory, 'id', None)}")
+
+        # Verify it was stored
+        print("\nVerifying test memory was stored...")
+        test_results = await orch.search_memories(
+            query="persistence test memory",
+            mode=QueryMode.HYBRID,
+            limit=1
+        )
+
+        if test_results:
+            print("Test memory was stored and retrieved.")
+        else:
+            print("Test memory was NOT found after storage.")
     else:
-        print("Test memory was NOT found after storage!")
+        print("\n\nSkipping test-memory write (read-only mode).")
+        print("Run with: --write-test-memory (writes to current DB).")
     
     print("\n" + "="*70)
     print("Test complete. Check results above.")

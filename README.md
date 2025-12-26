@@ -1,8 +1,8 @@
-# Elefante v1.0.1
+# Elefante v1.1.0
 
 **Local-First AI Memory System with Perfect Recall**
 
-> **Current Release:** v1.0.1 - Multi-IDE Safety & Protocol Enforcement
+> **Current Release:** v1.1.0 - Transaction-Scoped Locking (Multi-IDE Safety)
 
 Elefante gives AI agents a stateful brain by combining semantic search, knowledge graphs, and conversation context—all running 100% locally on your machine. No cloud. No data egress. Just pure, private memory.
 
@@ -171,12 +171,12 @@ See [`docs/technical/dashboard.md`](docs/technical/dashboard.md) for complete gu
 
 ## Development Status
 
-**Current Version**: v1.0.1 (Production)
+**Current Version**: v1.1.0 (Production)
 
 ### Implemented
 -  Triple-layer architecture (ChromaDB + Kuzu + Context)
 -  MCP server with 15 tools
--  ELEFANTE_MODE (Multi-IDE safety with exclusive locking)
+-  Transaction-scoped locking (v1.1.0 - millisecond locks, auto-expiry)
 -  Auto-Inject Pitfalls (Protocol enforcement in responses)
 -  Agent-driven enrichment (agent supplies intent/emotions/entities/relationships when desired)
 -  Temporal decay (memories fade, reinforced on access)
@@ -187,7 +187,7 @@ See [`docs/technical/dashboard.md`](docs/technical/dashboard.md) for complete gu
 -  Memory Schema V2 - Schema defined, but domain/category auto-classification not implemented
 -  Dashboard UX - Functional but needs visual improvements
 
-### Planned (v1.1.0)
+### Planned (v1.2.0)
 - [ ] Auto-classification of domain/category via agent enrichment
 - [ ] Smart UPDATE (merge instead of duplicate)
 - [ ] Dashboard semantic zoom

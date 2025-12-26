@@ -1,12 +1,24 @@
 # Elefante Dashboard Usage Guide
 
+See also:
+- [Dashboard Overhaul SPEC](dashboard-overhaul-spec.md)
+- [Dashboard Snapshot Contract](dashboard-snapshot-contract.md)
+
 ## Quick Start
 
 ### Starting the Dashboard
 
+**Option 1: Via MCP Tool (Recommended)**
+Use the `elefanteDashboardOpen` tool:
+```
+"Open the dashboard"
+```
+This will start the server and open your browser automatically.
+
+**Option 2: Manual Start**
 ```bash
-cd Elefante
-.venv\Scripts\python.exe -m src.dashboard.server
+# From project root
+python -m src.dashboard.server
 ```
 
 Dashboard will be available at: **http://127.0.0.1:8000**
@@ -23,7 +35,7 @@ Press `Ctrl+C` in the terminal running the server.
 
 - **Interactive Graph**: Each green dot represents a memory
 - **Node Labels**: Truncated descriptions (first 3 words) shown below each node
-- **Hover Tooltips**: Full description and timestamp appear on hover
+- **Hover Tooltips**: Curated-first (title + summary + explainable link counts)
 - **Zoom Controls**: Use mouse wheel or zoom buttons (bottom right)
 - **Pan**: Click and drag to move around the graph
 
@@ -56,16 +68,18 @@ Use the elefanteMemoryAdd MCP tool to store this information
 
 ```python
 import asyncio
-from src.core.orchestrator import MemoryOrchestrator
+from src.core.orchestrator import get_orchestrator
 
 async def add_memory():
-    orchestrator = MemoryOrchestrator()
+    orchestrator = get_orchestrator()
 
     result = await orchestrator.add_memory(
         content="Your memory content here",
-        layer="world", # V3 Schema
-        sublayer="fact",
-        importance=5
+        metadata={
+            "layer": "world", # V3 Schema
+            "sublayer": "fact",
+            "importance": 5
+        }
     )
 
     print(f"Memory added: {result.id}")
@@ -88,15 +102,17 @@ curl -X POST http://localhost:8000/api/memories \
 
 ---
 
-## Auto-Refresh Feature 
+## Snapshot Refresh
 
-**IMPORTANT**: The dashboard automatically reflects new memories without requiring server restart!
+**IMPORTANT**: The dashboard is snapshot-driven. If new memories are added, you must regenerate the snapshot and then refresh the browser.
 
 ### How It Works:
 
-1. **Add a memory** using any method above
-2. **Refresh your browser** (press F5 or Ctrl+R)
-3. **New memory appears** immediately in the graph
+1. **Add a memory** using MCP or scripts
+2. **Regenerate the dashboard snapshot**: 
+   - **Via Tool**: `elefanteDashboardOpen(refresh=True)`
+   - **Via Script**: `python scripts/update_dashboard_data.py`
+3. **Refresh your browser** (Cmd+R / F5)
 
 ### What Gets Updated:
 
@@ -105,12 +121,10 @@ curl -X POST http://localhost:8000/api/memories \
 -  Relationships between memories
 -  All filters and search results
 
-### No Need To:
+### Notes
 
--  Restart the dashboard server
--  Rebuild the frontend
--  Reinitialize the database
--  Clear browser cache (unless you updated the code)
+- Snapshot generation is the only step allowed to touch databases.
+- Dashboard runtime reads `DATA_DIR/dashboard_snapshot.json` and must remain read-only.
 
 ---
 
@@ -128,8 +142,8 @@ curl -X POST http://localhost:8000/api/memories \
 
 ### Dashboard Shows 0 Memories
 
-1. **Hard refresh browser**: Ctrl+Shift+R (clears cache)
-2. **Check database**: Run `python -c "from src.core.orchestrator import MemoryOrchestrator; import asyncio; print(asyncio.run(MemoryOrchestrator().get_stats()))"`
+1. **Hard refresh browser**: Cmd+Shift+R (clears cache)
+2. **Check database**: Run `python -c "from src.core.orchestrator import get_orchestrator; import asyncio; print(asyncio.run(get_orchestrator().get_stats()))"`
 3. **Check server logs**: Look for errors in the terminal
 
 ### Graph Not Loading (Blank Screen)
@@ -159,14 +173,14 @@ curl -X POST http://localhost:8000/api/memories \
 ### Querying the Knowledge Graph
 
 ```python
-from src.core.orchestrator import MemoryOrchestrator
+from src.core.orchestrator import get_orchestrator
 import asyncio
 
 async def query_graph():
-    orchestrator = MemoryOrchestrator()
+    orchestrator = get_orchestrator()
 
     # Cypher query example
-    results = await orchestrator.graph_store.query(
+    results = await orchestrator.graph_store.execute_query(
         "MATCH (n:Entity) RETURN n.name LIMIT 10"
     )
 

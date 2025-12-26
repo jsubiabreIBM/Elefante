@@ -138,7 +138,12 @@ class VectorStore:
             
             # Layer 4: Relationships (IDs only, graph stores full relationships)
             "status": memory.metadata.status.value if hasattr(memory.metadata.status, 'value') else str(memory.metadata.status),
+            "relationship_type": memory.metadata.relationship_type.value if getattr(memory.metadata, "relationship_type", None) else "",
             "parent_id": str(memory.metadata.parent_id) if memory.metadata.parent_id else "",
+            "related_memory_ids": ",".join(str(x) for x in (memory.metadata.related_memory_ids or [])),
+            "conflict_ids": ",".join(str(x) for x in (memory.metadata.conflict_ids or [])),
+            "supersedes_id": str(memory.metadata.supersedes_id) if memory.metadata.supersedes_id else "",
+            "superseded_by_id": str(memory.metadata.superseded_by_id) if memory.metadata.superseded_by_id else "",
             
             # Layer 5: Source Attribution
             "source": memory.metadata.source.value if hasattr(memory.metadata.source, 'value') else str(memory.metadata.source),
@@ -152,12 +157,24 @@ class VectorStore:
             
             # Layer 7: Temporal Intelligence
             "last_accessed": memory.metadata.last_accessed.isoformat(),
+            "last_modified": memory.metadata.last_modified.isoformat() if getattr(memory.metadata, "last_modified", None) else datetime.utcnow().isoformat(),
             "access_count": memory.metadata.access_count,
             
             # Layer 8: Quality & Lifecycle
             "version": memory.metadata.version,
             "deprecated": memory.metadata.deprecated,
+            "archived": getattr(memory.metadata, "archived", False),
         }
+        
+        # V5 Topology fields - extract from custom_metadata to top level
+        cm = memory.metadata.custom_metadata or {}
+        metadata["ring"] = cm.get("ring", "leaf")
+        metadata["knowledge_type"] = cm.get("knowledge_type", "fact")
+        metadata["topic"] = cm.get("topic", "general")
+        metadata["summary"] = cm.get("summary", memory.content[:150])
+        metadata["owner_id"] = cm.get("owner_id", "owner-jay")
+        # Also preserve title at top level
+        metadata["title"] = cm.get("title", "")
         
         # Merge custom metadata (flattened for ChromaDB)
         if memory.metadata.custom_metadata:
@@ -197,6 +214,7 @@ class VectorStore:
         query: str,
         limit: int = 10,
         filters: Optional[SearchFilters] = None,
+        where_override: Optional[Dict[str, Any]] = None,
         min_similarity: Optional[float] = None,
         apply_temporal_decay: bool = True
     ) -> List[SearchResult]:
@@ -235,6 +253,14 @@ class VectorStore:
         
         # Build where clause from filters
         where_clause = self._build_where_clause(filters) if filters else None
+
+        # Allow callers (e.g. federated search) to inject additional metadata filters.
+        # ChromaDB filtering is limited; prefer a simple merge over complex boolean operators.
+        if where_override:
+            if where_clause:
+                where_clause = {**where_clause, **where_override}
+            else:
+                where_clause = where_override
         
         # Perform search
         try:
@@ -348,7 +374,14 @@ class VectorStore:
     
     def _reconstruct_memory(self, memory_id: str, content: str, metadata: Dict[str, Any]) -> Memory:
         """Reconstruct Memory object from ChromaDB data (V2.0 Schema)"""
-        from src.models.memory import DomainType, MemoryType, IntentType, MemoryStatus, SourceType
+        from src.models.memory import (
+            DomainType,
+            IntentType,
+            MemoryStatus,
+            MemoryType,
+            RelationshipType,
+            SourceType,
+        )
         
         # Helper to safely get enum value
         def get_enum_value(enum_class, value, default):
@@ -364,11 +397,48 @@ class VectorStore:
             "created_at", "timestamp", "created_by", "layer", "sublayer", "domain", 
             "category", "memory_type", "subcategory", "intent", "importance", 
             "urgency", "confidence", "tags", "keywords", "status", "parent_id", 
+            "relationship_type", "related_memory_ids", "conflict_ids", "supersedes_id", "superseded_by_id",
             "source", "source_reliability", "verified", "project", "file_path", 
-            "session_id", "last_accessed", "access_count", "version", "deprecated"
+            "session_id", "last_accessed", "last_modified", "access_count", "version", "deprecated", "archived"
         }
         custom_metadata = {k: v for k, v in metadata.items() if k not in known_keys}
+
+        # Also restore nested custom_metadata if present (stored by VectorStore).
+        embedded_custom = metadata.get("custom_metadata")
+        if isinstance(embedded_custom, dict):
+            # Embedded custom metadata should win over loose/unknown keys.
+            custom_metadata = {**custom_metadata, **embedded_custom}
+        elif isinstance(embedded_custom, str) and embedded_custom.strip():
+            try:
+                parsed = __import__("json").loads(embedded_custom)
+                if isinstance(parsed, dict):
+                    custom_metadata = {**custom_metadata, **parsed}
+            except Exception:
+                pass
         
+        # Helper to parse UUID lists from comma-separated strings
+        def parse_uuid_list(value: Any) -> List[UUID]:
+            if not value:
+                return []
+            if isinstance(value, list):
+                out: List[UUID] = []
+                for item in value:
+                    try:
+                        out.append(UUID(str(item)))
+                    except Exception:
+                        continue
+                return out
+            if isinstance(value, str):
+                parts = [p.strip() for p in value.split(",") if p.strip()]
+                out: List[UUID] = []
+                for p in parts:
+                    try:
+                        out.append(UUID(p))
+                    except Exception:
+                        continue
+                return out
+            return []
+
         # Parse V2 metadata with backward compatibility for V1
         memory_metadata = MemoryMetadata(
             # Layer 1: Core Identity
@@ -393,7 +463,16 @@ class VectorStore:
             
             # Layer 4: Relationships
             status=get_enum_value(MemoryStatus, metadata.get("status"), MemoryStatus.NEW),
+            relationship_type=get_enum_value(
+                RelationshipType,
+                metadata.get("relationship_type"),
+                None,
+            ),
             parent_id=UUID(metadata["parent_id"]) if metadata.get("parent_id") else None,
+            related_memory_ids=parse_uuid_list(metadata.get("related_memory_ids")),
+            conflict_ids=parse_uuid_list(metadata.get("conflict_ids")),
+            supersedes_id=UUID(metadata["supersedes_id"]) if metadata.get("supersedes_id") else None,
+            superseded_by_id=UUID(metadata["superseded_by_id"]) if metadata.get("superseded_by_id") else None,
             
             # Layer 5: Source
             source=get_enum_value(SourceType, metadata.get("source"), SourceType.USER_INPUT),
@@ -407,11 +486,13 @@ class VectorStore:
             
             # Layer 7: Temporal
             last_accessed=datetime.fromisoformat(metadata.get("last_accessed", datetime.utcnow().isoformat())),
+            last_modified=datetime.fromisoformat(metadata.get("last_modified", datetime.utcnow().isoformat())),
             access_count=metadata.get("access_count", 0),
             
             # Layer 8: Quality
             version=metadata.get("version", 1),
             deprecated=metadata.get("deprecated", False),
+            archived=metadata.get("archived", False),
             custom_metadata=custom_metadata,
         )
         
@@ -504,6 +585,9 @@ class VectorStore:
         except Exception as e:
             logger.error("failed_to_get_memory", memory_id=str(memory_id), error=str(e))
             return None
+
+    async def get_by_id(self, memory_id: UUID) -> Optional[Memory]:
+        return await self.get_memory(memory_id)
     
     async def update_memory(self, memory_id: UUID, updates: Dict[str, Any]) -> bool:
         """
@@ -536,10 +620,34 @@ class VectorStore:
             
             if "tags" in updates:
                 memory.metadata.tags = updates["tags"]
+
+            if "status" in updates:
+                memory.metadata.status = updates["status"]
+
+            if "deprecated" in updates:
+                memory.metadata.deprecated = bool(updates["deprecated"])
+
+            if "archived" in updates:
+                memory.metadata.archived = bool(updates["archived"])
+
+            if "relationship_type" in updates:
+                memory.metadata.relationship_type = updates["relationship_type"]
+
+            if "supersedes_id" in updates:
+                memory.metadata.supersedes_id = updates["supersedes_id"]
+
+            if "superseded_by_id" in updates:
+                memory.metadata.superseded_by_id = updates["superseded_by_id"]
+
+            if "custom_metadata" in updates and isinstance(updates["custom_metadata"], dict):
+                memory.metadata.custom_metadata = updates["custom_metadata"]
             
             # Update temporal fields
             if "last_accessed" in updates:
                 memory.metadata.last_accessed = updates["last_accessed"]
+
+            if "last_modified" in updates:
+                memory.metadata.last_modified = updates["last_modified"]
             
             if "access_count" in updates:
                 memory.metadata.access_count = updates["access_count"]
@@ -553,6 +661,20 @@ class VectorStore:
             
         except Exception as e:
             logger.error("failed_to_update_memory", memory_id=str(memory_id), error=str(e))
+            return False
+
+    async def replace_memory(self, memory: Memory) -> bool:
+        """Replace an existing memory record by ID.
+
+        This is a full rewrite (delete + add) to ensure metadata changes persist.
+        """
+        self._initialize_client()
+        try:
+            await self.delete_memory(memory.id)
+            await self.add_memory(memory)
+            return True
+        except Exception as e:
+            logger.error("failed_to_replace_memory", memory_id=str(memory.id), error=str(e))
             return False
     
     async def update_memory_access(self, memory: Memory) -> bool:

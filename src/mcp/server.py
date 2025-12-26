@@ -32,7 +32,7 @@ from src.models.query import QueryMode, SearchFilters
 from src.models.entity import EntityType, RelationshipType
 from src.utils.logger import get_logger
 from src.utils.validators import validate_memory_content, validate_uuid
-from src.utils.elefante_mode import get_mode_manager, is_elefante_enabled
+from src.utils.elefante_mode import get_mode_manager, is_elefante_enabled, write_lock
 
 logger = get_logger(__name__)
 
@@ -65,12 +65,12 @@ class ElefanteMCPServer:
         self.server = Server("elefante")
         self.orchestrator = None # Lazy loaded
         self.logger = get_logger(self.__class__.__name__)
-        self.mode_manager = get_mode_manager()  # Elefante Mode manager (v1.0.1)
+        self.mode_manager = get_mode_manager()  # Elefante Mode manager (v1.1.0 - transaction-scoped)
         
         # Register tool handlers
         self._register_handlers()
         
-        self.logger.info("Elefante MCP Server initialized (Lazy Loading enabled, Mode: OFF by default)")
+        self.logger.info("Elefante MCP Server initialized (v1.1.0 - transaction-scoped locking)")
 
     def _inject_pitfalls(self, result: Dict[str, Any], tool_name: str) -> Dict[str, Any]:
         """
@@ -106,6 +106,10 @@ class ElefanteMCPServer:
             pitfalls.append("WARNING - DASHBOARD: If refresh=true, this reads from databases and requires Elefante Mode to be enabled.")
 
         # Add to result with a key that demands attention
+        # Developer Etiquette V1.2 (canonical) — concise enforcement reminder.
+        pitfalls.append(
+            "DEVELOPER ETIQUETTE v1.2 (docs/technical/developer-etiquette.md): Context-first; label UNKNOWN; no fabrication; reuse existing artifacts; for non-trivial work follow SPEC→DESIGN→TASKS→IMPLEMENT→VERIFY; verify before claiming done; keep outputs concise."
+        )
         result["MANDATORY_PROTOCOLS_READ_THIS_FIRST"] = pitfalls
         return result
 
@@ -414,13 +418,13 @@ This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using 
                 ),
                 types.Tool(
                     name="elefanteMemoryConsolidate",
-                    description="**MEMORY MAINTENANCE**: Trigger a background process to analyze recent memories, merge duplicates, and resolve contradictions. Use this when you notice the user is getting inconsistent information or when the memory search returns too many near-identical results. This process uses an LLM to synthesize facts and update the knowledge graph.",
+                    description="**MEMORY MAINTENANCE**: Deterministic, LLM-free memory cleanup. Use this to canonicalize memories (set stable keys), quarantine test data, and mark duplicates as redundant/superseded so exports and search stay clean. Default is dry-run (`force=false`); set `force=true` to apply changes.",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "force": {
                                 "type": "boolean",
-                                "description": "Force consolidation even if threshold not met",
+                                "description": "Apply cleanup changes (default false = dry-run)",
                                 "default": False
                             }
                         }
@@ -578,6 +582,88 @@ This will gracefully close connections and clear all locks.""",
                         "type": "object",
                         "properties": {}
                     }
+                ),
+                # =====================================================================
+                # ETL TOOLS (Agent-Brain Classification)
+                # =====================================================================
+                types.Tool(
+                    name="elefanteETLProcess",
+                    description="""**PHASE 2 ETL**: Get unclassified memories for YOU (the agent) to classify.
+
+This returns raw memories that need V5 topology classification. YOU must analyze each one and call elefanteETLClassify with your classification.
+
+V5 Topology Schema:
+- **ring**: core (immutable truths) | domain (preferences, identity) | topic (project-specific) | leaf (ephemeral)
+- **knowledge_type**: law | principle | method | decision | insight | preference | fact
+- **topic**: coding-standards | communication | workflow | agent-behavior | tools-environment | collaboration | general
+- **summary**: One-line description
+
+Flow:
+1. Call elefanteETLProcess(limit=5) → Get raw memories
+2. Analyze each memory using your LLM brain
+3. Call elefanteETLClassify for each with your classification""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "limit": {
+                                "type": "integer",
+                                "default": 5,
+                                "minimum": 1,
+                                "maximum": 50,
+                                "description": "Number of raw memories to process"
+                            }
+                        }
+                    }
+                ),
+                types.Tool(
+                    name="elefanteETLClassify",
+                    description="""**PHASE 2 ETL**: Submit YOUR classification for a memory.
+
+After analyzing a memory from elefanteETLProcess, call this to store your V5 classification.
+
+Required fields:
+- memory_id: From elefanteETLProcess
+- ring: core | domain | topic | leaf
+- knowledge_type: law | principle | method | decision | insight | preference | fact
+- topic: coding-standards | communication | workflow | agent-behavior | tools-environment | collaboration | general
+- summary: One-line description (max 200 chars)""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "memory_id": {
+                                "type": "string",
+                                "description": "Memory UUID from elefanteETLProcess"
+                            },
+                            "ring": {
+                                "type": "string",
+                                "enum": ["core", "domain", "topic", "leaf"],
+                                "description": "Topology ring: core=immutable, domain=identity, topic=project, leaf=ephemeral"
+                            },
+                            "knowledge_type": {
+                                "type": "string",
+                                "enum": ["law", "principle", "method", "decision", "insight", "preference", "fact"],
+                                "description": "Type of knowledge"
+                            },
+                            "topic": {
+                                "type": "string",
+                                "enum": ["coding-standards", "communication", "workflow", "agent-behavior", "tools-environment", "collaboration", "general"],
+                                "description": "Topic cluster"
+                            },
+                            "summary": {
+                                "type": "string",
+                                "description": "One-line summary (max 200 chars)"
+                            }
+                        },
+                        "required": ["memory_id", "ring", "knowledge_type", "topic", "summary"]
+                    }
+                ),
+                types.Tool(
+                    name="elefanteETLStatus",
+                    description="Get ETL processing statistics: how many memories are raw, processing, processed, or failed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {}
+                    }
                 )
             ]
             self.logger.info(f"=== Returning {len(tools)} tools to MCP client ===")
@@ -605,10 +691,8 @@ This will gracefully close connections and clear all locks.""",
                     result = await self._handle_get_elefante_dashboard(arguments)
                     return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
                 
-                # Check if Elefante Mode is enabled for other tools
-                if name not in SAFE_TOOLS and not self.mode_manager.is_enabled:
-                    result = self.mode_manager.get_disabled_response(name)
-                    return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
+                # v2.0.0: Mode check removed - operations auto-acquire/release locks
+                # Write operations use write_lock() context manager internally
                 
                 if name == "elefanteMemoryAdd":
                     result = await self._handle_add_memory(arguments)
@@ -632,6 +716,13 @@ This will gracefully close connections and clear all locks.""",
                     result = await self._handle_migrate_memories_v3(arguments)
                 elif name == "elefanteGraphConnect":
                     result = await self._handle_set_elefante_connection(arguments)
+                # ETL Tools (Agent-Brain Classification)
+                elif name == "elefanteETLProcess":
+                    result = await self._handle_etl_process(arguments)
+                elif name == "elefanteETLClassify":
+                    result = await self._handle_etl_classify(arguments)
+                elif name == "elefanteETLStatus":
+                    result = await self._handle_etl_status(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
                 
@@ -702,8 +793,17 @@ This will gracefully close connections and clear all locks.""",
         return status
 
     async def _handle_add_memory(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle elefanteMemoryAdd tool call - Authoritative Pipeline"""
-        orchestrator = await self._get_orchestrator()
+        """Handle elefanteMemoryAdd tool call - Authoritative Pipeline (v2.0.0: transaction-scoped)"""
+        # Acquire write lock for duration of operation
+        with write_lock() as lock:
+            if not lock.acquired:
+                return {
+                    "success": False,
+                    "error": "Could not acquire write lock - another process is writing",
+                    "retry": True
+                }
+            
+            orchestrator = await self._get_orchestrator()
         
         # Build metadata with domain/category if provided
         metadata = args.get("metadata") or {}
@@ -802,11 +902,13 @@ This will gracefully close connections and clear all locks.""",
             session_id=session_id
         )
         
-        return {
+        response = {
             "success": True,
             "count": len(results),
             "results": [result.to_dict() for result in results]
         }
+
+        return response
     
     async def _handle_query_graph(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle elefanteGraphQuery tool call"""
@@ -841,41 +943,57 @@ This will gracefully close connections and clear all locks.""",
         }
     
     async def _handle_create_entity(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle elefanteGraphEntityCreate tool call"""
-        orchestrator = await self._get_orchestrator()
-        entity = await orchestrator.create_entity(
-            name=args["name"],
-            entity_type=args["type"],
-            properties=args.get("properties")
-        )
-        
-        return {
-            "success": True,
-            "entity_id": str(entity.id),
-            "message": "Entity created successfully",
-            "entity": entity.to_dict()
-        }
+        """Handle elefanteGraphEntityCreate tool call (v2.0.0: transaction-scoped)"""
+        with write_lock() as lock:
+            if not lock.acquired:
+                return {
+                    "success": False,
+                    "error": "Could not acquire write lock - another process is writing",
+                    "retry": True
+                }
+            
+            orchestrator = await self._get_orchestrator()
+            entity = await orchestrator.create_entity(
+                name=args["name"],
+                entity_type=args["type"],
+                properties=args.get("properties")
+            )
+            
+            return {
+                "success": True,
+                "entity_id": str(entity.id),
+                "message": "Entity created successfully",
+                "entity": entity.to_dict()
+            }
     
     async def _handle_create_relationship(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle elefanteGraphRelationshipCreate tool call"""
-        orchestrator = await self._get_orchestrator()
-        relationship = await orchestrator.create_relationship(
-            from_entity_id=UUID(args["from_entity_id"]),
-            to_entity_id=UUID(args["to_entity_id"]),
-            relationship_type=args["relationship_type"],
-            properties=args.get("properties")
-        )
-        
-        return {
-            "success": True,
-            "message": "Relationship created successfully",
-            "relationship": {
-                "from_entity_id": str(relationship.from_entity_id),
-                "to_entity_id": str(relationship.to_entity_id),
-                "type": relationship.relationship_type.value,
-                "properties": relationship.properties
+        """Handle elefanteGraphRelationshipCreate tool call (v2.0.0: transaction-scoped)"""
+        with write_lock() as lock:
+            if not lock.acquired:
+                return {
+                    "success": False,
+                    "error": "Could not acquire write lock - another process is writing",
+                    "retry": True
+                }
+            
+            orchestrator = await self._get_orchestrator()
+            relationship = await orchestrator.create_relationship(
+                from_entity_id=UUID(args["from_entity_id"]),
+                to_entity_id=UUID(args["to_entity_id"]),
+                relationship_type=args["relationship_type"],
+                properties=args.get("properties")
+            )
+            
+            return {
+                "success": True,
+                "message": "Relationship created successfully",
+                "relationship": {
+                    "from_entity_id": str(relationship.from_entity_id),
+                    "to_entity_id": str(relationship.to_entity_id),
+                    "type": relationship.relationship_type.value,
+                    "properties": relationship.properties
+                }
             }
-        }
     
     def _normalize_relationship_type(self, relationship_type: str) -> str:
         if not isinstance(relationship_type, str) or not relationship_type.strip():
@@ -919,12 +1037,20 @@ This will gracefully close connections and clear all locks.""",
         }
     
     async def _handle_consolidate_memories(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle elefanteMemoryConsolidate tool call"""
-        orchestrator = await self._get_orchestrator()
-        result = await orchestrator.consolidate_memories(
-            force=args.get("force", False)
-        )
-        return result
+        """Handle elefanteMemoryConsolidate tool call (v2.0.0: transaction-scoped)"""
+        with write_lock() as lock:
+            if not lock.acquired:
+                return {
+                    "success": False,
+                    "error": "Could not acquire write lock - another process is writing",
+                    "retry": True
+                }
+            
+            orchestrator = await self._get_orchestrator()
+            result = await orchestrator.consolidate_memories(
+                force=args.get("force", False)
+            )
+            return result
     
     async def _handle_get_episodes(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Handle elefanteSessionsList tool call"""
@@ -1002,12 +1128,47 @@ This will gracefully close connections and clear all locks.""",
         edges = []
         seen_ids = set()
 
+        def _is_test_artifact(*, content: str, title: str) -> bool:
+            c = (content or "").strip().lower()
+            t = (title or "").strip().lower()
+
+            if c.startswith("elefante e2e test memory") or c.startswith("hybrid search test memory"):
+                return True
+
+            if c.startswith("entity relationship test ") or c.startswith("persistence test "):
+                return True
+
+            if t.startswith("e2e-test") or "hybrid_test_" in t:
+                return True
+
+            return False
+
         for mem in memories:
-            if mem.metadata.custom_metadata.get("title"):
-                name = mem.metadata.custom_metadata.get("title")
+            cm = mem.metadata.custom_metadata or {}
+            if cm.get("title"):
+                name = cm.get("title")
             else:
                 words = mem.content.split()[:5]
                 name = " ".join(words) if words else "Untitled Memory"
+
+            if _is_test_artifact(content=mem.content, title=str(name)):
+                continue
+
+            status_value = mem.metadata.status.value if hasattr(mem.metadata.status, "value") else str(mem.metadata.status)
+            rel_type_value = (
+                mem.metadata.relationship_type.value
+                if getattr(mem.metadata, "relationship_type", None) and hasattr(mem.metadata.relationship_type, "value")
+                else str(getattr(mem.metadata, "relationship_type", "") or "")
+            )
+
+            processing_status = cm.get("processing_status")
+            canonical_key = cm.get("canonical_key")
+            namespace = cm.get("namespace")
+            ring = cm.get("ring")
+            knowledge_type = cm.get("knowledge_type")
+            topic = cm.get("topic")
+            summary = cm.get("summary")
+            owner_id = cm.get("owner_id")
 
             node = {
                 "id": str(mem.id),
@@ -1022,11 +1183,143 @@ This will gracefully close connections and clear all locks.""",
                     "layer": getattr(mem.metadata, "layer", "world"),
                     "sublayer": getattr(mem.metadata, "sublayer", "fact"),
                     "tags": ",".join(mem.metadata.tags) if mem.metadata.tags else "",
-                    "source": "chromadb"
+                    "status": status_value,
+                    "relationship_type": rel_type_value,
+                    "archived": bool(getattr(mem.metadata, "archived", False)),
+                    "deprecated": bool(getattr(mem.metadata, "deprecated", False)),
+                    "supersedes_id": str(mem.metadata.supersedes_id) if mem.metadata.supersedes_id else "",
+                    "superseded_by_id": str(mem.metadata.superseded_by_id) if mem.metadata.superseded_by_id else "",
+                    "processing_status": processing_status,
+                    "canonical_key": canonical_key,
+                    "namespace": namespace,
+                    "title": cm.get("title", ""),
+                    "ring": ring,
+                    "knowledge_type": knowledge_type,
+                    "topic": topic,
+                    "summary": summary,
+                    "owner_id": owner_id,
+                    "source": "chromadb",
                 }
             }
             nodes.append(node)
             seen_ids.add(str(mem.id))
+
+        # Add explicit supersession edges from vector-store metadata.
+        for mem in memories:
+            if mem.metadata.superseded_by_id:
+                src = str(mem.id)
+                dst = str(mem.metadata.superseded_by_id)
+                if src != dst and src in seen_ids and dst in seen_ids:
+                    edges.append({
+                        "from": src,
+                        "to": dst,
+                        "label": "SUPERSEDED_BY",
+                        "type": "supersession",
+                    })
+
+        # Add "signal hub" nodes/edges (topic / knowledge_type / ring) so the
+        # dashboard has useful connectivity even when Kuzu graph edges are empty.
+        signal_index = {}
+        signal_members: dict[str, set[str]] = {}
+        signal_kind_by_id: dict[str, str] = {}
+
+        def _signal_id(kind: str, value: str) -> str:
+            return f"signal:{kind}:{value}".lower().replace(" ", "_")
+
+        def _ensure_signal_node(kind: str, value: str) -> str:
+            key = (kind, value)
+            if key in signal_index:
+                return signal_index[key]
+            sid = _signal_id(kind, value)
+            signal_index[key] = sid
+            nodes.append(
+                {
+                    "id": sid,
+                    "name": f"{kind}: {value}",
+                    "type": "entity",
+                    "description": f"V5 signal hub ({kind})",
+                    "created_at": datetime.utcnow().isoformat(),
+                    "properties": {
+                        "source": "snapshot",
+                        "signal_type": kind,
+                        "value": value,
+                    },
+                }
+            )
+            seen_ids.add(sid)
+            signal_kind_by_id[sid] = kind
+            signal_members.setdefault(sid, set())
+            return sid
+
+        existing_edge_keys = set()
+
+        def _add_edge(src: str, dst: str, label: str) -> None:
+            if not src or not dst or src == dst:
+                return
+            if src not in seen_ids or dst not in seen_ids:
+                return
+            a, b = (src, dst) if src < dst else (dst, src)
+            key = (a, b, label)
+            if key in existing_edge_keys:
+                return
+            existing_edge_keys.add(key)
+            edges.append({"from": src, "to": dst, "label": label, "type": "signal"})
+
+            # Membership tracking for cohesion edges.
+            if src.startswith("signal:") and dst in seen_ids:
+                signal_members.setdefault(src, set()).add(dst)
+            elif dst.startswith("signal:") and src in seen_ids:
+                signal_members.setdefault(dst, set()).add(src)
+
+        for n in nodes:
+            if n.get("type") != "memory":
+                continue
+            props = n.get("properties") if isinstance(n.get("properties"), dict) else {}
+            mem_id = str(n.get("id") or "")
+
+            if isinstance(props.get("topic"), str) and props.get("topic").strip():
+                sid = _ensure_signal_node("topic", props["topic"].strip())
+                _add_edge(mem_id, sid, "HAS_TOPIC")
+
+            if isinstance(props.get("knowledge_type"), str) and props.get("knowledge_type").strip():
+                sid = _ensure_signal_node("knowledge_type", props["knowledge_type"].strip())
+                _add_edge(mem_id, sid, "HAS_KNOWLEDGE_TYPE")
+
+            if isinstance(props.get("ring"), str) and props.get("ring").strip():
+                sid = _ensure_signal_node("ring", props["ring"].strip())
+                _add_edge(mem_id, sid, "IN_RING")
+
+        # Deterministic memory↔memory cohesion edges derived from shared signals.
+        try:
+            max_per_signal = int(os.getenv("ELEFANTE_SNAPSHOT_COHESION_MAX_PER_SIGNAL", "200"))
+        except Exception:
+            max_per_signal = 200
+
+        def _add_cohesion_edge(a_id: str, b_id: str, label: str) -> None:
+            if not a_id or not b_id or a_id == b_id:
+                return
+            if a_id not in seen_ids or b_id not in seen_ids:
+                return
+            x, y = (a_id, b_id) if a_id < b_id else (b_id, a_id)
+            key = (x, y, label)
+            if key in existing_edge_keys:
+                return
+            existing_edge_keys.add(key)
+            edges.append({"from": a_id, "to": b_id, "label": label, "type": "cohesion"})
+
+        for sid, members in signal_members.items():
+            mem_ids = sorted(members)
+            if len(mem_ids) < 2:
+                continue
+            anchor = mem_ids[0]
+            kind = signal_kind_by_id.get(sid, "signal")
+            label = {
+                "topic": "CO_TOPIC",
+                "knowledge_type": "CO_KNOWLEDGE_TYPE",
+                "ring": "CO_RING",
+            }.get(kind, "CO_SIGNAL")
+            for other in mem_ids[1 : 1 + max_per_signal]:
+                _add_cohesion_edge(anchor, other, label)
 
         try:
             results = await orchestrator.graph_store.execute_query("MATCH (n:Entity) RETURN n")
@@ -1127,8 +1420,16 @@ This will gracefully close connections and clear all locks.""",
         return result
 
     async def _handle_set_elefante_connection(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle elefanteGraphConnect tool call"""
-        orchestrator = await self._get_orchestrator()
+        """Handle elefanteGraphConnect tool call (v2.0.0: transaction-scoped)"""
+        with write_lock() as lock:
+            if not lock.acquired:
+                return {
+                    "success": False,
+                    "error": "Could not acquire write lock - another process is writing",
+                    "retry": True
+                }
+            
+            orchestrator = await self._get_orchestrator()
 
         entities_input = args.get("entities") or []
         relationships_input = args.get("relationships") or []
@@ -1219,16 +1520,27 @@ This will gracefully close connections and clear all locks.""",
         return result
 
     async def _handle_migrate_memories_v3(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle elefanteMemoryMigrateToV3 tool call"""
+        """Handle elefanteMemoryMigrateToV3 tool call (v2.0.0: transaction-scoped)"""
+        # Note: This is a long-running operation. We acquire lock per-batch to allow
+        # other operations to interleave. Full migration may take multiple lock cycles.
         self.logger.info("Starting V3 Migration (In-Process)...")
-        orchestrator = await self._get_orchestrator()
         
-        limit = args.get("limit", 500)
-        offset = 0
-        total_migrated = 0
-        errors = 0
-        
-        from src.core.classifier import classify_memory
+        with write_lock(timeout=30) as lock:  # Longer timeout for migration
+            if not lock.acquired:
+                return {
+                    "success": False,
+                    "error": "Could not acquire write lock - another process is writing",
+                    "retry": True
+                }
+            
+            orchestrator = await self._get_orchestrator()
+            
+            limit = args.get("limit", 500)
+            offset = 0
+            total_migrated = 0
+            errors = 0
+            
+            from src.core.classifier import classify_memory
         
         # Helper for JSON serialization
         def json_serializer(obj):
@@ -1298,6 +1610,86 @@ This will gracefully close connections and clear all locks.""",
             "migrated_count": total_migrated,
             "errors": errors,
             "message": f"Migrated {total_migrated} memories to V3 Schema"
+        }
+
+    # ==========================================================================
+    # ETL HANDLERS (Agent-Brain Classification)
+    # ==========================================================================
+    
+    async def _handle_etl_process(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle elefanteETLProcess - Get raw memories for agent classification"""
+        from src.core.etl import get_etl_processor
+        
+        etl = get_etl_processor()
+        etl.vector_store = (await self._get_orchestrator()).vector_store
+        
+        limit = args.get("limit", 5)
+        raw_memories = await etl.get_raw_memories(limit=limit)
+        
+        if not raw_memories:
+            return {
+                "success": True,
+                "count": 0,
+                "memories": [],
+                "message": "No raw memories to process. All memories are classified."
+            }
+        
+        return {
+            "success": True,
+            "count": len(raw_memories),
+            "memories": raw_memories,
+            "instructions": "Analyze each memory and call elefanteETLClassify with your classification. Use V5 schema: ring (core/domain/topic/leaf), knowledge_type (law/principle/method/decision/insight/preference/fact), topic (coding-standards/communication/workflow/agent-behavior/tools-environment/collaboration/general), summary (one-line)."
+        }
+    
+    async def _handle_etl_classify(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle elefanteETLClassify - Apply agent's classification (v2.0.0: transaction-scoped)"""
+        from src.core.etl import get_etl_processor
+        
+        # Validate required fields first (before acquiring lock)
+        required = ["memory_id", "ring", "knowledge_type", "topic", "summary"]
+        missing = [f for f in required if not args.get(f)]
+        if missing:
+            return {
+                "success": False,
+                "error": f"Missing required fields: {missing}"
+            }
+        
+        with write_lock() as lock:
+            if not lock.acquired:
+                return {
+                    "success": False,
+                    "error": "Could not acquire write lock - another process is writing",
+                    "retry": True
+                }
+            
+            etl = get_etl_processor()
+            etl.vector_store = (await self._get_orchestrator()).vector_store
+            
+            # Apply classification
+            result = await etl.apply_classification(
+                memory_id=args["memory_id"],
+                ring=args["ring"],
+                knowledge_type=args["knowledge_type"],
+                topic=args["topic"],
+                summary=args["summary"][:200],  # Enforce max length
+                owner_id=args.get("owner_id", "owner-jay")
+            )
+            
+            return result
+    
+    async def _handle_etl_status(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle elefanteETLStatus - Get processing stats"""
+        from src.core.etl import get_etl_processor
+        
+        etl = get_etl_processor()
+        etl.vector_store = (await self._get_orchestrator()).vector_store
+        
+        stats = await etl.get_stats()
+        
+        return {
+            "success": True,
+            **stats,
+            "message": f"Total: {stats['total']}, Raw: {stats['raw']}, Processed: {stats['processed']}, Failed: {stats['failed']}"
         }
 
 

@@ -131,16 +131,35 @@ def check_kuzu_compatibility(root_dir):
             response = input("   Backup and remove existing database? (Y/n): ").strip().lower()
             
             if response in ['', 'y', 'yes']:
-                # Create backup
-                backup_path = kuzu_db_path.parent / f"kuzu_db.backup.{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                logger.log(f"Creating backup at: {backup_path}")
-                shutil.copytree(kuzu_db_path, backup_path)
-                logger.log("OK: Backup created successfully")
-                
-                # Remove original
-                logger.log("Removing original database...")
-                shutil.rmtree(kuzu_db_path)
-                logger.log("OK: Original database removed")
+                logger.log("\n   This will MOVE the existing DB directory to a timestamped backup.")
+                logger.log("   No data is deleted, but Elefante will start with a fresh DB.")
+                confirm = input("   Type DELETE to proceed (or anything else to abort): ").strip()
+                if confirm != "DELETE":
+                    logger.log("OK: Aborted database move.")
+                    logger.log("WARN: Skipping database removal. Installation may fail.")
+                    logger.log("   If installation fails, manually move/remove: " + str(kuzu_db_path))
+                    logger.log("")
+                    return False
+
+                # Move original to backup (safer than copy+delete)
+                stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                backup_path = kuzu_db_path.parent / f"kuzu_db.backup.{stamp}"
+                # Ensure unique backup path
+                suffix = 1
+                while backup_path.exists():
+                    backup_path = kuzu_db_path.parent / f"kuzu_db.backup.{stamp}.{suffix}"
+                    suffix += 1
+
+                logger.log(f"Moving database to backup at: {backup_path}")
+                try:
+                    shutil.move(str(kuzu_db_path), str(backup_path))
+                except Exception as e:
+                    logger.log(f"ERROR: Could not move database to backup: {e}")
+                    logger.log("WARN: Skipping database removal. Installation may fail.")
+                    logger.log("")
+                    return False
+
+                logger.log("OK: Database moved to backup successfully")
                 logger.log("")
                 return True
             else:

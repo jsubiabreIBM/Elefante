@@ -1,0 +1,194 @@
+"""Memory connectivity workbench (read-only).
+
+Goal: work memories one-by-one with an agnostic, scalable connection view.
+
+This script does NOT write to any database.
+It uses:
+- Vector store (Chroma) to fetch memory + stored embedding
+- Embedding kNN query (no external embedding generation)
+
+It prints, per memory:
+- Metadata summary
+- Temporal relevance score
+- Top semantic neighbors with similarity + preview
+
+Usage:
+  python scripts/privileged/memory_workbench.py --ids <uuid> <uuid>
+  python scripts/privileged/memory_workbench.py --from-backup ~/.elefante/data/backups/memory_surgeon/memory_surgeon_backup_YYYYMMDD_HHMMSS.json
+
+Notes:
+- If a memory has no embedding, semantic neighbors will be empty.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+from uuid import UUID
+
+# Ensure repo root is on sys.path so `import src.*` works when running as a script.
+_REPO_ROOT = Path(__file__).resolve()
+for _ in range(6):
+    candidate = _REPO_ROOT.parent
+    if (candidate / "src").exists():
+        sys.path.insert(0, str(candidate))
+        break
+    _REPO_ROOT = candidate
+
+from src.core.orchestrator import get_orchestrator
+from src.core.refinery import infer_namespace
+
+
+@dataclass(frozen=True)
+class Neighbor:
+    memory_id: str
+    similarity: float
+    preview: str
+
+
+def _parse_uuid(value: str) -> UUID:
+    try:
+        return UUID(value)
+    except Exception as e:
+        raise argparse.ArgumentTypeError(f"Invalid UUID: {value}") from e
+
+
+def _safe_preview(text: str, limit: int = 140) -> str:
+    cleaned = " ".join((text or "").split())
+    return cleaned[:limit] + ("..." if len(cleaned) > limit else "")
+
+
+async def _semantic_neighbors(
+    orch,
+    memory,
+    *,
+    k: int = 8,
+    min_similarity: float = 0.45,
+) -> List[Neighbor]:
+    """Return k nearest semantic neighbors using stored embedding (no embedding generation)."""
+
+    emb = getattr(memory, "embedding", None)
+    if emb is None:
+        return []
+
+    # query for k+1 because self is often included
+    n_results = max(1, int(k)) + 1
+
+    # Use private collection directly to avoid embedding generation.
+    orch.vector_store._initialize_client()
+    results = await asyncio.to_thread(
+        orch.vector_store._collection.query,
+        query_embeddings=[emb],
+        n_results=n_results,
+        include=["ids", "distances"],
+    )
+
+    ids = (results or {}).get("ids") or [[]]
+    distances = (results or {}).get("distances") or [[]]
+    if not ids or not ids[0] or not distances or not distances[0]:
+        return []
+
+    neighbors: List[Neighbor] = []
+    for rid, dist in zip(ids[0], distances[0]):
+        if str(rid) == str(memory.id):
+            continue
+        similarity = 1.0 - float(dist)
+        similarity = max(0.0, min(1.0, similarity))
+        if similarity < float(min_similarity):
+            continue
+
+        other = await orch.vector_store.get_memory(UUID(str(rid)))
+        preview = _safe_preview(other.content) if other else "(missing)"
+        neighbors.append(Neighbor(memory_id=str(rid), similarity=similarity, preview=preview))
+        if len(neighbors) >= int(k):
+            break
+
+    return neighbors
+
+
+def _load_ids_from_backup(path: Path) -> List[UUID]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    items = data.get("items") or []
+    out: List[UUID] = []
+    for it in items:
+        mid = it.get("memory_id")
+        if not mid:
+            continue
+        try:
+            out.append(UUID(str(mid)))
+        except Exception:
+            continue
+    # De-dupe stable
+    seen = set()
+    uniq: List[UUID] = []
+    for x in out:
+        if x in seen:
+            continue
+        seen.add(x)
+        uniq.append(x)
+    return uniq
+
+
+async def _review_one(memory_id: UUID, *, k: int, min_similarity: float) -> None:
+    orch = get_orchestrator()
+    mem = await orch.vector_store.get_memory(memory_id)
+    if mem is None:
+        print(f"== {memory_id} ==")
+        print("(missing from vector store)")
+        print()
+        return
+
+    ns = infer_namespace(mem)
+    temporal = float(mem.calculate_relevance_score())
+
+    tags = [t for t in (mem.metadata.tags or []) if isinstance(t, str)]
+    category = mem.metadata.category or ""
+
+    print(f"== {memory_id} ==")
+    print(f"ns={ns}  importance={mem.metadata.importance}  access={mem.metadata.access_count}  archived={getattr(mem.metadata, 'archived', False)}")
+    print(f"category={category}  tags={','.join(tags[:8])}{',...' if len(tags) > 8 else ''}")
+    print(f"temporal_score={temporal:.3f}")
+    print(f"preview: {_safe_preview(mem.content, limit=240)}")
+
+    neighbors = await _semantic_neighbors(orch, mem, k=k, min_similarity=min_similarity)
+    if not neighbors:
+        print(f"semantic_neighbors: none (k={k}, min_similarity={min_similarity})")
+        print()
+        return
+
+    print(f"semantic_neighbors (k={k}, min_similarity={min_similarity}):")
+    for n in neighbors:
+        print(f"- {n.memory_id}  sim={n.similarity:.3f}  {n.preview}")
+    print()
+
+
+async def main() -> int:
+    p = argparse.ArgumentParser(description="Read-only memory connectivity workbench")
+    p.add_argument("--ids", nargs="*", type=_parse_uuid, default=None, help="Memory IDs to review")
+    p.add_argument("--from-backup", type=str, default="", help="Path to a memory_surgeon backup JSON")
+    p.add_argument("--k", type=int, default=8, help="Top-k semantic neighbors")
+    p.add_argument("--min-similarity", type=float, default=0.45, help="Minimum similarity for neighbor listing")
+
+    args = p.parse_args()
+
+    ids: List[UUID] = []
+    if args.ids:
+        ids = list(args.ids)
+    elif args.from_backup:
+        ids = _load_ids_from_backup(Path(args.from_backup).expanduser())
+    else:
+        raise SystemExit("Provide --ids or --from-backup")
+
+    for mid in ids:
+        await _review_one(mid, k=int(args.k), min_similarity=float(args.min_similarity))
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(asyncio.run(main()))

@@ -42,6 +42,13 @@ We currently document/configure MCP in multiple formats depending on IDE:
 
 Follow-up recommendation: add a single authoritative doc page that lists each IDE + exact file path + exact JSON shape, and link to it from install/troubleshooting.
 
+Status: resolved.
+
+- Authoritative IDE MCP config reference: `docs/technical/ide-mcp-configuration.md`
+- Failure pattern: VS Code merges **User** and **Workspace** MCP server definitions; if both define `servers.elefante`, VS Code may show two identical Elefante servers.
+- Policy: Elefante is enabled globally (User `mcp.json` is the source of truth).
+- Required prevention: keep workspace `.vscode/mcp.json` free of a `servers.elefante` entry (workspace config can be empty).
+
 ## Notes
 
 - No files were deleted.

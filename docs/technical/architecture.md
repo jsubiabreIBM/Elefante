@@ -1,6 +1,6 @@
 # Elefante Architecture
 
-**Version:** 1.0.0 | **Status:** Production Ready
+**Version:** 1.1.0 | **Status:** Production Ready
 
 ## 1. System Overview
 
@@ -17,9 +17,22 @@ Elefante solves the "stateless agent" problem by bridging the gap between fuzzy 
 3.  **Conversation Context:**
     - **Role:** Resolves pronouns ("it", "that") using a time-weighted query over recent messages.
 
+### Agent-Brain Classification (ETL)
+
+In v1.1.0, Elefante shifts classification responsibility to the Agent (the "Brain").
+- **ETL Pipeline**: Raw memories are ingested and then processed by the agent via `elefanteETLProcess` and `elefanteETLClassify`.
+- **V5 Topology**: Memories are classified into Rings (Core, Domain, Topic, Leaf) and Knowledge Types (Law, Principle, Fact, etc.).
+
 ## 2. The Orchestrator Logic
 
 The `Memory Orchestrator` (`src/core/orchestrator.py`) is the central decision engine.
+
+### Transaction-Scoped Locking (v1.1.0)
+
+To support multi-IDE usage without deadlocks:
+- **Per-Operation Locks**: Locks are acquired only for the duration of a write operation (milliseconds).
+- **Auto-Expiry**: Stale locks (>30s) are automatically cleared.
+- **No Manual Toggle**: `elefanteSystemEnable` is now a no-op; the system is always ready.
 
 ### Adaptive Weighting
 

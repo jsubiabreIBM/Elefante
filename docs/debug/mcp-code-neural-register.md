@@ -4,7 +4,7 @@
 
 **Purpose**: Permanent record of MCP protocol violations and enforcement strategies  
 **Status**: Active Neural Register  
-**Last Updated**: 2025-12-07
+**Last Updated**: 2025-12-26
 
 ---
 
@@ -238,6 +238,70 @@ types.Tool(
 
 **Statement**: The MCP Server process MUST NEVER write to `stdout` except for JSON-RPC messages. All logs/debugs MUST go to `stderr`.
 
+---
+
+### LAW #7: Transaction-Scoped Locking (v1.1.0)
+
+**Statement**: Write operations MUST use transaction-scoped locks (milliseconds), NOT session-scoped locks (hours).
+
+**The Multi-IDE Problem**: Session-based locks (v1.0.1) held database access until explicit `disable()`. If an IDE crashed or user forgot to disable, locks became stale and blocked ALL other IDEs indefinitely.
+
+**Session-Based Locking** (v1.0.1 Anti-Pattern):
+
+```python
+#  Wrong: Lock held for entire session
+class SessionLock:
+    def enable(self):
+        self.acquire_locks()  # Holds until disable()!
+        self.is_enabled = True
+    
+    def disable(self):
+        self.release_locks()
+        self.is_enabled = False
+
+# Usage - locks held for HOURS
+manager.enable()  # Lock acquired
+# ... user works for 8 hours ...
+# ... user forgets to disable ...
+# ... IDE crashes ...
+# LOCKS ORPHANED FOREVER!
+```
+
+**Transaction-Scoped Locking** (v1.1.0 Correct Pattern):
+
+```python
+#  Correct: Lock held only during write operation
+class TransactionLock:
+    @contextmanager
+    def write_lock(self):
+        self._acquire()       # Lock acquired
+        try:
+            yield             # Work happens (milliseconds)
+        finally:
+            self._release()   # Lock ALWAYS released
+    
+    def _is_lock_stale(self, lock_info):
+        # Auto-clear dead PIDs or locks > 30 seconds old
+        return not pid_exists(lock_info.pid) or age > 30
+
+# Usage in MCP handler
+with transaction_lock.write_lock():
+    memory_store.add_memory(content)  # Protected
+# Lock released IMMEDIATELY
+```
+
+**Critical Incident** (Dec 26, 2025): Lock from PID 4563 (Dec 14) blocked all access for 12 days. User had two IDE instances, neither could access Elefante.
+
+**Resolution**: Implemented transaction-scoped locking with:
+- Per-operation locks (acquire → work → release in milliseconds)
+- Stale lock detection (dead PID or age > 30 seconds)
+- Auto-clearing of stale locks on next operation
+- `enable()`/`disable()` become no-ops (backward compatible)
+
+**Failure Symptom**: "Elefante Mode disabled" despite prior `enable()` call  
+**Root Cause**: Another IDE session holding stale lock  
+**Detection**: Check `~/.elefante/locks/write.lock` for stale entries
+
 **The Stdio Trap**:
 MCP communicates via stdin/stdout. Any stray `print()` or `logging.StreamHandler(sys.stdout)` corrupts the protocol stream.
 
@@ -262,6 +326,30 @@ print("Initializing...", file=sys.stderr)
 
 **Failure Mode**: Immediate connection death on tool call.
 **Resolution**: Grep for `print(` and check logging config. Redirect all library logs to stderr.
+
+---
+
+### LAW #7: SINGLE REGISTRATION (The IDE Scope Merge Trap)
+
+**Statement**: A given MCP server identity (e.g., `elefante`) MUST be registered in exactly one IDE configuration scope/mechanism. If you register the same server name in multiple places, IDEs may display duplicates and operators will debug the wrong layer.
+
+**The Trap**:
+
+- VS Code merges **User** (`.../User/mcp.json`) and **Workspace** (`.vscode/mcp.json`) MCP servers.
+- Some VS Code builds/extensions can also load MCP servers from `settings.json` via `chat.mcp.servers` (or extension-specific keys like `roo-cline.mcpServers`).
+
+**The Symptom**:
+
+- IDE shows **two identical MCP servers** (same name, same command) and may start/stop the “wrong one”.
+- Confusing startup behavior (one works, one fails), duplicated tool lists, or phantom “connection closed” noise.
+
+**Required Fix (Elefante global policy)**:
+
+- Keep `elefante` only in **User** `mcp.json`.
+- Ensure workspace `.vscode/mcp.json` does **not** define `servers.elefante` (workspace can be empty).
+- If `chat.mcp.servers.elefante` (or `roo-cline.mcpServers.elefante`) exists, remove it when using `mcp.json`.
+
+**Authoritative Reference**: `docs/technical/ide-mcp-configuration.md`
 
 ---
 

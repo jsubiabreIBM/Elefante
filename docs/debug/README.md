@@ -1,8 +1,8 @@
 # Debug Documentation Index
 
-**Neural Registers & Debug Compendiums for Elefante v1.0.0**
+**Neural Registers & Debug Compendiums for Elefante v1.1.0**
 
-> **Last Optimized:** 2025-12-06 | Unified post-mortem structure across all domains
+> **Last Updated:** 2025-12-26 | Transaction-scoped locking release
 
 ---
 
@@ -183,4 +183,4 @@ docs/debug/
 
 ---
 
-*Last verified: 2025-12-06 | Elefante v1.0.0 | 10 active debug documents*
+*Last verified: 2025-12-26 | Elefante v1.1.0 | 10 active debug documents*

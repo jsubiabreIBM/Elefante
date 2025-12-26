@@ -3,12 +3,14 @@ import asyncio
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.mcp.server import ElefanteMCPServer
 
-async def test_tool_registration():
+async def _run_tool_registration():
     print("=" * 60)
     print("ELEFANTE MCP SERVER - TOOL REGISTRATION TEST")
     print("=" * 60)
@@ -78,8 +80,12 @@ async def test_tool_registration():
         print("\n[FAIL] Tool registration incomplete in code")
         return False
 
+
+def test_tool_registration():
+    pytest.skip("Manual verification script; run this module directly to execute")
+
 if __name__ == "__main__":
-    success = asyncio.run(test_tool_registration())
+    success = asyncio.run(_run_tool_registration())
     exit(0 if success else 1)
 
 # Made with Bob

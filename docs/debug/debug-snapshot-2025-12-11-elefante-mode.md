@@ -258,3 +258,55 @@ if tool_name not in SAFE_TOOLS and not self.mode_manager.is_enabled:
 ---
 
 **This snapshot preserves the evidence. No further changes should be made without explicit user approval.**
+
+---
+
+## 11. SUPERSEDED BY v1.1.0 (2025-12-26)
+
+> **IMPORTANT:** The session-based locking model documented above was replaced by transaction-scoped locking in v1.1.0.
+
+### What Changed
+
+| v1.0.1 (Session-Based) | v1.1.0 (Transaction-Scoped) |
+|------------------------|----------------------------|
+| Lock on `enable()` | Lock on each write operation |
+| Release on `disable()` | Release after each operation |
+| Lock held for hours | Lock held for milliseconds |
+| Stale locks block forever | Stale locks auto-cleared |
+| 3 lock files | 1 lock file (`write.lock`) |
+
+### Why Changed
+
+**Critical Incident (Dec 26, 2025):** Lock from PID 4563 (Dec 14) blocked all access for 12 days. User had two IDE instances, neither could access Elefante because old session held stale locks indefinitely.
+
+### New Architecture
+
+```python
+# v1.1.0: Transaction-scoped (milliseconds per operation)
+@contextmanager
+def write_lock(self):
+    self._acquire()       # Lock acquired
+    try:
+        yield             # Work happens (milliseconds)
+    finally:
+        self._release()   # Lock ALWAYS released
+
+# Usage in MCP handler
+with transaction_lock.write_lock():
+    memory_store.add_memory(content)  # Protected
+# Lock released IMMEDIATELY after each write
+```
+
+### Backward Compatibility
+
+- `enable()` → No-op (logs debug message)
+- `disable()` → No-op (logs debug message)
+- `is_enabled` → Always True
+- Old lock files → Ignored (only `write.lock` used now)
+
+### See Also
+
+- [CHANGELOG.md](../../CHANGELOG.md) → v1.1.0 release notes
+- [database-neural-register.md](database-neural-register.md) → LAW #2 (updated)
+- [mcp-code-neural-register.md](mcp-code-neural-register.md) → LAW #7 (new)
+- [kuzu-lock-monitoring.md](../technical/kuzu-lock-monitoring.md) → v1.1.0 section

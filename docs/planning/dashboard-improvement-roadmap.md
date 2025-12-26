@@ -8,12 +8,44 @@
 
 **Problem:** "Label salad" - information density causes occlusion, unreadable without zoom  
 **Root causes:**
+
 - All labels rendered at all zoom levels
 - Tight node clustering (insufficient repulsion)
 - No visual hierarchy beyond size
 - Static view with limited interaction
 
 ## Implementation Roadmap
+
+### Phase 0: Ribbon (Top Toolbar) — Internal Iteration v32 (Next)
+
+**Goal:** Make the dashboard controllable without editing config/files.
+
+**Note:** “v32” here is an **internal iteration label**, not the repository’s semantic version.
+
+**Priority:** HIGH  
+**Complexity:** Medium  
+**Files:**
+
+- `src/dashboard/ui/src/App.tsx`
+- `src/dashboard/ui/src/components/GraphCanvas.tsx`
+
+**Ribbon controls (minimum):**
+
+- Toggle: **Hide test artifacts** (default ON)
+  - Matches server-side filtering for known test strings (e2e/persistence/entity-relationship).
+  - Long-term: keep test nodes in snapshot with `is_test_artifact=true` and filter client-side.
+- Toggle: **Show signal hubs** (topic/ring/knowledge_type) (default ON)
+  - Useful when graph store has few/no edges.
+- Button: **Refresh snapshot**
+  - Calls MCP refresh endpoint or triggers backend refresh.
+- Status: **Snapshot source + timestamp**
+  - Display current snapshot path and `generated_at` so mismatches are obvious.
+
+**Acceptance criteria:**
+
+- A user can hide/show test artifacts and signal hubs without regenerating data.
+- Dashboard clearly indicates whether it is reading from global data dir or repo-local `data/`.
+- No “bag of dots”: with signal hubs on, most memory nodes have at least one edge.
 
 ### Phase 1: Visual Rendering & Occlusion Management
 

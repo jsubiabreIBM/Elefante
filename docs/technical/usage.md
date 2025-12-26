@@ -13,32 +13,46 @@ Once connected to your IDE, use natural language to interact with Elefante.
 
 ---
 
-## 2. MCP Tools (15 Total)
+## 2. MCP Tools (20 Total)
 
-The MCP server exposes 15 tools to your AI agent:
+The MCP server exposes 20 tools to your AI agent:
 
 ### Core Memory Operations
 
 #### `elefanteMemoryAdd`
-**Purpose**: Store new information with intelligent ingestion
+**Purpose**: Store new information with intelligent ingestion.
 
-**Features**:
-- Automatically analyzes against existing knowledge
-- Flags as NEW/REDUNDANT/RELATED/CONTRADICTORY
-- Links to existing concepts in graph
-- No manual duplicate checking needed
+**YOU ARE ELEFANTE'S BRAIN**: You must classify the memory as you store it.
+- **layer**: self (who), world (what), intent (do)
+- **sublayer**: 
+  - SELF: identity, preference, constraint
+  - WORLD: fact, failure, method
+  - INTENT: rule, goal, anti-pattern
 
 **Parameters**:
 - `content` (required): The memory content to store
-- `memory_type` (optional): Type of memory (conversation, fact, insight, code, decision, task, note)
+- `layer` (optional): Memory layer (self/world/intent) - **HIGHLY RECOMMENDED**
+- `sublayer` (optional): Memory sublayer (e.g. identity, fact, rule) - **HIGHLY RECOMMENDED**
+- `memory_type` (optional): Type of memory: `conversation`, `fact`, `insight`, `code`, `decision`, `task`, `note`, `preference`, `question`, `answer`, `hypothesis`, `observation`
+- `domain` (optional): High-level context: `work`, `personal`, `learning`, `project`, `reference`, `system`
+- `category` (optional): Topic grouping (e.g., 'elefante', 'python')
 - `importance` (optional): Importance level 1-10 (default: 5)
 - `tags` (optional): Array of tags for categorization
 - `entities` (optional): Array of entities to link in knowledge graph
 - `metadata` (optional): Additional metadata object
+- `force_new` (optional): If true, bypass deduplication (default: false)
 
 **Example**:
-```
-"Remember that I'm working on Project Omega using Python and FastAPI"
+```json
+{
+  "content": "I prefer using async/await over callbacks",
+  "layer": "self",
+  "sublayer": "preference",
+  "memory_type": "preference",
+  "domain": "work",
+  "importance": 8,
+  "tags": ["python", "async"]
+}
 ```
 
 #### `elefanteMemorySearch`
@@ -222,27 +236,35 @@ RETURN p
 "Consolidate my memories to remove duplicates"
 ```
 
-#### `elefanteMemoryListAll`
-**Purpose**: Retrieve ALL memories without semantic filtering
+---
 
-**Use Cases**:
-- Database inspection
-- Debugging
-- Exporting all memories
-- Browsing complete memory collection
-- Comprehensive view needed
+### ETL & Classification Tools (Agent-Brain)
 
-**Note**: For relevance-based search, use `elefanteMemorySearch` instead
+#### `elefanteETLProcess`
+**Purpose**: Get unclassified memories for YOU (the agent) to classify.
+
+**V5 Topology Schema**:
+- **ring**: core | domain | topic | leaf
+- **knowledge_type**: law | principle | method | decision | insight | preference | fact
+- **topic**: coding-standards | communication | workflow | agent-behavior | tools-environment | collaboration | general
 
 **Parameters**:
-- `limit` (optional): Maximum memories to return 1-500 (default: 100)
-- `offset` (optional): Number to skip for pagination (default: 0)
-- `filters` (optional): Filter by memory_type, min_importance, tags
+- `limit` (optional): Number of raw memories to process (default: 5)
 
-**Example**:
-```
-"List all my memories for backup"
-```
+#### `elefanteETLClassify`
+**Purpose**: Submit YOUR classification for a memory retrieved via `elefanteETLProcess`.
+
+**Parameters**:
+- `memory_id` (required): Memory UUID
+- `ring` (required): Topology ring
+- `knowledge_type` (required): Type of knowledge
+- `topic` (required): Topic cluster
+- `summary` (required): One-line summary (max 200 chars)
+
+#### `elefanteETLStatus`
+**Purpose**: Get ETL processing statistics (raw, processed, failed counts).
+
+---
 
 #### `elefanteDashboardOpen`
 **Purpose**: Launch and open Knowledge Garden Dashboard in browser
@@ -260,25 +282,6 @@ RETURN p
 ```
 "Open the dashboard" or "Show me my knowledge graph"
 ```
-
-#### `elefanteGraphConnect`
-**Purpose**: Upsert entities and create relationships in a single workflow call
-
-**Use Cases**:
-- Create two (or more) entities and link them without tool-chaining
-- Create relationship edges using stable entity refs
-
-**Parameters**:
-- `entities` (optional): Array of entities with `ref` and either `id` or (`name` + `type`)
-- `relationships` (optional): Array of relationships using `from_ref`/`to_ref` or explicit UUIDs
-- `include_system_status` (optional, default: false): Include `elefanteSystemStatusGet` output
-
-**Example**:
-```
-"Create entities for 'Elefante' (project) and 'Kuzu' (technology) and link them"
-```
-
----
 
 #### `elefanteMemoryMigrateToV3`
 **Purpose**: Administrative migration tool that re-classifies existing memories into V3 schema (`layer`/`sublayer`) and writes updates back.
@@ -299,21 +302,18 @@ RETURN p
 
 ### ELEFANTE_MODE Operations (Multi-IDE Safety)
 
+> **v1.1.0 Update**: Transaction-scoped locking now handles multi-IDE safety automatically. The `enable`/`disable` calls below are retained for backward compatibility but are now **no-ops** - the system is always enabled and uses per-operation locks instead.
+
 #### `elefanteSystemEnable`
-**Purpose**: Acquire exclusive locks and enable memory operations
+**Purpose**: Backward-compatible no-op (v1.1.0+)
 
-**CRITICAL**: Server starts in OFF mode by default. User must call this tool before any memory operations work.
+**v1.1.0 Behavior**: Always returns success. Elefante now uses transaction-scoped locking where each write operation acquires and releases locks automatically (milliseconds per operation). No manual enable/disable ceremony needed.
 
-**Behavior**:
-- Acquires exclusive locks on ChromaDB and Kuzu databases
-- Stores lock holder info (PID, timestamp)
-- Enables all memory tools
+**Legacy Behavior (v1.0.1)**: Acquired exclusive locks and enabled memory operations.
 
 **Parameters**: None
 
-**Returns**:
-- Success: Lock acquired, mode enabled
-- Failure: Another IDE holds locks (shows holder info)
+**Returns**: Success message (always succeeds in v1.1.0)
 
 **Example**:
 ```
@@ -321,14 +321,9 @@ RETURN p
 ```
 
 #### `elefanteSystemDisable`
-**Purpose**: Release exclusive locks and return to OFF state
+**Purpose**: Release resources and clear locks
 
-**Use Case**: Before switching to another IDE (VS Code -> Cursor -> Claude Desktop)
-
-**Behavior**:
-- Releases all database locks
-- Cleans up lock files
-- Returns server to OFF state
+**v1.1.0 Behavior**: Clears any stale locks and releases resources. Safe to call but not required - locks auto-release after each operation.
 
 **Parameters**: None
 
@@ -337,7 +332,7 @@ RETURN p
 "Disable Elefante" or "Release memory locks"
 ```
 
-**Status Check**: Use `elefanteSystemStatusGet` to check mode/locks and (when enabled) system statistics.
+**Status Check**: Use `elefanteSystemStatusGet` to check system status and statistics.
 
 ---
 

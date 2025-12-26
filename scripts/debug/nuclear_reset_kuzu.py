@@ -5,18 +5,23 @@ Nuclear Reset Script for Kuzu Database
 Backs up and removes corrupted kuzu_db file, allowing fresh initialization.
 """
 
-import os
 import sys
 import shutil
 from pathlib import Path
 from datetime import datetime
+import argparse
+import os
 
 # Force UTF-8 output on Windows
 if sys.platform == 'win32':
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-def nuclear_reset_kuzu():
+def _truthy_env(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def nuclear_reset_kuzu(*, apply: bool, confirm: str):
     """Backup and remove corrupted Kuzu database file."""
     
     # Paths
@@ -41,6 +46,18 @@ def nuclear_reset_kuzu():
         print(f"  Size: {kuzu_path.stat().st_size:,} bytes")
         print()
         
+        if not apply:
+            print("Dry-run only. Re-run with: ELEFANTE_PRIVILEGED=1 --apply --confirm DELETE")
+            return False
+
+        if not _truthy_env("ELEFANTE_PRIVILEGED"):
+            print("Refusing to apply: set ELEFANTE_PRIVILEGED=1")
+            return False
+
+        if (confirm or "").strip() != "DELETE":
+            print("Refusing to apply: pass --confirm DELETE")
+            return False
+
         # Create backup
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_path = data_dir / f"kuzu_db.corrupted.{timestamp}.backup"
@@ -70,7 +87,7 @@ def nuclear_reset_kuzu():
             print("Next steps:")
             print("1. Kuzu will auto-create proper directory structure on next init")
             print("2. Run verify_memories.py to test database access")
-            print("3. Rebuild graph from ChromaDB memories (43 memories available)")
+            print("3. Rebuild graph from ChromaDB memories")
             return True
             
         except Exception as e:
@@ -108,7 +125,12 @@ def nuclear_reset_kuzu():
         return False
 
 if __name__ == "__main__":
-    success = nuclear_reset_kuzu()
+    p = argparse.ArgumentParser(description="Backup and remove corrupted Kuzu DB file (dry-run by default)")
+    p.add_argument("--apply", action="store_true", help="Apply removal (otherwise dry-run)")
+    p.add_argument("--confirm", type=str, default="", help="Must be exactly 'DELETE' to apply")
+    args = p.parse_args()
+
+    success = nuclear_reset_kuzu(apply=bool(args.apply), confirm=str(args.confirm))
     exit(0 if success else 1)
 
 # Made with Bob

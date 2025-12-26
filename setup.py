@@ -54,9 +54,6 @@ setup(
             "black>=23.12.0",
             "mypy>=1.7.0",
         ],
-        "openai": [
-            "openai>=1.0.0",
-        ],
     },
     entry_points={
         "console_scripts": [

@@ -1,16 +1,77 @@
 # Kuzu Database Lock Monitoring & Troubleshooting
 
-**Status**: CRITICAL - Prevents "single-writer lock" deadlocks  
-**Last Updated**: 2025-12-10  
-**Applies to**: v1.0.0+ (Kuzu 0.11.3+)
+**Status**: UPDATED for v1.1.0 (Transaction-Scoped Locking)  
+**Last Updated**: 2025-12-26  
+**Applies to**: v1.1.0+ (Transaction-scoped) and v1.0.x (Session-based, legacy)
 
 ---
 
-## Understanding Kuzu Single-Writer Lock
+## v1.1.0: Transaction-Scoped Locking (Current)
 
-### The Architecture
+### How It Works Now
 
-Kuzu uses **file-based locking** to enforce single-writer access:
+In v1.1.0, Elefante uses **transaction-scoped locking**:
+
+```
+IDE 1: add_memory()
+  └─ acquire write.lock (5ms) → write → release write.lock
+  
+IDE 2: add_memory()  
+  └─ wait briefly if needed → acquire write.lock (5ms) → write → release
+  
+Both IDEs can interleave operations!
+```
+
+**Key Changes from v1.0.x**:
+- Locks held for milliseconds, not hours
+- Stale locks auto-expire after 30 seconds
+- Dead process detection clears orphaned locks
+- No more `elefanteSystemEnable`/`elefanteSystemDisable` ceremony needed
+
+### Elefante Lock Files (v1.1.0)
+
+```
+~/.elefante/locks/
+├── write.lock          # Transaction lock (contains: PID|timestamp)
+└── elefante.lock       # Master lock (rarely used)
+```
+
+### Checking Elefante Lock Status (v1.1.0)
+
+```bash
+# See current locks
+ls -la ~/.elefante/locks/
+
+# Check who holds write lock
+cat ~/.elefante/locks/write.lock
+# Output: 12345|2025-12-26T15:30:00.123456
+
+# Verify if that PID is alive
+ps aux | grep 12345
+```
+
+### Troubleshooting Elefante Locks (v1.1.0)
+
+**Issue**: "Could not acquire write lock - another process is writing"
+
+This is normal - another IDE is in the middle of a write operation. The lock should release within milliseconds. If persistent:
+
+```bash
+# Check lock file age
+stat ~/.elefante/locks/write.lock
+
+# If timestamp is > 30 seconds old and PID is dead, lock is stale
+# The system should auto-clear it, but you can force:
+rm ~/.elefante/locks/write.lock
+```
+
+---
+
+## Kuzu's Internal Single-Writer Lock
+
+### The Architecture (Kuzu Level)
+
+Kuzu itself uses **file-based locking** to enforce single-writer access:
 
 ```
 ~/.elefante/data/kuzu_db/

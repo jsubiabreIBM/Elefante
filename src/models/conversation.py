@@ -8,7 +8,7 @@ that enable context-aware memory search across sessions.
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from uuid import UUID, uuid4
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Message(BaseModel):
@@ -25,11 +25,7 @@ class Message(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            UUID: lambda v: str(v),
-        }
+    model_config = ConfigDict()
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert message to dictionary"""
@@ -73,10 +69,7 @@ class SearchCandidate(BaseModel):
     # For linking back to stored memories
     memory_id: Optional[UUID] = None
     
-    class Config:
-        json_encoders = {
-            UUID: lambda v: str(v) if v else None,
-        }
+    model_config = ConfigDict()
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert candidate to dictionary"""

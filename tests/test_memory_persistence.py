@@ -20,8 +20,9 @@ class TestMemoryPersistence:
     """Test that memories persist correctly in both databases"""
     
     @pytest.fixture
-    def orchestrator(self, tmp_path):
+    def orchestrator(self, tmp_path, monkeypatch):
         """Create an orchestrator isolated to a temp DB (no shared locks)"""
+        monkeypatch.setenv("ELEFANTE_ALLOW_TEST_MEMORIES", "1")
         chroma_dir = tmp_path / "chroma"
         kuzu_dir = tmp_path / "kuzu_db"
 
