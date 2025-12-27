@@ -7,7 +7,7 @@ Project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.2.0] - 2025-12-27
+## [1.3.0] - 2025-12-27
 
 ### Summary
 
@@ -85,7 +85,7 @@ python -c "import chromadb; c=chromadb.PersistentClient('~/.elefante/data/chroma
 
 ---
 
-## [Unreleased] - Planned for v1.3.0
+## [Unreleased] - Planned for v1.4.0
 
 ### Planned
 - Auto-classification of domain/category via agent
