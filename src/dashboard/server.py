@@ -120,6 +120,48 @@ async def get_graph(limit: int = 1000, space: Optional[str] = None):
         logger.error(f"Failed to fetch graph data: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/search")
+async def search_memories(query: str, limit: int = 5, min_similarity: float = 0.5):
+    """
+    Search memories using semantic search.
+    This endpoint is designed for the VS Code extension grounding feature.
+    
+    Note: This breaks LAW #1 during search but is acceptable for quick reads.
+    The connection is released immediately after the search.
+    """
+    from src.core.vector_store import get_vector_store
+    
+    try:
+        # Quick read-only operation
+        vector_store = get_vector_store()
+        results = vector_store.search(query, limit=limit, min_similarity=min_similarity)
+        
+        return {
+            "success": True,
+            "count": len(results),
+            "results": [
+                {
+                    "memory": {
+                        "id": r.get("id", ""),
+                        "content": r.get("document", ""),
+                        "metadata": r.get("metadata", {}),
+                    },
+                    "score": r.get("score", 0.0),
+                }
+                for r in results
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        return {"success": False, "count": 0, "results": [], "error": str(e)}
+
+
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint for connection testing"""
+    return {"status": "ok", "service": "elefante-dashboard"}
+
+
 @app.get("/api/stats")
 async def get_stats():
     """Get system statistics from snapshot (LAW #1: No direct DB access)"""
