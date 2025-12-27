@@ -15,8 +15,8 @@ elefante:
     type: "chromadb"
     # persist_directory is auto-set to absolute path in config.py
     collection_name: "memories"
-    embedding_model: "all-MiniLM-L6-v2"
-    embedding_dimension: 384
+    embedding_model: "thenlper/gte-base"
+    embedding_dimension: 768
     distance_metric: "cosine"
 
   # Graph Store Configuration (Kuzu)
@@ -46,7 +46,7 @@ elefante:
   # Embedding Service Configuration
   embeddings:
     provider: "sentence-transformers" # Local-only (no external AI API calls)
-    model: "all-MiniLM-L6-v2"
+    model: "thenlper/gte-base"
     device: "cpu" # Options: cpu, cuda, mps (for Apple Silicon)
     batch_size: 32
     normalize: true

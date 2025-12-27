@@ -37,8 +37,8 @@ class VectorStoreConfig(BaseModel):
     type: str = "chromadb"
     persist_directory: str = str(CHROMA_DIR)
     collection_name: str = "memories"
-    embedding_model: str = "all-MiniLM-L6-v2"
-    embedding_dimension: int = 384
+    embedding_model: str = "thenlper/gte-base"
+    embedding_dimension: int = 768
     distance_metric: str = "cosine"
 
 
@@ -78,7 +78,7 @@ class MCPServerConfig(BaseModel):
 class EmbeddingsConfig(BaseModel):
     """Embedding service configuration"""
     provider: str = "sentence-transformers"
-    model: str = "all-MiniLM-L6-v2"
+    model: str = "thenlper/gte-base"
     device: str = "cpu"
     batch_size: int = Field(default=32, ge=1, le=128)
     normalize: bool = True

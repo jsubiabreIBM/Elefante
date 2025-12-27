@@ -40,9 +40,9 @@ Complete documentation index for Elefante AI Memory System v1.1.0.
 
 - [`installation-safeguards.md`](technical/installation-safeguards.md) - Automated safeguards
 - [`kuzu-best-practices.md`](technical/kuzu-best-practices.md) - Database best practices
-- [`memory-schema-v4.md`](technical/memory-schema-v4.md) - **Proposed: canonical keys, versioning, test isolation**
-- [`memory-schema-v2.md`](technical/memory-schema-v2.md) - Database schema
-- [`v2-schema-simple.md`](technical/v2-schema-simple.md) - Schema simplified
+- [`memory-schema-v3.md`](technical/memory-schema-v3.md) - Current memory schema
+- [`memory-schema-v4.md`](technical/memory-schema-v4.md) - Proposed: canonical keys, versioning, test isolation
+- [`memory-schema-v5-topology.md`](technical/memory-schema-v5-topology.md) - Rings/topics/types topology
 - [`temporal-memory-decay.md`](technical/temporal-memory-decay.md) - Memory decay algorithm
 
 **See**: [`technical/README.md`](technical/README.md) for complete index

@@ -23,6 +23,7 @@ Before completing ANY task, MUST:
 | MCP | Type signature | `list[types.Tool]` not `List[Tool]` |
 | Database | Reserved words | `props` not `properties` |
 | Memory | API vs raw access | `_collection.get()` for export |
+| **Documentation** | **Archive without index update** | **Update ALL READMEs that link to moved files** |
 
 ---
 
@@ -137,6 +138,24 @@ Before completing ANY task, MUST:
 **Action:** Use `elefanteMemoryListAll` + filter, not `elefanteMemorySearch`  
 **Why:** `elefanteMemorySearch` returns top-N by relevance  
 **Source:** debug/memory-neural-register.md Law #2
+
+---
+
+## DOCUMENTATION PITFALLS
+
+### pitfall: documentation archive without index update CRITICAL
+
+**Trigger:** Moving/archiving ANY file that is linked from an index (README.md, technical/README.md, etc.)  
+**Action:** BEFORE archiving, grep for all references: `grep -r "filename" docs/`; update ALL indexes that link to the file  
+**Why:** Archiving files without updating indexes creates ghost links. Documentation becomes obsolete. Future agents/users hit 404s.  
+**Source:** 2025-12-27 incident: v2 schema files archived Dec 11, but docs/README.md and docs/technical/README.md still linked to them for 16 days.
+
+### pitfall: documentation partial refactor
+
+**Trigger:** Renaming, moving, or deleting documentation files  
+**Action:** Complete the full chain: (1) Move file → (2) Update ALL inbound links → (3) Update ALL index files → (4) Verify with `grep -r "oldname" docs/`  
+**Why:** Partial refactors leave broken links and confusion. One file can be referenced from 5+ places.  
+**Source:** Developer Etiquette LAW 6 (File and Artifact Hygiene)
 
 ---
 

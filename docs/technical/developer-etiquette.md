@@ -148,6 +148,15 @@ L6.3 Eliminate duplication by consolidation and clear references, not silent del
 
 L6.4 Structure artifacts so a future agent, given the same context, can quickly find the canonical one.
 
+L6.5 **CRITICAL: When moving, renaming, or archiving ANY file:**
+
+- BEFORE the move: `grep -r "filename" docs/` to find ALL inbound references.
+- Update ALL index files (README.md, technical/README.md, etc.) that link to the file.
+- Verify AFTER the move: `grep -r "oldname" docs/` returns zero hits.
+- Partial refactors (move file but leave broken links) violate this law.
+
+**Rationale (2025-12-27 incident):** v2 schema files were archived on Dec 11 but docs/README.md still linked to them for 16 days. Ghost links make documentation obsolete.
+
 ---
 
 ## LAW 7 — DEBUGGING AND ROOT CAUSE

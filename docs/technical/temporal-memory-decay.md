@@ -382,9 +382,8 @@ temporal_decay:
 ## Related Documentation
 
 - [`architecture.md`](architecture.md) - System architecture
-- [`memory-schema-v2.md`](memory-schema-v2.md) - Memory data model
+- [`memory-schema-v3.md`](memory-schema-v3.md) - Memory data model
 - [`usage.md`](usage.md) - API reference
-- [`../debug/temporal-decay-issues.md`](../debug/temporal-decay-issues.md) - Implementation issues
 
 ---
 

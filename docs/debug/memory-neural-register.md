@@ -320,7 +320,7 @@ results = {
 - `docs/debug/memory/memory_retrieval_investigation.md` (export blockade discovery)
 - `docs/technical/temporal-memory-decay.md` (decay algorithm design)
 - `docs/technical/cognitive-memory-model.md` (architecture principles)
-- `docs/technical/memory-schema-v2.md` (database schema)
+- `docs/technical/memory-schema-v3.md` (current memory schema)
 - `src/core/deduplication.py` (implementation)
 - `src/core/temporal_consolidation.py` (implementation)
 

@@ -10,7 +10,7 @@ Elefante solves the "stateless agent" problem by bridging the gap between fuzzy 
 
 1.  **Semantic Memory (ChromaDB):**
     - **Role:** Handles "fuzzy" queries and meaning-based retrieval.
-    - **Model:** Uses `all-MiniLM-L6-v2` (Local, 384-dim) for embeddings.
+    - **Model:** Uses `thenlper/gte-base` (Local, 768-dim) for embeddings.
 2.  **Structured Memory (Kuzu Graph DB):**
     - **Role:** Manages deterministic facts and relationships.
     - **Schema:** Nodes (`Memory`, `Entity`, `Session`) and Edges (`RELATES_TO`, `DEPENDS_ON`, `CREATED_IN`).
