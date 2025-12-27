@@ -131,19 +131,24 @@ class ElefanteMCPServer:
             tools = [
                 types.Tool(
                     name="elefanteMemoryAdd",
-                    description="""Store a new memory in Elefante's dual-database system.
+                    description="""Store a new memory in Elefante - the user's second brain.
 
-**YOU ARE ELEFANTE'S BRAIN** - You must classify the memory as you store it:
-- **layer**: self (who), world (what), intent (do)
-- **sublayer**: 
-  - SELF: identity, preference, constraint
-  - WORLD: fact, failure, method
-  - INTENT: rule, goal, anti-pattern
-- **importance**: How critical? 1-10 (8+ for preferences, decisions, critical facts)
+**PRIMARY TRIGGER: "elefante:"**
+When user says "elefante: [anything]" with intent to SAVE, use this tool.
 
-ALWAYS provide layer and sublayer. You understand the content - classify it.
+Examples that MUST trigger this tool:
+- "elefante: remember this"
+- "elefante: save this"  
+- "elefante: store this"
+- "elefante: note that I prefer X"
+- "elefante: I always want Y"
 
-INTELLIGENT INGESTION: The system automatically detects duplicates (REDUNDANT), related memories (RELATED), or contradictions (CONTRADICTORY) and links to existing knowledge.""",
+Secondary triggers: "remember this", "don't forget", "keep in mind"
+
+**CLASSIFICATION (required):**
+- layer: self (who I am), world (facts), intent (rules)
+- sublayer: identity/preference/constraint (self), fact/failure/method (world), rule/goal/anti-pattern (intent)
+- importance: 1-10 (use 8+ for preferences, decisions)""",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -214,28 +219,28 @@ INTELLIGENT INGESTION: The system automatically detects duplicates (REDUNDANT), 
                 ),
                 types.Tool(
                     name="elefanteMemorySearch",
-                    description="""**CRITICAL: USE THIS TOOL FOR ALL MEMORY QUERIES** - Search Elefante's memory system when user asks about their preferences, past conversations, or anything they want you to remember. DO NOT search workspace files for memory queries.
+                    description="""Search Elefante - the user's second brain.
 
-**QUERY REWRITING REQUIREMENT:** Before calling this tool, you MUST rewrite the user's query to be standalone and specific. Replace ALL pronouns (it, that, this, he, she, they) and vague references with the actual entities from conversation context.
+**PRIMARY TRIGGER: "elefante:"**
+When user says "elefante: [anything]" with intent to RETRIEVE, use this tool.
 
-**Bad Queries (will fail):**
-- "How do I install it?" → Missing: what is "it"?
-- "Fix that error" → Missing: which error?
-- "What did he say about the project?" → Missing: who is "he"?
+Examples that MUST trigger this tool:
+- "elefante: what do you know about X"
+- "elefante: recall my preference for Y"
+- "elefante: check if we discussed Z"
+- "elefante: how do I like to do X"
+- "elefante: what did I say about Y"
 
-**Good Queries (will succeed):**
-- "How to install Elefante memory system on Windows"
-- "ChromaDB ImportError solution in Python"
-- "Jaime's preferences for development folder organization"
+Secondary triggers: "my preference", "we decided", "last time", "how I like"
 
-This tool queries ChromaDB (vector embeddings) and Kuzu (knowledge graph) using semantic, structured, or hybrid search modes. The database cannot infer context from pronouns - it needs explicit, searchable terms.
-                    
-**AUTOMATIC USAGE RULES:**
-1.  **ALWAYS** call this tool when the user asks an open-ended question about the project (e.g., "How does the auth system work?", "What are the coding standards?").
-2.  **ALWAYS** call this tool when the user refers to past decisions or preferences (e.g., "Do it like we discussed", "Use the usual style").
-3.  **NEVER** assume you know the answer if it might be in the memory. Check first.
-4.  **IF RESULTS ARE CONTRADICTORY:** The most recent memory (by timestamp) usually takes precedence, but check for "decision" or "fact" types over "conversation".
-5.  **IF RESULTS ARE IRRELEVANT:** Try a broader query or switch to `mode="semantic"` to catch fuzzy matches.""",
+**ALSO SEARCH when user asks about:**
+- Code style, formatting, naming conventions
+- Project decisions, architecture choices
+- "how should I" or "what's the best way" questions
+
+**WHEN IN DOUBT, SEARCH.** Fast. Better to find nothing than miss knowledge.
+
+**QUERY FORMAT:** Rewrite vague queries to be specific. No pronouns.""",
                     inputSchema={
                         "type": "object",
                         "properties": {

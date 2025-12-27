@@ -134,22 +134,12 @@ async def search_memories(query: str, limit: int = 5, min_similarity: float = 0.
     try:
         # Quick read-only operation
         vector_store = get_vector_store()
-        results = vector_store.search(query, limit=limit, min_similarity=min_similarity)
+        results = await vector_store.search(query, limit=limit, min_similarity=min_similarity)
         
         return {
             "success": True,
             "count": len(results),
-            "results": [
-                {
-                    "memory": {
-                        "id": r.get("id", ""),
-                        "content": r.get("document", ""),
-                        "metadata": r.get("metadata", {}),
-                    },
-                    "score": r.get("score", 0.0),
-                }
-                for r in results
-            ]
+            "results": [r.to_dict() for r in results]
         }
     except Exception as e:
         logger.error(f"Search failed: {e}")
